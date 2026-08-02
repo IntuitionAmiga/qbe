@@ -1,0 +1,15 @@
+type :s = { w, }
+
+function w $f(w %a, w %b, w %c, w %d, w %e, w %f, :s %s) {
+@start
+	%v =w loadw %s
+	ret %v
+}
+
+export function w $g() {
+@start
+	%v =w call $f(w 1, w 2, w 3, w 4, w 5, w 6, :s $s)
+	ret %v
+}
+
+data $s = align 4 { w 7 }

@@ -1,0 +1,5 @@
+export function l $invalid_mfcr(l %cr) {
+@start
+	%value =l ie64mfcr %cr
+	ret %value
+}

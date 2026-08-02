@@ -26,7 +26,7 @@ pinned(Ins *i)
 static int
 canelim(Ins *i)
 {
-	return isload(i->op) || isalloc(i->op) || isdivwl(i);
+	return isoptload(i->op) || isalloc(i->op) || isdivwl(i);
 }
 
 static uint earlyins(Fn *, Blk *, Ins *);

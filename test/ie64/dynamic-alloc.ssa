@@ -1,0 +1,12 @@
+export function l $dynamic_alloc(l %size) {
+@start
+	%p =l alloc8 %size
+	storel 42, %p
+	%r =l call $use(l %p)
+	ret %r
+}
+
+function l $use(l %value) {
+@start
+	ret %value
+}

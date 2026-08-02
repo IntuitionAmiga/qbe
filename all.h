@@ -50,6 +50,7 @@ struct Target {
 	int nfpr;
 	bits rglob; /* globally live regs (e.g., sp, fp) */
 	int nrglob;
+	int (*regwidth)(int); /* number of consecutive registers occupied by a class */
 	int *rsave; /* caller-save */
 	int nrsave[2];
 	bits (*retregs)(Ref, int[2]);
@@ -59,6 +60,9 @@ struct Target {
 	void (*abi1)(Fn *);
 	void (*isel)(Fn *);
 	void (*emitfn)(Fn *, FILE *);
+	/* Optional target-specific data emitter.  Targets that leave this unset use
+	 * the conventional assembler/ELF data syntax. */
+	void (*emitdat)(Dat *, FILE *);
 	void (*emitfin)(FILE *);
 	char asloc[4];
 	char assym[4];
@@ -192,8 +196,14 @@ enum {
 };
 
 #define INRANGE(x, l, u) ((unsigned)(x) - l <= u - l) /* linear in x */
-#define isstore(o) INRANGE(o, Ostoreb, Ostored)
-#define isload(o) INRANGE(o, Oloadsb, Oload)
+#define isstore(o) (INRANGE(o, Ostoreb, Ostored) || isvstore(o))
+#define isoptload(o) INRANGE(o, Oloadsb, Oload)
+#define isload(o) (isoptload(o) || isvload(o))
+#define isvstore(o) INRANGE(o, Ostorevb, Ostorevd)
+#define isvload(o) INRANGE(o, Oloadvsb, Oloadv)
+#define isie64op(o) INRANGE(o, Oie64nop, Oie64vaarg)
+#define isie64immop(o) (INRANGE(o, Oie64wait, Oie64dmovecr) || (o) == Oie64mtcr)
+#define iscallop(o) ((o) == Ocall || (o) == Oie64syscall)
 #define isalloc(o) INRANGE(o, Oalloc4, Oalloc16)
 #define isext(o) INRANGE(o, Oextsb, Oextuw)
 #define ispar(o) INRANGE(o, Opar, Opare)
@@ -470,6 +480,7 @@ struct Dat {
 /* main.c */
 extern Target T;
 extern char debug['Z'+1];
+extern char *ie64unitprefix;
 
 /* util.c */
 typedef enum {

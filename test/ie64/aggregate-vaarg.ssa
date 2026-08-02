@@ -1,0 +1,7 @@
+export function l $aggregate_vaarg(l %tag, ...) {
+@start
+	%ap =l alloc8 8
+	vastart %ap
+	%value =l ie64vaarg %ap, 4104
+	ret %value
+}

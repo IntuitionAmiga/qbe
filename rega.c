@@ -72,6 +72,35 @@ rfind(RMap *m, int t)
 	return -1;
 }
 
+static int
+rwidth(int t)
+{
+	int w;
+
+	if (t < Tmp0)
+		return 1;
+	w = T.regwidth ? T.regwidth(tmp[t].cls) : 1;
+	assert(w > 0);
+	return w;
+}
+
+static int
+rbusy(RMap *m, int t, int r, bits avoid)
+{
+	int j, w;
+
+	w = rwidth(t);
+	if (r + w > (KBASE(tmp[t].cls) == 0
+	? T.gpr0 + T.ngpr : T.fpr0 + T.nfpr))
+		return 1;
+	if (w > 1 && (r - T.fpr0) % w)
+		return 1;
+	for (j=0; j<w; j++)
+		if (bshas(m->b, r+j) || (avoid & BIT(r+j)))
+			return 1;
+	return 0;
+}
+
 static Ref
 rref(RMap *m, int t)
 {
@@ -89,19 +118,27 @@ rref(RMap *m, int t)
 static void
 radd(RMap *m, int t, int r)
 {
+	int j, w;
+
 	assert((t >= Tmp0 || t == r) && "invalid temporary");
 	assert(((T.gpr0 <= r && r < T.gpr0 + T.ngpr)
 		|| (T.fpr0 <= r && r < T.fpr0 + T.nfpr))
 		&& "invalid register");
 	assert(!bshas(m->b, t) && "temporary has mapping");
-	assert(!bshas(m->b, r) && "register already allocated");
+	w = rwidth(t);
+	assert(r + w <= (KBASE(tmp[t].cls) == 0
+		? T.gpr0 + T.ngpr : T.fpr0 + T.nfpr));
+	for (j=0; j<w; j++)
+		assert(!bshas(m->b, r+j) && "register already allocated");
 	assert(m->n <= T.ngpr+T.nfpr && "too many mappings");
 	bsset(m->b, t);
-	bsset(m->b, r);
+	for (j=0; j<w; j++) {
+		bsset(m->b, r+j);
+		regu |= BIT(r+j);
+	}
 	m->t[m->n] = t;
 	m->r[m->n] = r;
 	m->n++;
-	regu |= BIT(r);
 }
 
 static Ref
@@ -120,9 +157,9 @@ ralloctry(RMap *m, int t, int try)
 		return TMP(r);
 	}
 	r = tmp[t].visit;
-	if (r == -1 || bshas(m->b, r))
+	if (r == -1 || rbusy(m, t, r, 0))
 		r = *hint(t);
-	if (r == -1 || bshas(m->b, r)) {
+	if (r == -1 || rbusy(m, t, r, 0)) {
 		if (try)
 			return R;
 		regs = tmp[phicls(t, tmp)].hint.m;
@@ -135,10 +172,10 @@ ralloctry(RMap *m, int t, int try)
 			r1 = r0 + T.nfpr;
 		}
 		for (r=r0; r<r1; r++)
-			if (!(regs & BIT(r)))
+			if (!rbusy(m, t, r, regs))
 				goto Found;
 		for (r=r0; r<r1; r++)
-			if (!bshas(m->b, r))
+			if (!rbusy(m, t, r, 0))
 				goto Found;
 		die("no more regs");
 	}
@@ -161,21 +198,32 @@ ralloc(RMap *m, int t)
 static int
 rfree(RMap *m, int t)
 {
-	int i, r;
+	int i, j, r, requested, w;
 
 	assert(t >= Tmp0 || !(BIT(t) & T.rglob));
 	if (!bshas(m->b, t))
 		return -1;
-	for (i=0; m->t[i] != t; i++)
-		assert(i+1 < m->n);
+	requested = t;
+	for (i=0; i<m->n && m->t[i] != t; i++)
+		;
+	if (i == m->n && t < Tmp0) {
+		for (i=0; i<m->n; i++)
+			if (m->r[i] <= t && t < m->r[i] + rwidth(m->t[i])) {
+				t = m->t[i];
+				break;
+			}
+	}
+	assert(i < m->n);
 	r = m->r[i];
+	w = rwidth(t);
 	bsclr(m->b, t);
-	bsclr(m->b, r);
+	for (j=0; j<w; j++)
+		bsclr(m->b, r+j);
 	m->n--;
 	memmove(&m->t[i], &m->t[i+1], (m->n-i) * sizeof m->t[0]);
 	memmove(&m->r[i], &m->r[i+1], (m->n-i) * sizeof m->r[0]);
 	assert(t >= Tmp0 || t == r);
-	return r;
+	return requested < Tmp0 ? requested : r;
 }
 
 static void
@@ -272,7 +320,8 @@ move(int r, Ref to, RMap *m)
 	if (bshas(m->b, r)) {
 		/* r is used and not by to */
 		assert(r1 != r);
-		for (n=0; m->r[n] != r; n++)
+		for (n=0; m->r[n] != r
+		&& !(rwidth(m->t[n]) > 1 && m->r[n] + 1 == r); n++)
 			assert(n+1 < m->n);
 		t = m->t[n];
 		rfree(m, t);
@@ -288,6 +337,12 @@ static int
 regcpy(Ins *i)
 {
 	return i->op == Ocopy && isreg(i->arg[0]);
+}
+
+static int
+mustemit(Ins *i)
+{
+	return isie64op(i->op) || isvload(i->op);
 }
 
 static Ins *
@@ -306,7 +361,7 @@ dopm(Blk *b, Ins *i, RMap *m)
 		move(i->arg[0].val, i->to, m);
 	} while (i != b->ins && regcpy(i-1));
 	assert(m0.n <= m->n);
-	if (i != b->ins && (i-1)->op == Ocall) {
+	if (i != b->ins && iscallop((i-1)->op)) {
 		def = T.retregs((i-1)->arg[1], 0) | T.rglob;
 		for (r=0; T.rsave[r]>=0; r++)
 			if (!(BIT(T.rsave[r]) & def))
@@ -359,7 +414,7 @@ insert(Ref *r, Ref **rs, int p)
 static void
 doblk(Blk *b, RMap *cur)
 {
-	int t, x, r, rf, rt, nr;
+	int j, t, x, r, rf, rt, nr;
 	bits rs;
 	Ins *i, *i1;
 	Mem *m;
@@ -374,6 +429,7 @@ doblk(Blk *b, RMap *cur)
 		rf = -1;
 		switch (i->op) {
 		case Ocall:
+		case Oie64syscall:
 			rs = T.argregs(i->arg[1], 0) | T.rglob;
 			for (r=0; T.rsave[r]>=0; r++)
 				if (!(BIT(T.rsave[r]) & rs))
@@ -397,10 +453,19 @@ doblk(Blk *b, RMap *cur)
 				if (r < Tmp0 && (BIT(r) & T.rglob))
 					break;
 				rf = rfree(cur, r);
+				if (r < Tmp0 && T.regwidth)
+					for (j=1; j<T.regwidth(i->cls); j++)
+						if (bshas(cur->b, r+j))
+							rfree(cur, r+j);
 				if (rf == -1) {
 					assert(!isreg(i->to));
-					curi++;
-					continue;
+					if (!mustemit(i)) {
+						curi++;
+						continue;
+					}
+					i->to = ralloc(cur, r);
+					rf = rfree(cur, r);
+					assert(rf == (int)i->to.val);
 				}
 				i->to = TMP(rf);
 			}

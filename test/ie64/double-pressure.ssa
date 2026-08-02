@@ -1,0 +1,12 @@
+export function d $sum_nine_doubles(d %a, d %b, d %c, d %d, d %e, d %f, d %g, d %h, d %i) {
+@start
+	%ab =d add %a, %b
+	%cd =d add %c, %d
+	%ef =d add %e, %f
+	%gh =d add %g, %h
+	%abcd =d add %ab, %cd
+	%efghi =d add %ef, %gh
+	%left =d add %abcd, %efghi
+	%result =d add %left, %i
+	ret %result
+}

@@ -1,0 +1,35 @@
+export function l $double_to_ulong(d %value) {
+@start
+	%result =l dtoui %value
+	ret %result
+}
+
+export function l $single_to_ulong(s %value) {
+@start
+	%result =l stoui %value
+	ret %result
+}
+
+export function d $ulong_to_double(l %value) {
+@start
+	%result =d ultof %value
+	ret %result
+}
+
+export function s $ulong_to_single(l %value) {
+@start
+	%result =s ultof %value
+	ret %result
+}
+
+export function d $uint_to_double(w %value) {
+@start
+	%result =d uwtof %value
+	ret %result
+}
+
+export function s $uint_to_single(w %value) {
+@start
+	%result =s uwtof %value
+	ret %result
+}

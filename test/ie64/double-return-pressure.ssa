@@ -1,0 +1,35 @@
+function d $make_double() {
+@start
+	ret d_1.5
+}
+
+export function d $call_with_live_doubles() {
+@start
+	%a =d loadd $a
+	%b =d loadd $b
+	%c =d loadd $c
+	%d =d loadd $d
+	%e =d loadd $e
+	%f =d loadd $f
+	%g =d loadd $g
+	%h =d loadd $h
+	%called =d call $make_double()
+	%ab =d add %a, %b
+	%cd =d add %c, %d
+	%ef =d add %e, %f
+	%gh =d add %g, %h
+	%abcd =d add %ab, %cd
+	%efgh =d add %ef, %gh
+	%args =d add %abcd, %efgh
+	%result =d add %args, %called
+	ret %result
+}
+
+data $a = align 8 { d d_1 }
+data $b = align 8 { d d_2 }
+data $c = align 8 { d d_3 }
+data $d = align 8 { d d_4 }
+data $e = align 8 { d d_5 }
+data $f = align 8 { d d_6 }
+data $g = align 8 { d d_7 }
+data $h = align 8 { d d_8 }

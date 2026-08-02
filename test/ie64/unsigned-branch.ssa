@@ -1,0 +1,19 @@
+export function w $unsigned_less(l %a, l %b) {
+@start
+	%c =w cultl %a, %b
+	jnz %c, @yes, @no
+@yes
+	ret 1
+@no
+	ret 0
+}
+
+export function w $unsigned_greater(l %a, l %b) {
+@start
+	%c =w cugtl %a, %b
+	jnz %c, @yes, @no
+@yes
+	ret 1
+@no
+	ret 0
+}

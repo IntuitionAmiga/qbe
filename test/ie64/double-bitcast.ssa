@@ -1,0 +1,11 @@
+export function d $bits_to_double(l %bits) {
+@start
+	%value =d cast %bits
+	ret %value
+}
+
+export function l $double_to_bits(d %value) {
+@start
+	%bits =l cast %value
+	ret %bits
+}

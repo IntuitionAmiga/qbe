@@ -1,0 +1,5 @@
+export function s $bad_fmovecr() {
+@start
+	%value =s ie64fmovecr 16
+	ret %value
+}

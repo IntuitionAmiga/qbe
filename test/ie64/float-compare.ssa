@@ -1,0 +1,33 @@
+export function w $single_eq(s %a, s %b) {
+@start
+	%r =w ceqs %a, %b
+	ret %r
+}
+
+export function w $double_lt(d %a, d %b) {
+@start
+	%r =w cltd %a, %b
+	ret %r
+}
+
+export function w $double_ordered(d %a, d %b) {
+@start
+	%r =w cod %a, %b
+	ret %r
+}
+
+export function w $single_unordered(s %a, s %b) {
+@start
+	%r =w cuos %a, %b
+	ret %r
+}
+
+export function w $double_branch(d %a, d %b) {
+@start
+	%condition =w cltd %a, %b
+	jnz %condition, @yes, @no
+@yes
+	ret 1
+@no
+	ret 0
+}

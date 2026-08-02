@@ -4,6 +4,7 @@
 #include <getopt.h>
 
 Target T;
+char *ie64unitprefix;
 
 char debug['Z'+1] = {
 	['P'] = 0, /* parsing */
@@ -25,6 +26,7 @@ extern Target T_amd64_win;
 extern Target T_arm64;
 extern Target T_arm64_apple;
 extern Target T_rv64;
+extern Target T_ie64;
 
 static Target *tlist[] = {
 	&T_amd64_sysv,
@@ -33,18 +35,52 @@ static Target *tlist[] = {
 	&T_arm64,
 	&T_arm64_apple,
 	&T_rv64,
+	&T_ie64,
 	0
 };
 static FILE *outf;
 static int dbg;
 
 static void
+lowervolatile(Fn *fn)
+{
+	Blk *b;
+	Ins *i;
+
+	for (b=fn->start; b; b=b->link)
+		for (i=b->ins; i<&b->ins[b->nins]; i++) {
+			if (isvstore(i->op))
+				i->op = Ostoreb + i->op - Ostorevb;
+			else if (isvload(i->op))
+				i->op = Oloadsb + i->op - Oloadvsb;
+		}
+}
+
+static void
+checktargetops(Fn *fn)
+{
+	Blk *b;
+	Ins *i;
+
+	if (strcmp(T.name, "ie64") == 0)
+		return;
+	for (b=fn->start; b; b=b->link)
+		for (i=b->ins; i<&b->ins[b->nins]; i++)
+			if (isie64op(i->op))
+				die("private IE64 operation '%s' used with target '%s'",
+					optab[i->op].name, T.name);
+}
+
+static void
 data(Dat *d)
 {
 	if (dbg)
 		return;
-	emitdat(d, outf);
-	if (d->type == DEnd) {
+	if (T.emitdat)
+		T.emitdat(d, outf);
+	else
+		emitdat(d, outf);
+	if (d->type == DEnd && strcmp(T.name, "ie64") != 0) {
 		fputs("/* end data */\n\n", outf);
 		freeall();
 	}
@@ -61,6 +97,7 @@ func(Fn *fn)
 		fprintf(stderr, "\n> After parsing:\n");
 		printfn(fn, stderr);
 	}
+	checktargetops(fn);
 	T.abi0(fn);
 	fillcfg(fn);
 	filluse(fn);
@@ -103,6 +140,7 @@ func(Fn *fn)
 	fillcost(fn);
 	spill(fn);
 	rega(fn);
+	lowervolatile(fn);
 	fillcfg(fn);
 	simpljmp(fn);
 	fillcfg(fn);
@@ -115,7 +153,8 @@ func(Fn *fn)
 			fn->rpo[n]->link = fn->rpo[n+1];
 	if (!dbg) {
 		T.emitfn(fn, outf);
-		fprintf(outf, "/* end function %s */\n\n", fn->name);
+		if (strcmp(T.name, "ie64") != 0)
+			fprintf(outf, "/* end function %s */\n\n", fn->name);
 	} else
 		fprintf(stderr, "\n");
 	freeall();
@@ -137,7 +176,7 @@ main(int ac, char *av[])
 
 	T = Deftgt;
 	outf = stdout;
-	while ((c = getopt(ac, av, "hd:o:t:")) != -1)
+	while ((c = getopt(ac, av, "hd:o:t:f:")) != -1)
 		switch (c) {
 		case 'd':
 			for (; *optarg; optarg++)
@@ -171,6 +210,14 @@ main(int ac, char *av[])
 				}
 			}
 			break;
+		case 'f':
+			if (strncmp(optarg, "ie64-unit-prefix=", 17) != 0
+			|| !optarg[17]) {
+				fprintf(stderr, "invalid internal option '-f%s'\n", optarg);
+				exit(1);
+			}
+			ie64unitprefix = optarg + 17;
+			break;
 		case 'h':
 		default:
 			hf = c != 'h' ? stderr : stdout;
@@ -188,6 +235,10 @@ main(int ac, char *av[])
 			fprintf(hf, "\t%-11s dump debug information\n", "-d <flags>");
 			exit(c != 'h');
 		}
+	if (ie64unitprefix && strcmp(T.name, "ie64") != 0) {
+		fprintf(stderr, "-fie64-unit-prefix requires -t ie64\n");
+		exit(1);
+	}
 
 	do {
 		f = av[optind];

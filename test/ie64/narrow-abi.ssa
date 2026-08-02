@@ -1,0 +1,17 @@
+function sb $signed_byte(sb %x) {
+@start
+	ret %x
+}
+
+function uh $unsigned_half(uh %x) {
+@start
+	ret %x
+}
+
+export function w $call_narrow(w %x) {
+@start
+	%a =w call $signed_byte(sb %x)
+	%b =w call $unsigned_half(uh %x)
+	%r =w add %a, %b
+	ret %r
+}

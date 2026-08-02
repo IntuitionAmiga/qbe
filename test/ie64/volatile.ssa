@@ -1,0 +1,20 @@
+export data $x = align 8 { z 8 }
+
+export
+function l $f() {
+@start
+	%a =l loadv $x
+	%b =l loadv $x
+	%s =l add %a, %b
+	storevl %s, $x
+	storevl 3, $x
+	ret %b
+}
+
+export
+function $discard() {
+@start
+	%a =l loadv $x
+	%b =l loadv $x
+	ret
+}

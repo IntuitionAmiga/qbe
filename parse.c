@@ -145,8 +145,8 @@ enum {
 	TMask = 16383, /* for temps hash */
 	BMask = 8191, /* for blocks hash */
 
-	K = 11183273, /* found using tools/lexh.c */
-	M = 23,
+	K = 121639589, /* found using tools/lexh.c */
+	M = 22,
 };
 
 static uchar lexh[1 << (32-M)];
@@ -626,7 +626,7 @@ parseline(PState ps)
 		op = next();
 		break;
 	default:
-		if (isstore(t)) {
+		if (isstore(t) || isie64op(t)) {
 		case Tblit:
 		case Tcall:
 		case Ovastart:

@@ -1,0 +1,25 @@
+export function s $float_swap(s %a, s %b, w %count) {
+@start
+	jnz %count, @loop, @done
+@loop
+	%x =s phi @start %a, @loop %y
+	%y =s phi @start %b, @loop %x
+	%next =w sub %count, 1
+	jnz %next, @loop, @done
+@done
+	%result =s phi @start %a, @loop %x
+	ret %result
+}
+
+export function d $double_swap(d %a, d %b, w %count) {
+@start
+	jnz %count, @loop, @done
+@loop
+	%x =d phi @start %a, @loop %y
+	%y =d phi @start %b, @loop %x
+	%next =w sub %count, 1
+	jnz %next, @loop, @done
+@done
+	%result =d phi @start %a, @loop %x
+	ret %result
+}

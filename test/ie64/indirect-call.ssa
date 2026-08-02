@@ -1,0 +1,5 @@
+export function w $call(l %f) {
+@start
+	%r =w call %f(w 2)
+	ret %r
+}

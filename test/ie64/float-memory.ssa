@@ -1,0 +1,8 @@
+export data $g = align 4 { s 0 }
+
+export function s $roundtrip(s %x) {
+@start
+	stores %x, $g
+	%r =s load $g
+	ret %r
+}

@@ -1,0 +1,10 @@
+export data $g = align 4 { w 3 }
+
+export
+function w $main() {
+@start
+	%x =w loadw extern $g
+	%y =w add %x, 4
+	storew %y, extern $g
+	ret %y
+}

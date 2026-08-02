@@ -1,0 +1,13 @@
+export function l $alloc_alignment() {
+@start
+	%a =l alloc4 4
+	%b =l alloc8 8
+	%c =l alloc16 16
+	%r =l call $use(l %a, l %b, l %c)
+	ret %r
+}
+
+function l $use(l %a, l %b, l %c) {
+@start
+	ret %a
+}

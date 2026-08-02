@@ -103,6 +103,29 @@ static int slot8; /* ditto, 8 bytes */
 static BSet mask[2][1]; /* class masks */
 
 static int
+regwidth(int t)
+{
+	int w;
+
+	if (t < Tmp0)
+		return 1;
+	w = T.regwidth ? T.regwidth(tmp[t].cls) : 1;
+	assert(w > 0);
+	return w;
+}
+
+static int
+regcount(BSet *b)
+{
+	int n, t;
+
+	n = 0;
+	for (t=0; bsiter(b, &t); t++)
+		n += regwidth(t);
+	return n;
+}
+
+static int
 tcmp0(const void *pa, const void *pb)
 {
 	uint ca, cb;
@@ -165,10 +188,10 @@ static void
 limit(BSet *b, int k, BSet *f)
 {
 	static int *tarr, maxt;
-	int i, t, nt;
+	int i, n, t, nt;
 
 	nt = bscount(b);
-	if (nt <= k)
+	if (regcount(b) <= k)
 		return;
 	if (nt > maxt) {
 		free(tarr);
@@ -187,10 +210,14 @@ limit(BSet *b, int k, BSet *f)
 			qsort(tarr, nt, sizeof tarr[0], tcmp1);
 		}
 	}
-	for (i=0; i<k && i<nt; i++)
-		bsset(b, tarr[i]);
-	for (; i<nt; i++)
-		slot(tarr[i]);
+	for (i=0, n=0; i<nt; i++) {
+		t = tarr[i];
+		if (n + regwidth(t) <= k) {
+			bsset(b, t);
+			n += regwidth(t);
+		} else
+			slot(t);
+	}
 }
 
 /* spills temporaries to fit the
@@ -269,6 +296,8 @@ dopm(Blk *b, Ins *i, BSet *v)
 	 */
 	i1 = ++i;
 	do {
+		int j, rw;
+
 		i--;
 		t = i->to.val;
 		if (!req(i->to, R))
@@ -276,10 +305,12 @@ dopm(Blk *b, Ins *i, BSet *v)
 			bsclr(v, t);
 			store(i->to, tmp[t].slot);
 		}
-		bsset(v, i->arg[0].val);
+		rw = T.regwidth ? T.regwidth(i->cls) : 1;
+		for (j=0; j<rw; j++)
+			bsset(v, i->arg[0].val+j);
 	} while (i != b->ins && regcpy(i-1));
 	bscopy(u, v);
-	if (i != b->ins && (i-1)->op == Ocall) {
+	if (i != b->ins && iscallop((i-1)->op)) {
 		v->t[0] &= ~T.retregs((i-1)->arg[1], 0);
 		limit2(v, T.nrsave[0], T.nrsave[1], 0);
 		for (n=0, r=0; T.rsave[n]>=0; n++)
@@ -380,8 +411,8 @@ spill(Fn *fn)
 				bscopy(w, u);
 				bsinter(u, hd->gen);
 				bsdiff(w, hd->gen);
-				if (bscount(u) < n) {
-					j = bscount(w); /* live through */
+				if ((uint)regcount(u) < n) {
+					j = regcount(w); /* live through */
 					l = hd->nlive[k];
 					limit(w, n - (l - j), 0);
 					bsunion(u, w);
@@ -429,10 +460,15 @@ spill(Fn *fn)
 			}
 			bszero(w);
 			if (!req(i->to, R)) {
+				int rw;
+
 				assert(rtype(i->to) == RTmp);
 				t = i->to.val;
-				if (bshas(v, t))
-					bsclr(v, t);
+				rw = t < Tmp0 && T.regwidth ? T.regwidth(i->cls) : 1;
+				if (bshas(v, t)) {
+					for (n=0; n<(uint)rw; n++)
+						bsclr(v, t+n);
+				}
 				else {
 					/* make sure we have a reg
 					 * for the result */
@@ -462,9 +498,16 @@ spill(Fn *fn)
 				case RTmp:
 					t = i->arg[n].val;
 					lvarg[n] = bshas(v, t);
-					bsset(v, t);
-					if (j-- <= 0)
-						bsset(w, t);
+					{
+						int q, rw = i->op == Ocopy && n == 0 && t < Tmp0
+							&& T.regwidth ? T.regwidth(i->cls) : 1;
+						for (q=0; q<rw; q++) {
+							bsset(v, t+q);
+							if (j <= 0)
+								bsset(w, t+q);
+						}
+						j--;
+					}
 					break;
 				}
 			bscopy(u, v);
@@ -495,9 +538,9 @@ spill(Fn *fn)
 			if (r)
 				sethint(v, r);
 		}
-		if (b == fn->start)
+		if (b == fn->start) {
 			assert(v->t[0] == (T.rglob | fn->reg));
-		else
+		} else
 			assert(v->t[0] == T.rglob);
 
 		for (p=b->phi; p; p=p->link) {

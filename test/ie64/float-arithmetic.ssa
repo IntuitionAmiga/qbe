@@ -1,0 +1,7 @@
+export function s $arithmetic(s %a, s %b) {
+@start
+	%x =s sub %a, %b
+	%y =s mul %x, %b
+	%z =s div %y, %a
+	ret %z
+}

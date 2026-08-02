@@ -1,0 +1,4 @@
+export function d $constant() {
+@start
+	ret d_1.5
+}

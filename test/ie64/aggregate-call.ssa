@@ -1,0 +1,14 @@
+type :s = { w, }
+
+function $f(:s %x) {
+@start
+	ret
+}
+
+export function $g() {
+@start
+	call $f(:s $s)
+	ret
+}
+
+data $s = align 4 { z 4 }

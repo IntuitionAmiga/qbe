@@ -1,0 +1,9 @@
+export function w $f(w %x) {
+@start
+	%c =w ceqw %x, 3
+	jnz %c, @yes, @no
+@yes
+	ret 1
+@no
+	ret 0
+}

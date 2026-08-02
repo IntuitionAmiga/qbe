@@ -1,0 +1,14 @@
+type :aligned = align 16 { l, l }
+
+function $take(:aligned %value) {
+@start
+	ret
+}
+
+export function $call_aligned() {
+@start
+	call $take(:aligned $value)
+	ret
+}
+
+data $value = align 16 { l 1, l 2 }

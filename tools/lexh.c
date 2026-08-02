@@ -24,6 +24,19 @@ char *tok[] = {
 	"cnes", "ceqs", "cos", "cuos", "cled", "cltd",
 	"cgtd", "cged", "cned", "ceqd", "cod", "cuod",
 	"vaarg", "vastart", "...", "env", "dbgloc",
+	"storevb", "storevh", "storevw", "storevl", "storevs", "storevd",
+	"loadvsb", "loadvub", "loadvsh", "loadvuh", "loadvsw", "loadvuw", "loadv",
+	"ie64nop", "ie64halt", "ie64sei", "ie64cli", "ie64tlbflush",
+	"ie64suaen", "ie64suadis", "ie64eret", "ie64rti", "ie64smode",
+	"ie64fmovsr", "ie64fmovcr", "ie64tlbinval", "ie64wait", "ie64syscall",
+	"ie64mfcr", "ie64fmovecr", "ie64dmovecr", "ie64fmovsc", "ie64fmovcc",
+	"ie64mtcr", "ie64fmod", "ie64dmod", "ie64fabs", "ie64dabs",
+	"ie64fint", "ie64dint",
+	"ie64fcvtsd", "ie64fcvtds", "ie64fsin", "ie64fcos", "ie64ftan",
+	"ie64fatan", "ie64flog", "ie64fexp", "ie64fpow", "ie64fsqrt",
+	"ie64dsin", "ie64dcos", "ie64dtan", "ie64datan", "ie64dlog",
+	"ie64dexp", "ie64dpow", "ie64dsqrt", "ie64xchg", "ie64faa", "ie64fand",
+	"ie64for", "ie64fxor", "ie64casd", "ie64cas",
 
 	"call", "phi", "jmp", "jnz", "ret", "hlt", "export",
 	"function", "type", "data", "section", "align", "dbgfile",
@@ -70,7 +83,8 @@ main()
 		th[i] = h;
 	}
 
-	for (i=9; 1<<i < Ntok; ++i);
+	/* Leave ample space for target-private operation names. */
+	for (i=10; 1<<i < Ntok; ++i);
 	M = 32 - i;
 
 	for (;; --M) {

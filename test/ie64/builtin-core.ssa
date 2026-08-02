@@ -1,0 +1,11 @@
+export function $f() {
+@start
+	ie64nop
+	ie64sei
+	ie64cli
+	ie64tlbflush
+	ie64suaen
+	ie64suadis
+	ie64halt
+	ret
+}

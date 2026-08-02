@@ -1,0 +1,14 @@
+function w $f(w %tag, ...) {
+@start
+	%ap =l alloc8 8
+	vastart %ap
+	%i =w vaarg %ap
+	%d =d vaarg %ap
+	ret %i
+}
+
+export function w $g() {
+@start
+	%r =w call $f(w 1, ..., w 2, d d_3.0)
+	ret %r
+}

@@ -1,0 +1,16 @@
+type :s = { w, }
+
+function :s $f(w %x) {
+@start
+	%r =l alloc4 4
+	storew %x, %r
+	ret %r
+}
+
+export function w $g() {
+@start
+	%r =:s call $f(w 2)
+	%p =l add %r, 0
+	%v =w loadw %p
+	ret %v
+}

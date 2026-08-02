@@ -1,0 +1,15 @@
+export function l $dynamic_varargs(l %n, l %b, l %c, l %d, l %e, l %f, l %g, ...) {
+@start
+	%buf =l alloc8 %n
+	%ap =l alloc8 8
+	vastart %ap
+	%x =l vaarg %ap
+	storel %x, %buf
+	call $use(l %buf)
+	ret %x
+}
+
+function $use(l %value) {
+@start
+	ret
+}

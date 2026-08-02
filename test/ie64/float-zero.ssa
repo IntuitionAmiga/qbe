@@ -1,0 +1,20 @@
+export function s $single_zero() {
+@start
+	ret s_0
+}
+
+export function d $double_zero() {
+@start
+	ret d_0
+}
+
+export function $both_zero() {
+@start
+	call $consume_zeros(s s_0, d d_0)
+	ret
+}
+
+function $consume_zeros(s %single, d %double) {
+@start
+	ret
+}

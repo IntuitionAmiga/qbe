@@ -47,9 +47,13 @@ loadsz(Ins *l)
 {
 	switch (l->op) {
 	case Oloadsb: case Oloadub: return 1;
+	case Oloadvsb: case Oloadvub: return 1;
 	case Oloadsh: case Oloaduh: return 2;
+	case Oloadvsh: case Oloadvuh: return 2;
 	case Oloadsw: case Oloaduw: return 4;
+	case Oloadvsw: case Oloadvuw: return 4;
 	case Oload: return KWIDE(l->cls) ? 8 : 4;
+	case Oloadv: return KWIDE(l->cls) ? 8 : 4;
 	}
 	die("unreachable");
 }
@@ -59,9 +63,13 @@ storesz(Ins *s)
 {
 	switch (s->op) {
 	case Ostoreb: return 1;
+	case Ostorevb: return 1;
 	case Ostoreh: return 2;
+	case Ostorevh: return 2;
 	case Ostorew: case Ostores: return 4;
+	case Ostorevw: case Ostorevs: return 4;
 	case Ostorel: case Ostored: return 8;
+	case Ostorevl: case Ostorevd: return 8;
 	}
 	die("unreachable");
 }
@@ -251,7 +259,7 @@ def(Slice sl, bits msk, Blk *b, Ins *i, Loc *il)
 	while (i > b->ins) {
 		--i;
 		if (killsl(i->to, sl)
-		|| (i->op == Ocall && escapes(sl.ref, curf)))
+		|| (iscallop(i->op) && escapes(sl.ref, curf)))
 			goto Load;
 		ld = isload(i->op);
 		if (ld) {
@@ -443,7 +451,7 @@ loadopt(Fn *fn)
 	inum = 0;
 	for (b=fn->start; b; b=b->link)
 		for (i=b->ins; i<&b->ins[b->nins]; ++i) {
-			if (!isload(i->op))
+			if (!isoptload(i->op))
 				continue;
 			sz = loadsz(i);
 			sl = (Slice){i->arg[0], 0, sz, i->cls};
@@ -470,7 +478,7 @@ loadopt(Fn *fn)
 				if (ni == b->nins)
 					break;
 				i = &b->ins[ni++];
-				if (isload(i->op)
+				if (isoptload(i->op)
 				&& !req(i->arg[1], R)) {
 					ext = Oextsb + i->op - Oloadsb;
 					switch (i->op) {

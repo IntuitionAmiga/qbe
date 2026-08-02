@@ -1,0 +1,10 @@
+export function s $fp_callee(s %f0, s %f1, s %f2, s %f3, s %f4, s %f5, s %f6, d %spilled, s %f7) {
+@start
+	ret %f7
+}
+
+export function s $fp_caller(s %f0, s %f1, s %f2, s %f3, s %f4, s %f5, s %f6, d %spilled, s %f7) {
+@start
+	%result =s call $fp_callee(s %f0, s %f1, s %f2, s %f3, s %f4, s %f5, s %f6, d %spilled, s %f7)
+	ret %result
+}

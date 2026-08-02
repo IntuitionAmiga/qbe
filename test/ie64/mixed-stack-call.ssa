@@ -1,0 +1,10 @@
+export function s $callee(w %a, w %b, w %c, w %d, w %e, w %f, w %g, s %h, s %i, s %j, s %k, s %l, s %m, s %n, s %o, s %p) {
+@start
+	ret %p
+}
+
+export function s $caller(w %a, w %b, w %c, w %d, w %e, w %f, w %g, s %h, s %i, s %j, s %k, s %l, s %m, s %n, s %o, s %p) {
+@start
+	%r =s call $callee(w %a, w %b, w %c, w %d, w %e, w %f, w %g, s %h, s %i, s %j, s %k, s %l, s %m, s %n, s %o, s %p)
+	ret %r
+}

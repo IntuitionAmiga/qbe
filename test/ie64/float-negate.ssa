@@ -1,0 +1,11 @@
+export function s $single_negate(s %value) {
+@start
+	%result =s neg %value
+	ret %result
+}
+
+export function d $double_negate(d %value) {
+@start
+	%result =d neg %value
+	ret %result
+}

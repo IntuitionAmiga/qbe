@@ -1,5 +1,17 @@
 #include "all.h"
 
+static int
+regwidth(int t, Tmp *tmp)
+{
+	int w;
+
+	if (t < Tmp0)
+		return 1;
+	w = T.regwidth ? T.regwidth(tmp[t].cls) : 1;
+	assert(w > 0);
+	return w;
+}
+
 void
 liveon(BSet *v, Blk *b, Blk *s)
 {
@@ -20,16 +32,28 @@ liveon(BSet *v, Blk *b, Blk *s)
 }
 
 static void
-bset(Ref r, Blk *b, int *nlv, Tmp *tmp)
+bsetn(Ref r, int width, Blk *b, int *nlv, Tmp *tmp)
 {
+	int j, t;
 
 	if (rtype(r) != RTmp)
 		return;
-	bsset(b->gen, r.val);
-	if (!bshas(b->in, r.val)) {
-		nlv[KBASE(tmp[r.val].cls)]++;
-		bsset(b->in, r.val);
+	if (r.val >= Tmp0)
+		width = 1;
+	for (j=0; j<width; j++) {
+		t = r.val + j;
+		bsset(b->gen, t);
+		if (!bshas(b->in, t)) {
+			nlv[KBASE(tmp[t].cls)] += regwidth(t, tmp);
+			bsset(b->in, t);
+		}
 	}
+}
+
+static void
+bset(Ref r, Blk *b, int *nlv, Tmp *tmp)
+{
+	bsetn(r, 1, b, nlv, tmp);
 }
 
 /* liveness analysis
@@ -71,7 +95,7 @@ Again:
 		b->out->t[0] |= T.rglob;
 		bscopy(b->in, b->out);
 		for (t=0; bsiter(b->in, &t); t++)
-			nlv[KBASE(f->tmp[t].cls)]++;
+			nlv[KBASE(f->tmp[t].cls)] += regwidth(t, f->tmp);
 		if (rtype(b->jmp.arg) == RCall) {
 			assert((int)bscount(b->in) == T.nrglob &&
 				b->in->t[0] == T.rglob);
@@ -81,7 +105,8 @@ Again:
 		for (k=0; k<2; k++)
 			b->nlive[k] = nlv[k];
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
-			if ((--i)->op == Ocall && rtype(i->arg[1]) == RCall) {
+			--i;
+			if (iscallop(i->op) && rtype(i->arg[1]) == RCall) {
 				b->in->t[0] &= ~T.retregs(i->arg[1], m);
 				for (k=0; k<2; k++) {
 					nlv[k] -= m[k];
@@ -100,12 +125,18 @@ Again:
 				}
 			}
 			if (!req(i->to, R)) {
+				int j, u, width;
+
 				assert(rtype(i->to) == RTmp);
 				t = i->to.val;
-				if (bshas(b->in, t))
-					nlv[KBASE(f->tmp[t].cls)]--;
-				bsset(b->gen, t);
-				bsclr(b->in, t);
+				width = t < Tmp0 && T.regwidth ? T.regwidth(i->cls) : 1;
+				for (j=0; j<width; j++) {
+					u = t + j;
+					if (bshas(b->in, u))
+						nlv[KBASE(f->tmp[u].cls)] -= regwidth(u, f->tmp);
+					bsset(b->gen, u);
+					bsclr(b->in, u);
+				}
 			}
 			for (k=0; k<2; k++)
 				switch (rtype(i->arg[k])) {
@@ -115,7 +146,12 @@ Again:
 					bset(ma->index, b, nlv, f->tmp);
 					break;
 				default:
-					bset(i->arg[k], b, nlv, f->tmp);
+					if (i->op == Ocopy && k == 0
+					&& rtype(i->arg[k]) == RTmp && i->arg[k].val < Tmp0)
+						bsetn(i->arg[k], T.regwidth ? T.regwidth(i->cls) : 1,
+							b, nlv, f->tmp);
+					else
+						bset(i->arg[k], b, nlv, f->tmp);
 					break;
 				}
 			for (k=0; k<2; k++)

@@ -1,0 +1,13 @@
+export
+function w $add(w %a, w %b) {
+@start
+	%sum =w add %a, %b
+	ret %sum
+}
+
+export
+function w $main() {
+@start
+	%result =w call $add(w 2, w 3)
+	ret %result
+}

@@ -1,0 +1,11 @@
+export function w $toint(s %f) {
+@start
+	%i =w stosi %f
+	ret %i
+}
+
+export function s $tofloat(w %i) {
+@start
+	%f =s swtof %i
+	ret %f
+}

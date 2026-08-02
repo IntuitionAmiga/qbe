@@ -1,0 +1,11 @@
+export function s $f(s %a, s %b) {
+@start
+	%x =s add %a, %b
+	ret %x
+}
+
+export function s $g(s %a, s %b) {
+@start
+	%x =s call $f(s %a, s %b)
+	ret %x
+}

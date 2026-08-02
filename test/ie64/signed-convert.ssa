@@ -1,0 +1,23 @@
+export function l $double_to_long(d %value) {
+@start
+	%result =l dtosi %value
+	ret %result
+}
+
+export function d $long_to_double(l %value) {
+@start
+	%result =d sltof %value
+	ret %result
+}
+
+export function l $single_to_long(s %value) {
+@start
+	%result =l stosi %value
+	ret %result
+}
+
+export function s $long_to_single(l %value) {
+@start
+	%result =s sltof %value
+	ret %result
+}

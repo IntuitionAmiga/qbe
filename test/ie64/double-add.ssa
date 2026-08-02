@@ -1,0 +1,11 @@
+export function d $add(d %a, d %b) {
+@start
+	%sum =d add %a, %b
+	ret %sum
+}
+
+export function d $call(d %a, d %b) {
+@start
+	%r =d call $add(d %a, d %b)
+	ret %r
+}
