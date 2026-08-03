@@ -1,9 +1,16 @@
-align 16
+.section .text,"ax"
+.global callee
+.type callee,@function
+.align 16
 callee:
 	fload f0, 16(r31)
 .L1:
 	rts
-align 16
+.size callee,.-callee
+.section .text,"ax"
+.global caller
+.type caller,@function
+.align 16
 caller:
 	sub.q r31, r31, #24
 	store.q r25, 0(r31)
@@ -24,3 +31,4 @@ caller:
 	fload f8, 8(r31)
 	add.q r31, r31, #24
 	rts
+.size caller,.-caller

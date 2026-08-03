@@ -1,4 +1,7 @@
-align 16
+.section .text,"ax"
+.global call
+.type call,@function
+.align 16
 call:
 	sub.q r31, r31, #8
 	move.q r2, r1
@@ -8,3 +11,4 @@ call:
 	sext.l r1, r1
 	add.q r31, r31, #8
 	rts
+.size call,.-call

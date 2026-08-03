@@ -1,4 +1,7 @@
-align 16
+.section .text,"ax"
+.global spill_copy
+.type spill_copy,@function
+.align 16
 spill_copy:
 	sub.q r31, r31, #88
 	store.q r18, 32(r31)
@@ -49,7 +52,12 @@ spill_copy:
 	load.q r24, 80(r31)
 	add.q r31, r31, #88
 	rts
-align 16
+.size spill_copy,.-spill_copy
+.section .text,"ax"
+.local clobber
+.type clobber,@function
+.align 16
 clobber:
 .L2:
 	rts
+.size clobber,.-clobber

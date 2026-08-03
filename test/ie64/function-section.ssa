@@ -1,0 +1,4 @@
+export section ".fasttext" "ax" function w $sectioned() {
+@start
+	ret 0
+}

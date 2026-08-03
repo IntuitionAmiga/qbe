@@ -1,9 +1,16 @@
-align 16
+.section .text,"ax"
+.global fp_callee
+.type fp_callee,@function
+.align 16
 fp_callee:
 	fmov f0, f7
 .L1:
 	rts
-align 16
+.size fp_callee,.-fp_callee
+.section .text,"ax"
+.global fp_caller
+.type fp_caller,@function
+.align 16
 fp_caller:
 	sub.q r31, r31, #24
 	store.q r25, 0(r31)
@@ -23,3 +30,4 @@ fp_caller:
 	fload f9, 16(r31)
 	add.q r31, r31, #24
 	rts
+.size fp_caller,.-fp_caller

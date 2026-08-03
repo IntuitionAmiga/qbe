@@ -1,4 +1,7 @@
-align 16
+.section .text,"ax"
+.global aggregate_vaarg
+.type aggregate_vaarg,@function
+.align 16
 aggregate_vaarg:
 	sub.q r31, r31, #24
 	lea r30, 0(r31)
@@ -25,3 +28,4 @@ aggregate_vaarg:
 	move.q r1, r1
 	add.q r31, r31, #24
 	rts
+.size aggregate_vaarg,.-aggregate_vaarg

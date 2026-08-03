@@ -1,0 +1,5 @@
+function s $bad() {
+@start
+	%x =s copy 1
+	ret %x
+}

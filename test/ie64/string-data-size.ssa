@@ -1,0 +1,1 @@
+data $string_bytes = align 1 { b "hello", z 2 }

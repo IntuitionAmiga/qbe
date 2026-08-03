@@ -1,10 +1,18 @@
-align 16
+.section .text,"ax"
+.local make_double
+.type make_double,@function
+.align 16
 make_double:
-	move.q r30, #__ie64_fconst_0
+	move.l r30, #lo32(.L__ie64_fconst_0+0)
+	movt r30, #hi32(.L__ie64_fconst_0+0)
 	dload f0, (r30)
 .L1:
 	rts
-align 16
+.size make_double,.-make_double
+.section .text,"ax"
+.global call_with_live_doubles
+.type call_with_live_doubles,@function
+.align 16
 call_with_live_doubles:
 	sub.q r31, r31, #120
 	fstore f8, 48(r31)
@@ -15,29 +23,37 @@ call_with_live_doubles:
 	fstore f13, 88(r31)
 	fstore f14, 96(r31)
 	fstore f15, 104(r31)
-	move.q r30, #a+0
+	move.l r30, #lo32(a+0)
+	movt r30, #hi32(a+0)
 	dload f0, (r30)
-	move.q r30, #b+0
+	move.l r30, #lo32(b+0)
+	movt r30, #hi32(b+0)
 	dload f2, (r30)
-	move.q r30, #c+0
+	move.l r30, #lo32(c+0)
+	movt r30, #hi32(c+0)
 	dload f8, (r30)
-	move.q r30, #d+0
+	move.l r30, #lo32(d+0)
+	movt r30, #hi32(d+0)
 	dload f14, (r30)
-	move.q r30, #e+0
+	move.l r30, #lo32(e+0)
+	movt r30, #hi32(e+0)
 	dload f4, (r30)
 	lea r30, 8(r31)
 	dstore f4, (r30)
 	dmov f12, f2
-	move.q r30, #f+0
+	move.l r30, #lo32(f+0)
+	movt r30, #hi32(f+0)
 	dload f2, (r30)
 	lea r30, 16(r31)
 	dstore f2, (r30)
-	move.q r30, #g+0
+	move.l r30, #lo32(g+0)
+	movt r30, #hi32(g+0)
 	dload f6, (r30)
 	lea r30, 24(r31)
 	dstore f6, (r30)
 	dmov f10, f0
-	move.q r30, #h+0
+	move.l r30, #lo32(h+0)
+	movt r30, #hi32(h+0)
 	dload f0, (r30)
 	lea r30, 32(r31)
 	dstore f0, (r30)
@@ -69,30 +85,65 @@ call_with_live_doubles:
 	fload f15, 104(r31)
 	add.q r31, r31, #120
 	rts
-align 8
+.size call_with_live_doubles,.-call_with_live_doubles
+.section .data,"aw"
+.local a
+.type a,@object
+.align 8
 a:
 	dc.q 4607182418800017408
-align 8
+.size a,8
+.section .data,"aw"
+.local b
+.type b,@object
+.align 8
 b:
 	dc.q 4611686018427387904
-align 8
+.size b,8
+.section .data,"aw"
+.local c
+.type c,@object
+.align 8
 c:
 	dc.q 4613937818241073152
-align 8
+.size c,8
+.section .data,"aw"
+.local d
+.type d,@object
+.align 8
 d:
 	dc.q 4616189618054758400
-align 8
+.size d,8
+.section .data,"aw"
+.local e
+.type e,@object
+.align 8
 e:
 	dc.q 4617315517961601024
-align 8
+.size e,8
+.section .data,"aw"
+.local f
+.type f,@object
+.align 8
 f:
 	dc.q 4618441417868443648
-align 8
+.size f,8
+.section .data,"aw"
+.local g
+.type g,@object
+.align 8
 g:
 	dc.q 4619567317775286272
-align 8
+.size g,8
+.section .data,"aw"
+.local h
+.type h,@object
+.align 8
 h:
 	dc.q 4620693217682128896
+.size h,8
+.section .rodata,"a"
+.local .L__ie64_fconst_0
 align 8
-__ie64_fconst_0:
+.L__ie64_fconst_0:
 	dc.q 0x3ff8000000000000

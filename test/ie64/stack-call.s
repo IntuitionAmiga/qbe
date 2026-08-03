@@ -1,10 +1,17 @@
-align 16
+.section .text,"ax"
+.global callee
+.type callee,@function
+.align 16
 callee:
 	load.l r1, 8(r31)
 	move.l r1, r1
 	sext.l r1, r1
 	rts
-align 16
+.size callee,.-callee
+.section .text,"ax"
+.global caller
+.type caller,@function
+.align 16
 caller:
 	sub.q r31, r31, #8
 	store.q r25, 0(r31)
@@ -27,3 +34,4 @@ caller:
 	load.q r25, 0(r31)
 	add.q r31, r31, #8
 	rts
+.size caller,.-caller

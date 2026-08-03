@@ -1,0 +1,1 @@
+common data $bad_common = align 8 { l 1 }

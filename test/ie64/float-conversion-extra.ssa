@@ -1,0 +1,17 @@
+export function d $extend_float(s %value) {
+@start
+	%result =d exts %value
+	ret %result
+}
+
+export function s $truncate_double(d %value) {
+@start
+	%result =s truncd %value
+	ret %result
+}
+
+export function s $truncate_constant() {
+@start
+	%result =s truncd d_0.5
+	ret %result
+}

@@ -399,6 +399,8 @@ struct Addr { /* amd64 addressing */
 
 struct Lnk {
 	char export;
+	char weak;
+	char hidden;
 	char thread;
 	char common;
 	char align;
@@ -480,7 +482,6 @@ struct Dat {
 /* main.c */
 extern Target T;
 extern char debug['Z'+1];
-extern char *ie64unitprefix;
 
 /* util.c */
 typedef enum {

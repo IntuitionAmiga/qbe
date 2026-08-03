@@ -24,6 +24,60 @@ do
 	fi
 done
 
+printf '%-45s' 'legacy IE64 unit-prefix option...'
+if "$bin" -t ie64 -fie64-unit-prefix=compat -o "$tmp" test/ie64/branch-eq.ssa
+then
+	echo "[ok]"
+else
+	echo "[failed]"
+	exit 1
+fi
+
+printf '%-45s' 'initialised IE64 common data...'
+if "$bin" -t ie64 -o "$tmp" test/ie64/common-initialized.ssa.invalid 2>"$expected"
+then
+	echo "[failed]"
+	exit 1
+fi
+if grep -F "invalid common data definition" "$expected" >/dev/null
+then
+	echo "[ok]"
+else
+	cat "$expected" >&2
+	echo "[failed]"
+	exit 1
+fi
+
+printf '%-45s' 'nonzero untyped floating constant...'
+if "$bin" -t ie64 -o "$tmp" test/ie64/float-untyped-nonzero.ssa.invalid 2>"$expected"
+then
+	echo "[failed]"
+	exit 1
+fi
+if grep -F "IE64 floating copy has an untyped constant" "$expected" >/dev/null
+then
+	echo "[ok]"
+else
+	cat "$expected" >&2
+	echo "[failed]"
+	exit 1
+fi
+
+printf '%-45s' 'IE64 linkage on non-IE64 target...'
+if "$bin" -t amd64_sysv -o "$tmp" test/ie64/hidden-linkage.ssa 2>"$expected"
+then
+	echo "[failed]"
+	exit 1
+fi
+if grep -F "linkage is not supported for target amd64_sysv" "$expected" >/dev/null
+then
+	echo "[ok]"
+else
+	cat "$expected" >&2
+	echo "[failed]"
+	exit 1
+fi
+
 for in in test/ie64-invalid-*.ssa.invalid
 do
 	printf '%-45s' "$(basename "$in")..."
@@ -62,16 +116,25 @@ if [ -x "$asm" ]
 then
 	for gold in test/ie64/*.s
 	do
-		"$asm" -Werror -o "$image" "$gold" >/dev/null
+		"$asm" -c -Werror -o "$image" "$gold" >/dev/null
 	done
 	echo "assembler syntax...                              [ok]"
 fi
 
-"$bin" -t ie64 -fie64-unit-prefix=unit0 -o "$tmp" test/ie64/branch-eq.ssa
-if grep -q '^\.Lunit0\.1:' "$tmp" && grep -q '^\.Lunit0\.2:' "$tmp"
+"$bin" -t ie64 -o "$tmp" test/ie64/branch-eq.ssa
+if grep -q '^\.L1:' "$tmp" && grep -q '^\.L2:' "$tmp"
 then
-	echo "unit prefix...                                  [ok]"
+	echo "object-local labels...                           [ok]"
 else
-	echo "unit prefix...                                  [failed]"
+	echo "object-local labels...                           [failed]"
+	exit 1
+fi
+
+"$bin" -t ie64 -o "$tmp" test/ie64/wide-spill-align.ssa
+if grep -q 'lea r30, 8(r31)' "$tmp" && ! grep -q 'lea r30, 4(r31)' "$tmp"
+then
+	echo "wide spills after four-byte locals...             [ok]"
+else
+	echo "wide spills after four-byte locals...             [failed]"
 	exit 1
 fi

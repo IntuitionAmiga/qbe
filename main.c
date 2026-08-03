@@ -4,7 +4,6 @@
 #include <getopt.h>
 
 Target T;
-char *ie64unitprefix;
 
 char debug['Z'+1] = {
 	['P'] = 0, /* parsing */
@@ -40,6 +39,7 @@ static Target *tlist[] = {
 };
 static FILE *outf;
 static int dbg;
+static int optlevel = 2;
 
 static void
 lowervolatile(Fn *fn)
@@ -107,9 +107,11 @@ func(Fn *fn)
 	filluse(fn);
 	ssacheck(fn);
 	fillalias(fn);
-	loadopt(fn);
-	filluse(fn);
-	fillalias(fn);
+	if (optlevel >= 1) {
+		loadopt(fn);
+		filluse(fn);
+		fillalias(fn);
+	}
 	coalesce(fn);
 	filluse(fn);
 	filldom(fn);
@@ -122,7 +124,7 @@ func(Fn *fn)
 	gcm(fn);
 	filluse(fn);
 	ssacheck(fn);
-	if (T.cansel) {
+	if (optlevel >= 2 && T.cansel) {
 		ifconvert(fn);
 		fillcfg(fn);
 		filluse(fn);
@@ -176,7 +178,7 @@ main(int ac, char *av[])
 
 	T = Deftgt;
 	outf = stdout;
-	while ((c = getopt(ac, av, "hd:o:t:f:")) != -1)
+	while ((c = getopt(ac, av, "hd:f:O:o:t:")) != -1)
 		switch (c) {
 		case 'd':
 			for (; *optarg; optarg++)
@@ -184,6 +186,13 @@ main(int ac, char *av[])
 					debug[toupper(*optarg)] = 1;
 					dbg = 1;
 				}
+			break;
+		case 'f':
+			if (strncmp(optarg, "ie64-unit-prefix=",
+			    sizeof "ie64-unit-prefix=" - 1) != 0) {
+				fprintf(stderr, "invalid option '-f%s'\n", optarg);
+				exit(1);
+			}
 			break;
 		case 'o':
 			if (strcmp(optarg, "-") != 0) {
@@ -193,6 +202,13 @@ main(int ac, char *av[])
 					exit(1);
 				}
 			}
+			break;
+		case 'O':
+			if (optarg[0] < '0' || optarg[0] > '3' || optarg[1]) {
+				fprintf(stderr, "invalid optimization level '%s'\n", optarg);
+				exit(1);
+			}
+			optlevel = optarg[0] - '0';
 			break;
 		case 't':
 			if (strcmp(optarg, "?") == 0) {
@@ -210,20 +226,13 @@ main(int ac, char *av[])
 				}
 			}
 			break;
-		case 'f':
-			if (strncmp(optarg, "ie64-unit-prefix=", 17) != 0
-			|| !optarg[17]) {
-				fprintf(stderr, "invalid internal option '-f%s'\n", optarg);
-				exit(1);
-			}
-			ie64unitprefix = optarg + 17;
-			break;
 		case 'h':
 		default:
 			hf = c != 'h' ? stderr : stdout;
 			fprintf(hf, "%s [OPTIONS] {file.ssa, -}\n", av[0]);
 			fprintf(hf, "\t%-11s prints this help\n", "-h");
 			fprintf(hf, "\t%-11s output to file\n", "-o file");
+			fprintf(hf, "\t%-11s set optimization level (default: 2)\n", "-O <0-3>");
 			fprintf(hf, "\t%-11s generate for a target among:\n", "-t <target>");
 			fprintf(hf, "\t%-11s ", "");
 			for (t=tlist, sep=""; *t; t++, sep=", ") {
@@ -235,11 +244,6 @@ main(int ac, char *av[])
 			fprintf(hf, "\t%-11s dump debug information\n", "-d <flags>");
 			exit(c != 'h');
 		}
-	if (ie64unitprefix && strcmp(T.name, "ie64") != 0) {
-		fprintf(stderr, "-fie64-unit-prefix requires -t ie64\n");
-		exit(1);
-	}
-
 	do {
 		f = av[optind];
 		if (!f || strcmp(f, "-") == 0) {

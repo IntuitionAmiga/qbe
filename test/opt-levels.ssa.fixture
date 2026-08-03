@@ -1,0 +1,15 @@
+data $slot = { w 0 }
+
+export function w $memory(w %value) {
+@start
+	storew %value, $slot
+	%result =w loadw $slot
+	ret %result
+}
+
+export function w $constants() {
+@start
+	%sum =w add 20, 22
+	%result =w mul %sum, 2
+	ret %result
+}

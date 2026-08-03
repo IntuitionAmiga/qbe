@@ -1,0 +1,11 @@
+export function w $nonfallthrough_jnz(w %condition) {
+@start
+	jnz %condition, @true, @false
+@join
+	%result =w phi @true 1, @false 0
+	ret %result
+@true
+	jmp @join
+@false
+	jmp @join
+}

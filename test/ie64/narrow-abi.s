@@ -1,14 +1,25 @@
-align 16
+.section .text,"ax"
+.local signed_byte
+.type signed_byte,@function
+.align 16
 signed_byte:
 	sext.b r1, r1
 	move.q r1, r1
 	rts
-align 16
+.size signed_byte,.-signed_byte
+.section .text,"ax"
+.local unsigned_half
+.type unsigned_half,@function
+.align 16
 unsigned_half:
 	and.q r1, r1, #0xffff
 	move.q r1, r1
 	rts
-align 16
+.size unsigned_half,.-unsigned_half
+.section .text,"ax"
+.global call_narrow
+.type call_narrow,@function
+.align 16
 call_narrow:
 	sub.q r31, r31, #8
 	store.q r18, 0(r31)
@@ -26,3 +37,4 @@ call_narrow:
 	load.q r18, 0(r31)
 	add.q r31, r31, #8
 	rts
+.size call_narrow,.-call_narrow

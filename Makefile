@@ -88,6 +88,7 @@ ie64-argregs-test: ie64/regs.o tools/ie64-argregs-test.c
 
 check-ie64: qbe ie64-argregs-test
 	./ie64-argregs-test
+	sh tools/test-opt-levels.sh ./qbe
 	sh tools/test-ie64.sh ./qbe
 
 check-amd64_win: qbe

@@ -1,4 +1,7 @@
-align 16
+.section .text,"ax"
+.global unsigned_less
+.type unsigned_less,@function
+.align 16
 unsigned_less:
 	bhi r2, r1, .L2
 .L1:
@@ -9,7 +12,11 @@ unsigned_less:
 	li r1, #1
 	sext.l r1, r1
 	rts
-align 16
+.size unsigned_less,.-unsigned_less
+.section .text,"ax"
+.global unsigned_greater
+.type unsigned_greater,@function
+.align 16
 unsigned_greater:
 	bhi r1, r2, .L5
 .L4:
@@ -20,3 +27,4 @@ unsigned_greater:
 	li r1, #1
 	sext.l r1, r1
 	rts
+.size unsigned_greater,.-unsigned_greater

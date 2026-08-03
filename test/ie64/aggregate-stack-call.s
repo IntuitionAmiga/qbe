@@ -1,4 +1,7 @@
-align 16
+.section .text,"ax"
+.local f
+.type f,@function
+.align 16
 f:
 	load.q r1, 8(r31)
 	load.l r1, (r1)
@@ -6,7 +9,11 @@ f:
 	move.l r1, r1
 	sext.l r1, r1
 	rts
-align 16
+.size f,.-f
+.section .text,"ax"
+.global g
+.type g,@function
+.align 16
 g:
 	sub.q r31, r31, #24
 	store.q r25, 8(r31)
@@ -21,7 +28,8 @@ g:
 	li r6, #6
 	lea r30, 0(r25)
 	store.q r7, (r30)
-	move.q r30, #s+0
+	move.l r30, #lo32(s+0)
+	movt r30, #hi32(s+0)
 	load.l r7, (r30)
 	lea r9, 0(r25)
 	store.l r7, (r9)
@@ -35,6 +43,11 @@ g:
 	load.q r25, 8(r31)
 	add.q r31, r31, #24
 	rts
-align 4
+.size g,.-g
+.section .data,"aw"
+.local s
+.type s,@object
+.align 4
 s:
 	dc.l 7
+.size s,4

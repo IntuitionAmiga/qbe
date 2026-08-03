@@ -1,4 +1,7 @@
-align 16
+.section .text,"ax"
+.global dynamic_varargs
+.type dynamic_varargs,@function
+.align 16
 dynamic_varargs:
 	sub.q r31, r31, #24
 	store.q r18, 8(r31)
@@ -27,7 +30,12 @@ dynamic_varargs:
 	load.q r25, 16(r31)
 	add.q r31, r31, #24
 	rts
-align 16
+.size dynamic_varargs,.-dynamic_varargs
+.section .text,"ax"
+.local use
+.type use,@function
+.align 16
 use:
 .L2:
 	rts
+.size use,.-use

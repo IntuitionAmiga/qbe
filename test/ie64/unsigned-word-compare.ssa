@@ -1,0 +1,5 @@
+export function w $equal_min_signed(w %value) {
+@start
+	%match =w ceqw %value, -2147483648
+	ret %match
+}

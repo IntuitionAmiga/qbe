@@ -64,8 +64,12 @@ ie64_emitdat(Dat *d, FILE *f)
 static void
 emitlabel(SavedDat *s, FILE *f)
 {
+	fprintf(f, "%s %s\n", s->lnk.weak ? ".weak" : s->lnk.export ? ".global" : ".local", s->d.name);
+	if (s->lnk.hidden)
+		fprintf(f, ".hidden %s\n", s->d.name);
+	fprintf(f, ".type %s,@object\n", s->d.name);
 	if (s->lnk.align > 1)
-		fprintf(f, "align %d\n", s->lnk.align);
+		fprintf(f, ".align %d\n", s->lnk.align);
 	fprintf(f, "%s:\n", s->d.name);
 }
 
@@ -80,8 +84,6 @@ emitdata(SavedDat *s, FILE *f)
 		emitlabel(s, f);
 		break;
 	case DEnd:
-		if (s->lnk.common)
-			die("common data is not supported by the flat IE64 target");
 		break;
 	case DZ:
 		fprintf(f, "\tds.b %"PRId64"\n", d->u.num);
@@ -123,13 +125,32 @@ emitint(int64_t n, FILE *f)
 		fprintf(f, "%"PRId64, n);
 }
 
+static void emitreg(Ref, FILE *);
+
+static void
+emitintload(Ref dst, int cls, int64_t n, FILE *f)
+{
+	uint64_t bits = (uint64_t)n;
+
+	if (cls == Kw || bits <= UINT32_MAX) {
+		fputs("li ", f);
+		emitreg(dst, f);
+		fputs(", #", f);
+		emitint(cls == Kw ? (int64_t)(int32_t)n : n, f);
+		fputc('\n', f);
+		return;
+	}
+	fputs("move.l ", f);
+	emitreg(dst, f);
+	fprintf(f, ", #0x%08"PRIx32"\n\tmovt ", (uint32_t)bits);
+	emitreg(dst, f);
+	fprintf(f, ", #0x%08"PRIx32"\n", (uint32_t)(bits >> 32));
+}
+
 static void
 emitlbl(int n, FILE *f)
 {
-	if (ie64unitprefix)
-		fprintf(f, "%s%s.%d", T.asloc, ie64unitprefix, n);
-	else
-		fprintf(f, "%s%d", T.asloc, n);
+	fprintf(f, "%s%d", T.asloc, n);
 }
 
 static void
@@ -143,10 +164,20 @@ emitreg(Ref r, FILE *f)
 		fprintf(f, "r%u", r.val);
 }
 
+static void
+emitaddr(Ref r, char *name, int64_t addend, FILE *f)
+{
+	fputs("move.l ", f);
+	emitreg(r, f);
+	fprintf(f, ", #lo32(%s%+"PRId64")\n\tmovt ", name, addend);
+	emitreg(r, f);
+	fprintf(f, ", #hi32(%s%+"PRId64")\n", name, addend);
+}
+
 static char *
 floatlabel(unsigned id)
 {
-	return strf(PFn, "__ie64_fconst_%s%u", ie64unitprefix ? ie64unitprefix : "", id);
+	return strf(PFn, ".L__ie64_fconst_%u", id);
 }
 
 static char *
@@ -225,14 +256,14 @@ emitcopy(Ins *i, Fn *fn, FILE *f)
 		if (rtype(src) != RCon)
 			die("IE64 spill copy source is invalid in '%s'", fn->name);
 		c = &fn->con[src.val];
-		fputs("\tmove.q r30, #", f);
-		if (c->type == CAddr)
-			fprintf(f, "%s%+"PRId64, str(c->sym.id), c->bits.i);
-		else if (c->type == CBits)
-			emitint(c->bits.i, f);
-		else
+		if (c->type == CAddr) {
+			fputc('\t', f);
+			emitaddr(TMP(R30), str(c->sym.id), c->bits.i, f);
+		} else if (c->type == CBits) {
+			fputc('\t', f);
+			emitintload(TMP(R30), i->cls, c->bits.i, f);
+		} else
 			die("IE64 spill constant is invalid in '%s'", fn->name);
-		fputc('\n', f);
 		s = i->cls == Kw || i->cls == Ks ? 'l' : 'q';
 		fprintf(f, "\tstore.%c r30, %d(r%d)\n", s, off, slotbase(i->to));
 		return;
@@ -273,35 +304,30 @@ emitcopy(Ins *i, Fn *fn, FILE *f)
 		Con zero;
 
 		if (!c->flt) {
-			if (c->bits.i != 0)
+			if (!req(i->arg[0], UNDEF) && c->bits.i != 0)
 				die("IE64 floating copy has an untyped constant");
 			zero = *c;
+			if (req(i->arg[0], UNDEF))
+				zero.bits.i = 0;
 			zero.flt = i->cls == Ks ? 1 : 2;
 			c = &zero;
 		}
 		if ((i->cls == Ks && c->flt != 1)
 		|| (i->cls == Kd && c->flt != 2))
 			die("IE64 floating copy has the wrong constant width");
-		fputs("move.q r30, #", f);
-		fputs(stashfloat(c), f);
-		fputs(i->cls == Kd ? "\n\tdload " : "\n\tfload ", f);
+		emitaddr(TMP(R30), stashfloat(c), 0, f);
+		fputs(i->cls == Kd ? "\tdload " : "\tfload ", f);
 		emitreg(i->to, f);
 		fputs(", (r30)\n", f);
 		return;
 	}
 	if (i->cls == Kl && c->type == CAddr) {
-		fputs("move.q ", f);
-		emitreg(i->to, f);
-		fprintf(f, ", #%s%+"PRId64"\n", str(c->sym.id), c->bits.i);
+		emitaddr(i->to, str(c->sym.id), c->bits.i, f);
 		return;
 	}
 	if (c->type != CBits)
 		die("IE64 address materialisation is not selected");
-	fputs("li ", f);
-	emitreg(i->to, f);
-	fputs(", #", f);
-	emitint(c->bits.i, f);
-	fputc('\n', f);
+	emitintload(i->to, i->cls, c->bits.i, f);
 }
 
 static Ref
@@ -322,15 +348,14 @@ materializeaddr(Ref r, Fn *fn, FILE *f)
 		die("IE64 memory address is invalid");
 	c = &fn->con[r.val];
 	if (c->type == CBits) {
-		fputs("\tmove.q r30, #", f);
-		emitint(c->bits.i, f);
-		fputc('\n', f);
+		fputc('\t', f);
+		emitintload(TMP(R30), Kl, c->bits.i, f);
 		return TMP(R30);
 	}
 	if (c->type != CAddr)
 		die("IE64 memory address is not an address constant");
-	fprintf(f, "\tmove.q r30, #%s%+"PRId64"\n", str(c->sym.id),
-		c->bits.i);
+	fputc('\t', f);
+	emitaddr(TMP(R30), str(c->sym.id), c->bits.i, f);
 	return TMP(R30);
 }
 
@@ -353,10 +378,10 @@ emitins(Ins *i, Fn *fn, FILE *f)
 {
 	static char *bin[] = {
 		[Oadd] = "add", [Osub] = "sub", [Omul] = "mulu",
-		[Oand] = "and", [Oor] = "or", [Oxor] = "xor",
+		[Oand] = "and", [Oor] = "or", [Oxor] = "eor",
 		[Oshl] = "lsl", [Oshr] = "lsr", [Osar] = "asr",
-		[Oudiv] = "divu", [Ourem] = "remu",
-		[Odiv] = "divs", [Orem] = "rems",
+		[Oudiv] = "divu", [Ourem] = "mod",
+		[Odiv] = "divs", [Orem] = "mods",
 	};
 
 	if (i->op == Onop)
@@ -755,11 +780,17 @@ emitins(Ins *i, Fn *fn, FILE *f)
 			fprintf(f, "\tjsr %s\n", str(c->sym.id));
 		}
 		if (!req(i->to, R)) {
-			fputs("\tmove.", f);
-			fputc(suffix(i->cls), f);
-			fputs(" ", f);
+			if (i->cls == Ks)
+				fputs("\tfmov ", f);
+			else if (i->cls == Kd)
+				fputs("\tdmov ", f);
+			else {
+				fputs("\tmove.", f);
+				fputc(suffix(i->cls), f);
+				fputs(" ", f);
+			}
 			emitreg(i->to, f);
-			fputs(", r1\n", f);
+			fputs(i->cls == Ks || i->cls == Kd ? ", f0\n" : ", r1\n", f);
 		}
 		return;
 	}
@@ -773,7 +804,13 @@ emitins(Ins *i, Fn *fn, FILE *f)
 		case Oextsw: s = 'l'; goto Sign;
 		case Oextub: mask = 0xff; break;
 		case Oextuh: mask = 0xffff; break;
-		case Oextuw: mask = 0xffffffffU; break;
+		case Oextuw:
+			fputs("\tmove.l ", f);
+			emitreg(i->to, f);
+			fputs(", ", f);
+			emitvalue(i->arg[0], fn, f);
+			fputc('\n', f);
+			return;
 		default: die("invalid IE64 extension");
 		}
 		fprintf(f, "\tand.q ");
@@ -837,8 +874,8 @@ emitins(Ins *i, Fn *fn, FILE *f)
 			else
 				emitreg(i->arg[0], f), fputs(", ", f), emitreg(i->arg[1], f);
 			fprintf(f, ", .Lcmp%s%u\n\tli r30, #1\n.Lcmp%s%u:\n\tmove.q ",
-				ie64unitprefix ? ie64unitprefix : "", id,
-				ie64unitprefix ? ie64unitprefix : "", id);
+				"", id,
+				"", id);
 			emitreg(i->to, f);
 			fputs(", r30\n", f);
 			return;
@@ -862,7 +899,7 @@ emitins(Ins *i, Fn *fn, FILE *f)
 			yes = 0;
 			switch (cc) {
 			case NCmpI + Cfeq:
-				fprintf(f, "\tbne r30, r0, .Lcmp%s%u\n", ie64unitprefix ? ie64unitprefix : "", id);
+				fprintf(f, "\tbne r30, r0, .Lcmp%s%u\n", "", id);
 				yes = "beq";
 				break;
 			case NCmpI + Cfge: yes = "bge"; break;
@@ -870,30 +907,30 @@ emitins(Ins *i, Fn *fn, FILE *f)
 			case NCmpI + Cfle: yes = "ble"; break;
 			case NCmpI + Cflt: yes = "blt"; break;
 			case NCmpI + Cfne:
-				fprintf(f, "\tbne r30, r0, .Lcmptrue%s%u\n", ie64unitprefix ? ie64unitprefix : "", id);
+				fprintf(f, "\tbne r30, r0, .Lcmptrue%s%u\n", "", id);
 				yes = "bne";
 				break;
 			case NCmpI + Cfo:
-				fprintf(f, "\tbeq r30, r0, .Lcmptrue%s%u\n", ie64unitprefix ? ie64unitprefix : "", id);
+				fprintf(f, "\tbeq r30, r0, .Lcmptrue%s%u\n", "", id);
 				break;
 			case NCmpI + Cfuo:
-				fprintf(f, "\tbne r30, r0, .Lcmptrue%s%u\n", ie64unitprefix ? ie64unitprefix : "", id);
+				fprintf(f, "\tbne r30, r0, .Lcmptrue%s%u\n", "", id);
 				break;
 			default: die("invalid IE64 floating comparison");
 			}
 			if (yes) {
 				if (cc != NCmpI + Cfeq && cc != NCmpI + Cfne)
-					fprintf(f, "\tbne r30, r0, .Lcmp%s%u\n", ie64unitprefix ? ie64unitprefix : "", id);
+					fprintf(f, "\tbne r30, r0, .Lcmp%s%u\n", "", id);
 				fprintf(f, "\t%s ", yes);
 				fputs("r29", f);
-				fprintf(f, ", r0, .Lcmptrue%s%u\n", ie64unitprefix ? ie64unitprefix : "", id);
+				fprintf(f, ", r0, .Lcmptrue%s%u\n", "", id);
 			}
 			fprintf(f, "\tbra .Lcmp%s%u\n.Lcmptrue%s%u:\n\tli ",
-				ie64unitprefix ? ie64unitprefix : "", id,
-				ie64unitprefix ? ie64unitprefix : "", id);
+				"", id,
+				"", id);
 			emitreg(i->to, f);
 			fprintf(f, ", #1\n.Lcmp%s%u:\n",
-				ie64unitprefix ? ie64unitprefix : "", id);
+				"", id);
 			return;
 		}
 	}
@@ -940,15 +977,13 @@ emitbranch(int cmp, int invert, Ref a, Ref b, Blk *to, int id0, Fn *fn, FILE *f)
 		b = t;
 	}
 	if (!isreg(a) && rtype(a) == RCon) {
-		fputs("\tli r30, #", f);
-		emitint(fn->con[a.val].bits.i, f);
-		fputc('\n', f);
+		fputc('\t', f);
+		emitintload(TMP(R30), Kl, fn->con[a.val].bits.i, f);
 		a = TMP(R30);
 	}
 	if (!isreg(b) && rtype(b) == RCon) {
-		fputs("\tli r30, #", f);
-		emitint(fn->con[b.val].bits.i, f);
-		fputc('\n', f);
+		fputc('\t', f);
+		emitintload(TMP(R30), Kl, fn->con[b.val].bits.i, f);
 		b = TMP(R30);
 	}
 	if (!isreg(a) || !isreg(b))
@@ -999,8 +1034,17 @@ ie64_emitfn(Fn *fn, FILE *f)
 	 * has an eight-byte residue so the body stack pointer remains 16-byte aligned. */
 	if (fn->dynalloc)
 		fn->reg |= BIT(R25);
+	if (fn->lnk.sec)
+		fprintf(f, ".section %s,%s\n", fn->lnk.sec,
+			fn->lnk.secf ? fn->lnk.secf : "\"ax\"");
+	else
+		fputs(".section .text,\"ax\"\n", f);
+	fprintf(f, "%s %s\n", fn->lnk.weak ? ".weak" : fn->lnk.export ? ".global" : ".local", fn->name);
+	if (fn->lnk.hidden)
+		fprintf(f, ".hidden %s\n", fn->name);
+	fprintf(f, ".type %s,@function\n", fn->name);
 	if (fn->lnk.align > 1)
-		fprintf(f, "align %d\n", fn->lnk.align);
+		fprintf(f, ".align %d\n", fn->lnk.align);
 	fprintf(f, "%s:\n", fn->name);
 	local = 4 * fn->slot;
 	saveoff = (local + 7) & -8;
@@ -1050,9 +1094,8 @@ ie64_emitfn(Fn *fn, FILE *f)
 				emitreg(b->jmp.arg, f);
 				fputc('\n', f);
 			} else if (rtype(b->jmp.arg) == RCon) {
-				fputs("li r1, #", f);
-				emitint(fn->con[b->jmp.arg.val].bits.i, f);
-				fputc('\n', f);
+				emitintload(TMP(R1), j == 0 ? Kw : Kl,
+					fn->con[b->jmp.arg.val].bits.i, f);
 			} else
 				die("IE64 return selection missing in '%s'", fn->name);
 			if (j == 0)
@@ -1085,8 +1128,16 @@ ie64_emitfn(Fn *fn, FILE *f)
 					fputs(", r0, ", f);
 					emitlbl(id0+b->s2->id, f);
 					fputc('\n', f);
-				} else
-					die("IE64 conditional layout is invalid in '%s'", fn->name);
+				} else {
+					fputs("\tbne ", f);
+					emitreg(b->jmp.arg, f);
+					fputs(", r0, ", f);
+					emitlbl(id0+b->s1->id, f);
+					fputc('\n', f);
+					fputs("\tbra ", f);
+					emitlbl(id0+b->s2->id, f);
+					fputc('\n', f);
+				}
 			} else if (b->link == b->s2)
 				emitbranch(cc, 0, cmp->arg[0], cmp->arg[1], b->s1, id0, fn, f);
 			else if (b->link == b->s1)
@@ -1104,15 +1155,92 @@ ie64_emitfn(Fn *fn, FILE *f)
 		}
 	}
 	id0 += fn->nblk;
+	fprintf(f, ".size %s,.-%s\n", fn->name, fn->name);
+}
+
+static uint64_t
+stringdatasize(const char *s)
+{
+	uint64_t n = 0;
+	int digits;
+
+	if (*s++ != '"')
+		die("malformed data string");
+	while (*s && *s != '"') {
+		if (*s++ == '\\') {
+			if (!*s)
+				die("malformed data string escape");
+			if (*s >= '0' && *s <= '7') {
+				for (digits=0; digits<3 && *s >= '0' && *s <= '7'; digits++)
+					s++;
+			} else
+				s++;
+		}
+		n++;
+	}
+	if (*s != '"' || s[1])
+		die("malformed data string");
+	return n;
+}
+
+static uint64_t
+datasize(SavedDat *first, SavedDat **end, int *hasinit)
+{
+	SavedDat *s;
+	uint64_t n = 0;
+
+	*hasinit = 0;
+	for (s=first->next; s && s->d.type != DEnd; s=s->next) {
+		switch (s->d.type) {
+		case DZ: n += s->d.u.num; break;
+		case DB: n += s->d.isstr ? stringdatasize(s->d.u.str) : 1; *hasinit = 1; break;
+		case DH: n += 2; *hasinit = 1; break;
+		case DW: n += 4; *hasinit = 1; break;
+		case DL: n += 8; *hasinit = 1; break;
+		default: break;
+		}
+	}
+	*end = s;
+	return n;
 }
 
 void
 ie64_emitfin(FILE *f)
 {
-	SavedDat *s, *next;
+	SavedDat *s, *next, *end, *start;
+	uint64_t size;
+	int hasinit;
 
-	for (s=datahead; s; s=s->next)
-		emitdata(s, f);
+	for (s=datahead; s;) {
+		start = s;
+		if (start->d.type != DStart)
+			die("malformed IE64 data stream");
+		size = datasize(start, &end, &hasinit);
+		if (!end)
+			die("unterminated IE64 data definition");
+		if (start->lnk.common) {
+			if (hasinit)
+				die("invalid common data definition");
+			if (start->lnk.weak)
+				fprintf(f, ".weak %s\n", start->d.name);
+			if (start->lnk.hidden)
+				fprintf(f, ".hidden %s\n", start->d.name);
+			if (!start->lnk.export && !start->lnk.weak)
+				fprintf(f, ".local %s\n", start->d.name);
+			fprintf(f, ".comm %s,%"PRIu64",%d\n", start->d.name, size,
+				start->lnk.align > 1 ? start->lnk.align : 1);
+		} else {
+			if (start->lnk.sec)
+				fprintf(f, ".section %s,%s\n", start->lnk.sec,
+					start->lnk.secf ? start->lnk.secf : "\"aw\"");
+			else
+				fprintf(f, ".section %s,\"aw\"\n", hasinit ? ".data" : ".bss");
+			for (s=start; s != end; s=s->next)
+				emitdata(s, f);
+			fprintf(f, ".size %s,%"PRIu64"\n", start->d.name, size);
+		}
+		s = end->next;
+	}
 	for (s=datahead; s; s=next) {
 		next = s->next;
 		free(s->d.name);
@@ -1124,6 +1252,8 @@ ie64_emitfin(FILE *f)
 	}
 	for (FloatCon *fc=floathead, *nextfc; fc; fc=nextfc) {
 		nextfc = fc->next;
+		fputs(".section .rodata,\"a\"\n", f);
+		fprintf(f, ".local %s\n", floatlabel(fc->id));
 		if (fc->flt == 1)
 			fprintf(f, "align 4\n%s:\n\tdc.l 0x%08"PRIx64"\n",
 				floatlabel(fc->id), fc->bits);

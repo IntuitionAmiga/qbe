@@ -30,6 +30,11 @@ promote(Fn *fn)
 			if (u->type != UIns)
 				goto Skip;
 			l = u->u.ins;
+			/* Promoting a volatile access to a copy would discard the
+			 * observable memory access.  Volatile opcodes also do not share
+			 * the load/store conversion layout used below. */
+			if (isvload(l->op) || isvstore(l->op))
+				goto Skip;
 			if (isload(l->op))
 			if (s == -1 || s == loadsz(l)) {
 				s = loadsz(l);

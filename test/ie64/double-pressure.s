@@ -1,4 +1,7 @@
-align 16
+.section .text,"ax"
+.global sum_nine_doubles
+.type sum_nine_doubles,@function
+.align 16
 sum_nine_doubles:
 	sub.q r31, r31, #88
 	fstore f8, 16(r31)
@@ -41,3 +44,4 @@ sum_nine_doubles:
 	fload f15, 72(r31)
 	add.q r31, r31, #88
 	rts
+.size sum_nine_doubles,.-sum_nine_doubles

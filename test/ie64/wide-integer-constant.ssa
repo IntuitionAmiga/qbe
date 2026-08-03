@@ -1,0 +1,16 @@
+export function l $wide_return() {
+@start
+	ret 1311768464867721216
+}
+
+export function l $wide_add(l %value) {
+@start
+	%result =l add %value, 1311768464867721216
+	ret %result
+}
+
+export function l $negative_add(l %value) {
+@start
+	%result =l add %value, -1
+	ret %result
+}

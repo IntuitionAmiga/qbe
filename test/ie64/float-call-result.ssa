@@ -1,0 +1,11 @@
+export function s $call_float() {
+@start
+	%result =s call $returns_float()
+	ret %result
+}
+
+export function d $call_double() {
+@start
+	%result =d call $returns_double()
+	ret %result
+}

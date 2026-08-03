@@ -1,4 +1,7 @@
-align 16
+.section .text,"ax"
+.local f
+.type f,@function
+.align 16
 f:
 	sub.q r31, r31, #8
 	lea r30, 0(r31)
@@ -11,7 +14,11 @@ f:
 .L1:
 	add.q r31, r31, #8
 	rts
-align 16
+.size f,.-f
+.section .text,"ax"
+.global g
+.type g,@function
+.align 16
 g:
 	sub.q r31, r31, #8
 	lea r30, 0(r31)
@@ -26,3 +33,4 @@ g:
 	sext.l r1, r1
 	add.q r31, r31, #8
 	rts
+.size g,.-g

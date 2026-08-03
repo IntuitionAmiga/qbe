@@ -100,6 +100,7 @@ static int ntmp;  /* current # of temps (for limit) */
 static int locs;  /* stack size used by locals */
 static int slot4; /* next slot of 4 bytes */
 static int slot8; /* ditto, 8 bytes */
+static int slotsinit;
 static BSet mask[2][1]; /* class masks */
 
 static int
@@ -152,6 +153,10 @@ slot(int t)
 	assert(t >= Tmp0 && "cannot spill register");
 	s = tmp[t].slot;
 	if (s == -1) {
+		if (!slotsinit) {
+			slot8 = locs & 1;
+			slotsinit = 1;
+		}
 		/* specific to NAlign == 3 */
 		/* nice logic to pack stack slots
 		 * on demand, there can be only
@@ -375,6 +380,7 @@ spill(Fn *fn)
 	locs = fn->slot;
 	slot4 = 0;
 	slot8 = 0;
+	slotsinit = 0;
 	for (t=0; t<ntmp; t++) {
 		k = 0;
 		if (t >= T.fpr0 && t < T.fpr0 + T.nfpr)

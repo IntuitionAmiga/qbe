@@ -56,6 +56,8 @@ enum Token {
 	Tret,
 	Thlt,
 	Texport,
+	Tweak,
+	Thidden,
 	Tthread,
 	Textern,
 	Tcommon,
@@ -116,6 +118,8 @@ static char *kwmap[Ntok] = {
 	[Tret] = "ret",
 	[Thlt] = "hlt",
 	[Texport] = "export",
+	[Tweak] = "weak",
+	[Thidden] = "hidden",
 	[Tthread] = "thread",
 	[Textern] = "extern",
 	[Tcommon] = "common",
@@ -1187,6 +1191,16 @@ parselnk(Lnk *lnk)
 		switch ((t=nextnl())) {
 		case Texport:
 			lnk->export = 1;
+			break;
+		case Tweak:
+			if (strcmp(T.name, "ie64") != 0)
+				err("weak linkage is not supported for target %s", T.name);
+			lnk->weak = 1;
+			break;
+		case Thidden:
+			if (strcmp(T.name, "ie64") != 0)
+				err("hidden linkage is not supported for target %s", T.name);
+			lnk->hidden = 1;
 			break;
 		case Tthread:
 			lnk->thread = 1;

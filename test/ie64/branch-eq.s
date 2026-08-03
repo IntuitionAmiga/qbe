@@ -1,8 +1,11 @@
-align 16
+.section .text,"ax"
+.global f
+.type f,@function
+.align 16
 f:
-	and.q r1, r1, #0xffffffff
+	move.l r1, r1
 	li r2, #3
-	and.q r2, r2, #0xffffffff
+	move.l r2, r2
 	beq r1, r2, .L2
 .L1:
 	li r1, #0
@@ -12,3 +15,4 @@ f:
 	li r1, #1
 	sext.l r1, r1
 	rts
+.size f,.-f

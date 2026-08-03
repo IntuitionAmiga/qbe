@@ -1,5 +1,6 @@
 *.o
 qbe
+/ie64-argregs-test
 config.h
 .comfile
 *.out

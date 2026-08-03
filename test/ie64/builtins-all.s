@@ -1,4 +1,7 @@
-align 16
+.section .text,"ax"
+.global facilities
+.type facilities,@function
+.align 16
 facilities:
 	sub.q r31, r31, #56
 	store.q r18, 0(r31)
@@ -80,15 +83,28 @@ facilities:
 	fload f11, 40(r31)
 	add.q r31, r31, #56
 	rts
-align 16
+.size facilities,.-facilities
+.section .text,"ax"
+.global stop
+.type stop,@function
+.align 16
 stop:
 	halt
 	halt
-align 16
+.size stop,.-stop
+.section .text,"ax"
+.global rettrap
+.type rettrap,@function
+.align 16
 rettrap:
 	eret
 	halt
-align 16
+.size rettrap,.-rettrap
+.section .text,"ax"
+.global retirq
+.type retirq,@function
+.align 16
 retirq:
 	rti
 	halt
+.size retirq,.-retirq

@@ -1,4 +1,7 @@
-align 16
+.section .text,"ax"
+.global float_swap
+.type float_swap,@function
+.align 16
 float_swap:
 	beq r1, r0, .L3
 .L1:
@@ -13,7 +16,11 @@ float_swap:
 	bra .L1
 .L3:
 	rts
-align 16
+.size float_swap,.-float_swap
+.section .text,"ax"
+.global double_swap
+.type double_swap,@function
+.align 16
 double_swap:
 	beq r1, r0, .L7
 .L5:
@@ -28,3 +35,4 @@ double_swap:
 	bra .L5
 .L7:
 	rts
+.size double_swap,.-double_swap

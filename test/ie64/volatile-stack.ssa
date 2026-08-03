@@ -1,0 +1,15 @@
+export function s $volatile_stack_float(s %value) {
+@start
+	%slot =l alloc4 4
+	stores %value, %slot
+	%result =s loadv %slot
+	ret %result
+}
+
+export function d $volatile_stack_double(d %value) {
+@start
+	%slot =l alloc8 8
+	stored %value, %slot
+	%result =d loadv %slot
+	ret %result
+}

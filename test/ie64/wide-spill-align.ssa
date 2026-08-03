@@ -1,0 +1,33 @@
+export function l $wide_spill() {
+@start
+	%local =l alloc4 4
+	%v0 =l loadl $g0
+	%v1 =l loadl $g1
+	%v2 =l loadl $g2
+	%v3 =l loadl $g3
+	%v4 =l loadl $g4
+	%v5 =l loadl $g5
+	%v6 =l loadl $g6
+	%v7 =l loadl $g7
+	%v8 =l loadl $g8
+	%v9 =l loadl $g9
+	%v10 =l loadl $g10
+	%v11 =l loadl $g11
+	%v12 =l loadl $g12
+	%v13 =l loadl $g13
+	call $sink(l %local)
+	%s0 =l add %v0, %v1
+	%s1 =l add %v2, %v3
+	%s2 =l add %v4, %v5
+	%s3 =l add %v6, %v7
+	%s4 =l add %v8, %v9
+	%s5 =l add %v10, %v11
+	%s6 =l add %v12, %v13
+	%t0 =l add %s0, %s1
+	%t1 =l add %s2, %s3
+	%t2 =l add %s4, %s5
+	%u0 =l add %t0, %t1
+	%u1 =l add %t2, %s6
+	%result =l add %u0, %u1
+	ret %result
+}

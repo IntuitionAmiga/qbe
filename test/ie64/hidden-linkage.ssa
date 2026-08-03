@@ -1,0 +1,6 @@
+export hidden function l $hidden_function() {
+@start
+	ret 7
+}
+
+export hidden data $hidden_object = align 8 { l 9 }

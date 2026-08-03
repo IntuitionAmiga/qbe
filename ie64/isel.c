@@ -32,8 +32,11 @@ fixarg(Ref *r, int k, Ins *i, Fn *fn)
 		return;
 	/* IE64 has immediate forms only for the right arithmetic operand. */
 	if (!isie64op(i->op) && r == &i->arg[1] && fn->con[r->val].type == CBits
-	&& KBASE(k) == 0 && !iscmp(i->op, &ck, &cc))
-		return;
+	&& KBASE(k) == 0 && !iscmp(i->op, &ck, &cc)) {
+		uint64_t bits = (uint64_t)fn->con[r->val].bits.i;
+		if (bits <= UINT32_MAX)
+			return;
+	}
 	t = newtmp("isel", k, fn);
 	emit(Ocopy, k, t, *r, R);
 	*r = t;
@@ -96,6 +99,14 @@ ie64_isel(Fn *fn)
 			--i;
 			if (isalloc(i->op)) {
 				salloc(i->to, i->arg[0], fn);
+				continue;
+			}
+			if (i->op == Oexts) {
+				emit(Oie64fcvtsd, Kd, i->to, i->arg[0], R);
+				continue;
+			}
+			if (i->op == Otruncd) {
+				emit(Oie64fcvtds, Ks, i->to, i->arg[0], R);
 				continue;
 			}
 			if (i->op == Ostosi && i->cls == Kl) {

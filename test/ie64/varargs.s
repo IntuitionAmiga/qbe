@@ -1,4 +1,7 @@
-align 16
+.section .text,"ax"
+.local f
+.type f,@function
+.align 16
 f:
 	sub.q r31, r31, #8
 	lea r30, 0(r31)
@@ -21,7 +24,11 @@ f:
 	sext.l r1, r1
 	add.q r31, r31, #8
 	rts
-align 16
+.size f,.-f
+.section .text,"ax"
+.global g
+.type g,@function
+.align 16
 g:
 	sub.q r31, r31, #8
 	store.q r25, 0(r31)
@@ -32,7 +39,8 @@ g:
 	li r3, #2
 	store.q r3, (r2)
 	add.q r2, r2, #8
-	move.q r30, #__ie64_fconst_0
+	move.l r30, #lo32(.L__ie64_fconst_0+0)
+	movt r30, #hi32(.L__ie64_fconst_0+0)
 	dload f0, (r30)
 	dstore f0, (r2)
 	jsr f
@@ -43,6 +51,9 @@ g:
 	load.q r25, 0(r31)
 	add.q r31, r31, #8
 	rts
+.size g,.-g
+.section .rodata,"a"
+.local .L__ie64_fconst_0
 align 8
-__ie64_fconst_0:
+.L__ie64_fconst_0:
 	dc.q 0x4008000000000000

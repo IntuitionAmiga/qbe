@@ -1,4 +1,7 @@
-align 16
+.section .text,"ax"
+.global dynamic_alloc
+.type dynamic_alloc,@function
+.align 16
 dynamic_alloc:
 	sub.q r31, r31, #8
 	store.q r25, 0(r31)
@@ -15,7 +18,12 @@ dynamic_alloc:
 	load.q r25, 0(r31)
 	add.q r31, r31, #8
 	rts
-align 16
+.size dynamic_alloc,.-dynamic_alloc
+.section .text,"ax"
+.local use
+.type use,@function
+.align 16
 use:
 	move.q r1, r1
 	rts
+.size use,.-use
