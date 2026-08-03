@@ -15,6 +15,14 @@ struct FloatCon {
 	FloatCon *next;
 };
 static FloatCon *floathead, **floattail = &floathead;
+
+static int
+rawfloatbits(int cls, uint64_t bits)
+{
+	if (cls == Ks)
+		return (bits & UINT64_C(0x7f800000)) != 0;
+	return (bits & UINT64_C(0x7ff0000000000000)) != 0;
+}
 static unsigned floatid;
 static int emitframe, emitdynalloc;
 
@@ -304,7 +312,12 @@ emitcopy(Ins *i, Fn *fn, FILE *f)
 		Con zero;
 
 		if (!c->flt) {
-			if (!req(i->arg[0], UNDEF) && c->bits.i != 0)
+			/* C union/memcpy lowering uses integer constants as raw IEEE
+			 * bits.  Accept normal, infinity, and NaN encodings while
+			 * retaining the diagnostic for accidental subnormal values such
+			 * as `copy 1`. */
+			if (!req(i->arg[0], UNDEF) && c->bits.i != 0
+			&& !rawfloatbits(i->cls, c->bits.i))
 				die("IE64 floating copy has an untyped constant");
 			zero = *c;
 			if (req(i->arg[0], UNDEF))
