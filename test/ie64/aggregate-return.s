@@ -4,13 +4,13 @@
 .align 16
 f:
 	sub.q r31, r31, #8
-	lea r30, 0(r31)
-	store.q r3, (r30)
 	lea r3, 0(r31)
-	store.l r2, (r3)
-	lea r2, 0(r31)
-	load.l r2, (r2)
-	store.l r2, (r1)
+	move.q r30, r1
+	move.q r1, r2
+	move.q r2, r30
+	store.l r1, (r3)
+	load.l r1, (r3)
+	store.l r1, (r2)
 .L1:
 	add.q r31, r31, #8
 	rts
@@ -20,17 +20,17 @@ f:
 .type g,@function
 .align 16
 g:
-	sub.q r31, r31, #8
-	lea r30, 0(r31)
-	store.q r1, (r30)
-	lea r1, 0(r31)
+	sub.q r31, r31, #24
+	store.q r18, 8(r31)
+	lea r18, 0(r31)
+	move.q r1, r18
 	li r2, #2
 	jsr f
-	lea r1, 0(r31)
-	load.l r1, (r1)
+	load.l r1, (r18)
 	sext.l r1, r1
 	move.l r1, r1
 	sext.l r1, r1
-	add.q r31, r31, #8
+	load.q r18, 8(r31)
+	add.q r31, r31, #24
 	rts
 .size g,.-g

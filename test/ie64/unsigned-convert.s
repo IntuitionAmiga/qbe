@@ -105,6 +105,6 @@ uint_to_single:
 .size uint_to_single,.-uint_to_single
 .section .rodata,"a"
 .local .L__ie64_fconst_0
-align 8
+.align 8
 .L__ie64_fconst_0:
 	dc.q 0x43e0000000000000

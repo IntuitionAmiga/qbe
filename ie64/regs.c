@@ -24,14 +24,17 @@ bits
 ie64_argregs(Ref r, int p[2])
 {
 	bits b = 0;
-	int ngp, nfp, fmask, j;
+	int ngp, nfp, fmask, envc, j;
 
 	assert(rtype(r) == RCall);
 	ngp = (r.val >> 4) & 15;
 	nfp = (r.val >> 8) & 15;
 	fmask = (r.val >> 12) & 255;
+	envc = (r.val >> 20) & 1;
 	if (p)
-		p[0] = ngp;
+		p[0] = ngp + envc;
+	if (envc)
+		b |= BIT(RENV);
 	while (ngp--)
 		b |= BIT(R1 + ngp);
 	if (fmask) {

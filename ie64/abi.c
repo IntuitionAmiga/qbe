@@ -115,6 +115,12 @@ ie64_abi(Fn *fn)
 				i->arg[0] = SLOT(-(2 + 2 * sp++));
 				i->arg[1] = R;
 			}
+		} else if (i->op == Opare) {
+			i->op = Ocopy;
+			i->cls = Kl;
+			i->arg[0] = TMP(RENV);
+			i->arg[1] = R;
+			fn->reg |= BIT(RENV);
 		} else if (i->op != Opar)
 			die("IE64 parameter lowering is not implemented");
 		else if (i->cls == Kd) {
@@ -229,10 +235,10 @@ ie64_abi(Fn *fn)
 				;
 			n = i - arg0;
 			int ngp = 0, nfp = 0, nstk = 0, stackbytes, fmask = 0;
-			int vararg = 0;
+			int vararg = 0, envc = 0;
 			Ref stackbase = R;
 			Ref aggret = R;
-			int aggretlen = 0;
+			int aggretlen = 0, aggretalign = 0;
 			int *stack = emalloc((n ? n : 1) * sizeof stack[0]);
 			int *fpreg = emalloc((n ? n : 1) * sizeof fpreg[0]);
 			Ref *aggsrc = emalloc((n ? n : 1) * sizeof aggsrc[0]);
@@ -241,6 +247,7 @@ ie64_abi(Fn *fn)
 			int *aggalign = emalloc((n ? n : 1) * sizeof aggalign[0]);
 			if (rtype(i->arg[1]) == RType) {
 				aggretlen = typ[i->arg[1].val].size;
+				aggretalign = typ[i->arg[1].val].align;
 				aggret = i->to;
 				ngp = 1;
 			}
@@ -251,6 +258,10 @@ ie64_abi(Fn *fn)
 				aggalign[a-arg0] = 0;
 				if (a->op == Oargv) {
 					vararg = 1;
+					continue;
+				}
+				if (a->op == Oarge) {
+					envc = 1;
 					continue;
 				}
 				if (a->op == Oargc) {
@@ -300,6 +311,7 @@ ie64_abi(Fn *fn)
 				emit(Ocopy, Kw, R, TMP(R1), R);
 			call.to = R;
 			call.arg[1] = CALL((ngp << 4) | (nfp << 8) | (fmask << 12)
+				| (envc << 20)
 				| (req(i->to, R) ? 1
 					: KBASE(call.cls) == 1
 						? (call.cls == Kd ? 2 : 1) << 2 : 1));
@@ -307,6 +319,10 @@ ie64_abi(Fn *fn)
 			for (Ins *a=i-1; a>=arg0; a--) {
 				if (a->op == Oargv)
 					continue;
+				if (a->op == Oarge) {
+					emit(Ocopy, Kl, TMP(RENV), a->arg[0], R);
+					continue;
+				}
 				if (stack[a-arg0] >= 0) {
 					Ref p = stackbase;
 					if (stack[a-arg0]) {
@@ -329,7 +345,8 @@ ie64_abi(Fn *fn)
 			}
 			if (aggretlen) {
 				emit(Ocopy, Kl, TMP(R1), aggret, R);
-				emit(Oalloc8, Kl, aggret, getcon(aggretlen, fn), R);
+				emit(aggretalign >= 4 ? Oalloc16 : Oalloc8, Kl,
+					aggret, getcon(aggretlen, fn), R);
 			}
 			if (stackbytes)
 				emit(Osalloc, Kl, stackbase, getcon(stackbytes, fn), R);

@@ -58,11 +58,18 @@ ie64_emitdat(Dat *d, FILE *f)
 		s->lnk = *d->lnk;
 	else
 		s->lnk = (Lnk){0};
+	/* The section names live in the parser pool, which func() frees before
+	 * ie64_emitfin runs.  Copy them like the other retained strings. */
+	s->lnk.sec = copystr(s->lnk.sec);
+	s->lnk.secf = copystr(s->lnk.secf);
 	s->d.name = d->type == DStart ? copystr(d->name) : 0;
 	s->d.lnk = &s->lnk;
-	if (d->isstr)
+	/* Test the retained flags, not the incoming ones: DStart and DEnd clear
+	 * them above, and the parser leaves them stale from the previous record.
+	 * Copying on the raw flags allocates strings the free below never sees. */
+	if (s->d.isstr)
 		s->d.u.str = copystr(d->u.str);
-	if (d->isref)
+	if (s->d.isref)
 		s->d.u.ref.name = copystr(d->u.ref.name);
 	s->next = 0;
 	*datatail = s;
@@ -334,7 +341,10 @@ emitcopy(Ins *i, Fn *fn, FILE *f)
 		fputs(", (r30)\n", f);
 		return;
 	}
-	if (i->cls == Kl && c->type == CAddr) {
+	if (KBASE(i->cls) == 0 && c->type == CAddr) {
+		/* A `w` copy narrows a symbol address to its low 32 bits.  The full
+		 * address is materialised and the surplus high bits are discarded by
+		 * the word-sized uses, exactly as for any other `w` value. */
 		emitaddr(i->to, str(c->sym.id), c->bits.i, f);
 		return;
 	}
@@ -735,16 +745,17 @@ emitins(Ins *i, Fn *fn, FILE *f)
 	}
 	if (isstore(i->op)) {
 		char s;
-		int stackoff = -1;
-		if (rtype(i->arg[1]) == RSlot && rsval(i->arg[1]) < 0)
-			stackoff = 8 * (-rsval(i->arg[1]) - 1);
-		else
+		int stackoff = -1, stackreg = 31;
+		if (rtype(i->arg[1]) == RSlot && rsval(i->arg[1]) < 0) {
+			stackoff = slotoffset(i->arg[1]);
+			stackreg = slotbase(i->arg[1]);
+		} else
 			i->arg[1] = materializeaddr(i->arg[1], fn, f);
 		if (isreg(i->arg[0]) && i->arg[0].val >= F0) {
 			fputs(i->op == Ostored || i->cls == Kd ? "\tdstore " : "\tfstore ", f);
 			emitvalue(i->arg[0], fn, f);
 			if (stackoff >= 0)
-				fprintf(f, ", %d(r31)\n", stackoff);
+				fprintf(f, ", %d(r%d)\n", stackoff, stackreg);
 			else {
 				fputs(", (", f);
 				emitreg(i->arg[1], f);
@@ -770,7 +781,7 @@ emitins(Ins *i, Fn *fn, FILE *f)
 		fprintf(f, "\tstore.%c ", s);
 		emitvalue(i->arg[0], fn, f);
 		if (stackoff >= 0)
-			fprintf(f, ", %d(r31)\n", stackoff);
+			fprintf(f, ", %d(r%d)\n", stackoff, stackreg);
 		else {
 			fputs(", (", f);
 			emitreg(i->arg[1], f);
@@ -1040,6 +1051,7 @@ ie64_emitfn(Fn *fn, FILE *f)
 {
 	static int id0;
 	Blk *b;
+	Con *c;
 	Ins *i, *cmp;
 	int first, j, ck, cc, frame, local, saveoff, nsaves;
 
@@ -1080,6 +1092,20 @@ ie64_emitfn(Fn *fn, FILE *f)
 				if (req(i->to, b->jmp.arg) && iscmp(i->op, &ck, &cc)
 				&& KBASE(ck) == 0)
 					cmp = i;
+		/* Fusing drops the comparison and re-reads its operand registers at
+		 * the branch, which register allocation considers dead from the
+		 * comparison onwards.  Anything below that redefines an operand or the
+		 * result, or a call clobbering the caller-save set, would be read
+		 * through.  Materialise the comparison instead in those cases. */
+		if (cmp)
+			for (i=cmp+1; i<&b->ins[b->nins]; i++)
+				if (iscallop(i->op)
+				|| (!req(i->to, R)
+				&& (req(i->to, cmp->to) || req(i->to, cmp->arg[0])
+				|| req(i->to, cmp->arg[1])))) {
+					cmp = 0;
+					break;
+				}
 		if (!first || b->npred > 1) {
 			emitlbl(id0+b->id, f);
 			fputs(":\n", f);
@@ -1107,8 +1133,16 @@ ie64_emitfn(Fn *fn, FILE *f)
 				emitreg(b->jmp.arg, f);
 				fputc('\n', f);
 			} else if (rtype(b->jmp.arg) == RCon) {
-				emitintload(TMP(R1), j == 0 ? Kw : Kl,
-					fn->con[b->jmp.arg.val].bits.i, f);
+				c = &fn->con[b->jmp.arg.val];
+				if (c->type == CAddr)
+					emitaddr(TMP(R1), str(c->sym.id),
+						c->bits.i, f);
+				else if (c->type == CBits)
+					emitintload(TMP(R1), j == 0 ? Kw : Kl,
+						c->bits.i, f);
+				else
+					die("IE64 return constant is invalid in '%s'",
+						fn->name);
 			} else
 				die("IE64 return selection missing in '%s'", fn->name);
 			if (j == 0)
@@ -1257,6 +1291,8 @@ ie64_emitfin(FILE *f)
 	for (s=datahead; s; s=next) {
 		next = s->next;
 		free(s->d.name);
+		free(s->lnk.sec);
+		free(s->lnk.secf);
 		if (s->d.isstr)
 			free(s->d.u.str);
 		if (s->d.isref)
@@ -1268,10 +1304,10 @@ ie64_emitfin(FILE *f)
 		fputs(".section .rodata,\"a\"\n", f);
 		fprintf(f, ".local %s\n", floatlabel(fc->id));
 		if (fc->flt == 1)
-			fprintf(f, "align 4\n%s:\n\tdc.l 0x%08"PRIx64"\n",
+			fprintf(f, ".align 4\n%s:\n\tdc.l 0x%08"PRIx64"\n",
 				floatlabel(fc->id), fc->bits);
 		else
-			fprintf(f, "align 8\n%s:\n\tdc.q 0x%016"PRIx64"\n",
+			fprintf(f, ".align 8\n%s:\n\tdc.q 0x%016"PRIx64"\n",
 				floatlabel(fc->id), fc->bits);
 		free(fc);
 	}

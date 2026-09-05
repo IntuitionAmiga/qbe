@@ -7,19 +7,51 @@ memarg(Ref *r, Ins *i)
 		|| (isstore(i->op) && r == &i->arg[1]);
 }
 
+enum { NSlotmemo = 16 };
+
+typedef struct Slotmemo Slotmemo;
+struct Slotmemo {
+	int n;
+	int slot[NSlotmemo];
+	Ref tmp[NSlotmemo];
+};
+
+/* Replace a reference to an allocation slot with a materialised address.
+ * Every slot operand in a block is rewritten by the one scan below, after
+ * selection has emitted the block, so all of these land at the block head and
+ * uses of the same slot share a temporary. */
+static void
+slotarg(Ref *r, Slotmemo *m, Fn *fn)
+{
+	Ref t;
+	int s, j;
+
+	if (rtype(*r) != RTmp || isreg(*r))
+		return;
+	s = fn->tmp[r->val].slot;
+	if (s == -1)
+		return;
+	for (j=0; j<m->n; j++)
+		if (m->slot[j] == s) {
+			*r = m->tmp[j];
+			return;
+		}
+	t = newtmp("isel", Kl, fn);
+	emit(Oaddr, Kl, t, SLOT(s), R);
+	if (m->n < NSlotmemo) {
+		m->slot[m->n] = s;
+		m->tmp[m->n] = t;
+		m->n++;
+	}
+	*r = t;
+}
+
 static void
 fixarg(Ref *r, int k, Ins *i, Fn *fn)
 {
 	Ref t;
 	int ck, cc;
 
-	if (rtype(*r) == RTmp && !isreg(*r)
-	&& fn->tmp[r->val].slot != -1) {
-		t = newtmp("isel", Kl, fn);
-		emit(Oaddr, Kl, t, SLOT(fn->tmp[r->val].slot), R);
-		*r = t;
-		return;
-	}
 	if (rtype(*r) != RCon || memarg(r, i))
 		return;
 	if (isie64immop(i->op) && r == &i->arg[0])
@@ -45,10 +77,13 @@ fixarg(Ref *r, int k, Ins *i, Fn *fn)
 void
 ie64_isel(Fn *fn)
 {
-	Blk *b;
-	Ins *i, *ii;
+	Blk *b, **sb;
+	Ins *i, *ii, *sel0;
+	Phi *p;
 	Ref t;
 	int64_t n;
+	Slotmemo memo;
+	uint pa;
 	int a, ck, cc;
 	Con *c;
 
@@ -90,7 +125,10 @@ ie64_isel(Fn *fn)
 			fn->slot = (fn->slot + a - 1) & -a;
 			fn->tmp[i->to.val].slot = fn->slot;
 				fn->slot += n / 4;
-				i->op = Onop;
+				/* Clear the whole instruction: a leftover destination keeps
+				 * the alloc temporary live, and spill() then reuses the slot
+				 * the allocation itself just claimed. */
+				*i = (Ins){.op = Onop};
 			}
 
 	for (b=fn->start; b; b=b->link) {
@@ -210,17 +248,30 @@ ie64_isel(Fn *fn)
 			}
 			emiti(*i);
 			ii = curi;
-			if (ii->op == Ocopy
-			&& rtype(ii->arg[0]) == RTmp
-			&& !isreg(ii->arg[0])
-			&& fn->tmp[ii->arg[0].val].slot != -1) {
-				t = newtmp("isel", Kl, fn);
-				emit(Oaddr, Kl, t, SLOT(fn->tmp[ii->arg[0].val].slot), R);
-				ii->arg[0] = t;
-			} else if (ii->op != Onop && ii->op != Ocopy) {
+			if (ii->op != Onop && ii->op != Ocopy) {
 				fixarg(&ii->arg[0], argcls(ii, 0), ii, fn);
 				fixarg(&ii->arg[1], argcls(ii, 1), ii, fn);
 			}
+		}
+		/* Materialise every allocation slot the block names -- instruction
+		 * operands, successor phi arguments and the jump argument alike -- at
+		 * the head of the block.  The address depends only on the frame
+		 * pointer, so it is valid there, it dominates every use below, and one
+		 * temporary serves all uses of a slot.  Emitting it inside the block
+		 * would risk landing after a fused compare, whose operand registers
+		 * emit reads again at the branch. */
+		sel0 = curi;
+		memo.n = 0;
+		for (sb=(Blk*[3]){b->s1, b->s2, 0}; *sb; sb++)
+			for (p=(*sb)->phi; p; p=p->link) {
+				for (pa=0; p->blk[pa] != b; pa++)
+					assert(pa+1 < p->narg);
+				slotarg(&p->arg[pa], &memo, fn);
+			}
+		slotarg(&b->jmp.arg, &memo, fn);
+		for (ii=sel0; ii<&insb[NIns]; ii++) {
+			slotarg(&ii->arg[0], &memo, fn);
+			slotarg(&ii->arg[1], &memo, fn);
 		}
 		idup(b, curi, &insb[NIns]-curi);
 	}

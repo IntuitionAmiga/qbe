@@ -1,0 +1,42 @@
+# Folding a comparison into the branch drops the comparison and re-reads its
+# operand registers, which register allocation treats as dead from the
+# comparison onwards.  When anything below redefines one -- a call clobbering
+# the caller-save set, or a plain definition -- the comparison has to be
+# materialised into a register instead.
+
+export function w $aftercall(w %x, w %y) {
+@start
+	%c =w csltw %x, %y
+	call $sink()
+	jnz %c, @t, @e
+@t
+	ret 1
+@e
+	ret 0
+}
+
+export function w $afterdef(w %x, w %y, l %p) {
+@start
+	%c =w csltw %x, %y
+	%z =l add %p, 8
+	storel %z, $slot
+	jnz %c, @t, @e
+@t
+	ret 1
+@e
+	ret 0
+}
+
+# No later definition touches the operands, so this one stays folded.
+export function w $stillfused(w %x, w %y, l %p) {
+@start
+	%c =w csltw %x, %y
+	storel %p, $slot
+	jnz %c, @t, @e
+@t
+	ret 1
+@e
+	ret 0
+}
+
+data $slot = align 8 { z 8 }

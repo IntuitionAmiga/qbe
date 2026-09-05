@@ -19,6 +19,10 @@ enum Ie64Reg {
 	NGPS = R30 - R1 + 1,
 	NFPS = F7 - F0 + 1,
 };
+/* The `env` pseudo-argument travels in its own caller-save register, outside
+ * the ordinary argument sequence so that it never displaces a real argument. */
+#define RENV R28
+
 MAKESURE(reg_not_tmp, F15 < (int)Tmp0);
 
 extern int ie64_rsave[];

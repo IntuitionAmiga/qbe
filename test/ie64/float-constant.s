@@ -11,6 +11,6 @@ constant:
 .size constant,.-constant
 .section .rodata,"a"
 .local .L__ie64_fconst_0
-align 4
+.align 4
 .L__ie64_fconst_0:
 	dc.l 0x40000000

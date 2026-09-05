@@ -12,21 +12,17 @@ take:
 .align 16
 call_aligned:
 	sub.q r31, r31, #24
-	lea r30, 0(r31)
-	store.q r1, (r30)
+	lea r1, 0(r31)
 	move.l r30, #lo32(value+0)
 	movt r30, #hi32(value+0)
-	load.q r1, (r30)
-	lea r2, 0(r31)
-	store.q r1, (r2)
-	move.l r1, #lo32(value+0)
-	movt r1, #hi32(value+0)
-	add.q r1, r1, #8
-	lea r2, 0(r31)
+	load.q r2, (r30)
+	store.q r2, (r1)
+	move.l r2, #lo32(value+0)
+	movt r2, #hi32(value+0)
 	add.q r2, r2, #8
-	load.q r1, (r1)
-	store.q r1, (r2)
-	lea r1, 0(r31)
+	add.q r3, r1, #8
+	load.q r2, (r2)
+	store.q r2, (r3)
 	jsr take
 .L3:
 	add.q r31, r31, #24

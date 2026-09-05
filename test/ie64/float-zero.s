@@ -47,11 +47,11 @@ consume_zeros:
 .size consume_zeros,.-consume_zeros
 .section .rodata,"a"
 .local .L__ie64_fconst_0
-align 4
+.align 4
 .L__ie64_fconst_0:
 	dc.l 0x00000000
 .section .rodata,"a"
 .local .L__ie64_fconst_1
-align 8
+.align 8
 .L__ie64_fconst_1:
 	dc.q 0x0000000000000000

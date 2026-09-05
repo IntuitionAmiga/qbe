@@ -11,8 +11,7 @@ wide_spill:
 	store.q r22, 112(r31)
 	store.q r23, 120(r31)
 	store.q r24, 128(r31)
-	lea r30, 0(r31)
-	store.q r1, (r30)
+	lea r1, 0(r31)
 	move.l r30, #lo32(g0+0)
 	movt r30, #hi32(g0+0)
 	load.q r23, (r30)
@@ -69,7 +68,6 @@ wide_spill:
 	load.q r8, (r30)
 	lea r30, 56(r31)
 	store.q r8, (r30)
-	lea r1, 0(r31)
 	jsr sink
 	load.q r8, 56(r31)
 	load.q r2, 48(r31)

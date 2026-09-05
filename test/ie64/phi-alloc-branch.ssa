@@ -1,0 +1,31 @@
+# An allocation reaching a successor phi, or a return, is an operand like any
+# other and needs its address materialised.  The materialisation belongs at the
+# head of the block: emitting it at the tail would place it between a fused
+# comparison and the branch that re-reads the comparison's registers.
+
+export function l $phialloc(w %n) {
+@start
+	%buf =l alloc4 32
+	%b2 =l alloc4 32
+	jmp @hdr
+@hdr
+	%i =w phi @start 0, @body %i1
+	%p =l phi @start %buf, @body %pn
+	%c =w csltw %i, %n
+	jnz %c, @body, @end
+@body
+	%i1 =w add %i, 1
+	%pn =l add %p, 4
+	storew 7, %p
+	jnz %i1, @hdr, @end
+@end
+	%q =l phi @hdr %b2, @body %p
+	ret %q
+}
+
+export function l $retalloc() {
+@start
+	%p =l alloc8 8
+	storel 42, %p
+	ret %p
+}

@@ -144,6 +144,6 @@ h:
 .size h,8
 .section .rodata,"a"
 .local .L__ie64_fconst_0
-align 8
+.align 8
 .L__ie64_fconst_0:
 	dc.q 0x3ff8000000000000
