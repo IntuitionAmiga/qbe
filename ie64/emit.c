@@ -1046,6 +1046,65 @@ emitsaves(Fn *fn, int off, int restore, FILE *f)
 	return n;
 }
 
+/* Registers an allocated instruction reads, with calls modelled as in
+ * filllive(): they read their argument registers. */
+static bits
+insuse(Ins *i)
+{
+	bits u;
+	int n;
+
+	u = 0;
+	if (iscallop(i->op) && rtype(i->arg[1]) == RCall)
+		u |= T.argregs(i->arg[1], 0);
+	for (n=0; n<2; n++)
+		if (isreg(i->arg[n]))
+			u |= BIT(i->arg[n].val);
+	return u;
+}
+
+/* Registers live on entry to each block of the final, allocated CFG.  Folding
+ * a comparison into its branch is only sound while nothing reads the
+ * comparison's result register afterwards, and the temporary-level liveness
+ * filled before allocation no longer describes registers. */
+static bits *
+fillreglive(Fn *fn)
+{
+	Blk *b;
+	Ins *i;
+	bits *in, live;
+	int chg;
+
+	in = alloc(fn->nblk * sizeof in[0]);
+	do {
+		chg = 0;
+		for (b=fn->start; b; b=b->link) {
+			live = 0;
+			if (b->s1)
+				live |= in[b->s1->id];
+			if (b->s2)
+				live |= in[b->s2->id];
+			if (rtype(b->jmp.arg) == RCall)
+				live |= T.retregs(b->jmp.arg, 0);
+			else if (isreg(b->jmp.arg))
+				live |= BIT(b->jmp.arg.val);
+			for (i=&b->ins[b->nins]; i!=b->ins;) {
+				--i;
+				if (iscallop(i->op) && rtype(i->arg[1]) == RCall)
+					live &= ~T.retregs(i->arg[1], 0);
+				if (isreg(i->to))
+					live &= ~BIT(i->to.val);
+				live |= insuse(i);
+			}
+			if (live != in[b->id]) {
+				in[b->id] = live;
+				chg = 1;
+			}
+		}
+	} while (chg);
+	return in;
+}
+
 void
 ie64_emitfn(Fn *fn, FILE *f)
 {
@@ -1053,6 +1112,7 @@ ie64_emitfn(Fn *fn, FILE *f)
 	Blk *b;
 	Con *c;
 	Ins *i, *cmp;
+	bits *livein, out;
 	int first, j, ck, cc, frame, local, saveoff, nsaves;
 
 	/* IE64 JSR pushes an eight-byte return address.  A non-leaf frame therefore
@@ -1085,6 +1145,7 @@ ie64_emitfn(Fn *fn, FILE *f)
 		emitsaves(fn, saveoff, 0, f);
 	if (fn->dynalloc)
 		fputs("\tmove.q r25, r31\n", f);
+	livein = fillreglive(fn);
 	for (first=1, b=fn->start; b; b=b->link) {
 		cmp = 0;
 		if (b->jmp.type == Jjnz)
@@ -1096,16 +1157,26 @@ ie64_emitfn(Fn *fn, FILE *f)
 		 * the branch, which register allocation considers dead from the
 		 * comparison onwards.  Anything below that redefines an operand or the
 		 * result, or a call clobbering the caller-save set, would be read
-		 * through.  Materialise the comparison instead in those cases. */
+		 * through.  Materialise the comparison instead in those cases.  The
+		 * same holds when the result itself is read again, below in this
+		 * block or in a successor, since nothing ever writes it. */
 		if (cmp)
 			for (i=cmp+1; i<&b->ins[b->nins]; i++)
 				if (iscallop(i->op)
+				|| (insuse(i) & BIT(cmp->to.val))
 				|| (!req(i->to, R)
 				&& (req(i->to, cmp->to) || req(i->to, cmp->arg[0])
 				|| req(i->to, cmp->arg[1])))) {
 					cmp = 0;
 					break;
 				}
+		if (cmp) {
+			out = livein[b->s1->id];
+			if (b->s2)
+				out |= livein[b->s2->id];
+			if (out & BIT(cmp->to.val))
+				cmp = 0;
+		}
 		if (!first || b->npred > 1) {
 			emitlbl(id0+b->id, f);
 			fputs(":\n", f);

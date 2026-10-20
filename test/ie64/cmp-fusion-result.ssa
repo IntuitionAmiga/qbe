@@ -1,0 +1,69 @@
+# Folding a comparison into the branch drops the instruction that writes its
+# result register.  When the result is also read elsewhere, by a later
+# instruction in the same block or in either successor through an operand or a
+# phi, the comparison has to be materialised, or those readers see whatever the
+# register held before (here the left operand).
+
+export function w $storeresult(w %x, w %y, l %p) {
+@start
+	%c =w csltw %x, %y
+	storeb %c, %p
+	jnz %c, @t, @e
+@t
+	ret 1
+@e
+	ret 0
+}
+
+export function w $liveout(w %x, w %y, l %p) {
+@start
+	%c =w csltw %x, %y
+	jnz %c, @t, @e
+@t
+	%s =w loadw %p
+	%z =w add %s, %c
+	ret %z
+@e
+	ret 7
+}
+
+export function w $phiout(w %x, w %y, l %p) {
+@start
+	%c =w csltw %x, %y
+	jnz %c, @t, @j
+@t
+	storel %p, $slot
+@j
+	%r =w phi @start 9, @t %c
+	ret %r
+}
+export function w $phifalse(w %x, w %y, l %p) {
+@start
+	%c =w csltw %x, %y
+	jnz %c, @t, @j
+@t
+	storel %p, $slot
+	jmp @j
+@j
+	%r =w phi @start %c, @t 9
+	ret %r
+}
+
+export function w $loopfalse(w %x, w %y, l %p) {
+@start
+	%c =w csltw %x, %y
+	jnz %c, @t, @l
+@t
+	ret 7
+@l
+	%i =w phi @start 0, @l %i1
+	%v =w loadw %p
+	%i1 =w add %i, %v
+	%d =w csltw %i1, %y
+	jnz %d, @l, @x
+@x
+	%z =w add %i1, %c
+	ret %z
+}
+
+data $slot = align 8 { z 8 }
