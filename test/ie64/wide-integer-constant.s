@@ -15,7 +15,6 @@ wide_add:
 	move.l r2, #0x00000000
 	movt r2, #0x12345678
 	add.q r1, r1, r2
-	move.q r1, r1
 	rts
 .size wide_add,.-wide_add
 .section .text,"ax"
@@ -23,9 +22,7 @@ wide_add:
 .type negative_add,@function
 .align 16
 negative_add:
-	move.l r2, #0xffffffff
-	movt r2, #0xffffffff
+	moveq r2, #-1
 	add.q r1, r1, r2
-	move.q r1, r1
 	rts
 .size negative_add,.-negative_add

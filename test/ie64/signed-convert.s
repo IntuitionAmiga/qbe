@@ -4,7 +4,6 @@
 .align 16
 double_to_long:
 	dcvtfi r1, f0
-	move.q r1, r1
 	rts
 .size double_to_long,.-double_to_long
 .section .text,"ax"
@@ -23,7 +22,6 @@ long_to_double:
 single_to_long:
 	fcvtsd f0, f0
 	dcvtfi r1, f0
-	move.q r1, r1
 	rts
 .size single_to_long,.-single_to_long
 .section .text,"ax"

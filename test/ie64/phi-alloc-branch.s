@@ -8,7 +8,7 @@ phialloc:
 	move.l r4, r1
 .L1:
 	move.q r1, r2
-	li r2, #0
+	moveq r2, #0
 .L2:
 	lea r5, 32(r31)
 	sext.l r3, r2
@@ -17,7 +17,7 @@ phialloc:
 .L3:
 	add.l r2, r2, #1
 	add.q r3, r1, #4
-	li r5, #7
+	moveq r5, #7
 	store.l r5, (r1)
 	beq r2, r0, .L6
 .L4:
@@ -26,7 +26,6 @@ phialloc:
 .L5:
 	move.q r1, r5
 .L6:
-	move.q r1, r1
 	add.q r31, r31, #72
 	rts
 .size phialloc,.-phialloc
@@ -37,9 +36,8 @@ phialloc:
 retalloc:
 	sub.q r31, r31, #8
 	lea r1, 0(r31)
-	li r2, #42
+	moveq r2, #42
 	store.q r2, (r1)
-	move.q r1, r1
 	add.q r31, r31, #8
 	rts
 .size retalloc,.-retalloc

@@ -1,0 +1,41 @@
+# A constant compare operand is extended when the code is generated, so
+# no extension instruction is emitted for it.
+export function w $slt_const(w %x) {
+@start
+	%r =w csltw %x, -5
+	ret %r
+}
+
+export function w $sgt_const_left(w %x) {
+@start
+	%r =w csgtw 100, %x
+	ret %r
+}
+
+export function w $ult_const(w %x) {
+@start
+	%r =w cultw %x, 4000000000
+	ret %r
+}
+
+export function w $eq_const(w %x) {
+@start
+	%r =w ceqw %x, -1
+	ret %r
+}
+
+export function w $both_const() {
+@start
+	%r =w csltw -1, 1
+	ret %r
+}
+
+export function w $branch_const(w %x) {
+@start
+	%c =w cslew %x, 9
+	jnz %c, @yes, @no
+@yes
+	ret 1
+@no
+	ret 0
+}

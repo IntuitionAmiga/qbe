@@ -1262,6 +1262,9 @@ parse(FILE *f, char *path, void dbgfile(char *), void data(Dat *), void func(Fn 
 			parsetyp();
 			break;
 		case Teof:
+			/* End of unit: lets the caller finish held functions
+			 * while the aggregate types are still around. */
+			func(0);
 			for (n=0; n<ntyp; n++) {
 				free(typ[n].name);
 				if (typ[n].nunion)

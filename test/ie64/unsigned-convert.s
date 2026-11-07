@@ -9,12 +9,12 @@ double_to_ulong:
 	dcmp r29, f0, f4
 	fmovsr r30
 	and.q r30, r30, #0x1000000
-	li r1, #0
+	moveq r1, #0
 	bne r30, r0, .Lcmp0
 	bge r29, r0, .Lcmptrue0
 	bra .Lcmp0
 .Lcmptrue0:
-	li r1, #1
+	moveq r1, #1
 .Lcmp0:
 	move.l r2, r1
 	dcvtif f2, r2
@@ -23,7 +23,6 @@ double_to_ulong:
 	dcvtfi r1, f0
 	lsl.q r2, r2, #63
 	or.q r1, r1, r2
-	move.q r1, r1
 	rts
 .size double_to_ulong,.-double_to_ulong
 .section .text,"ax"
@@ -38,12 +37,12 @@ single_to_ulong:
 	dcmp r29, f0, f4
 	fmovsr r30
 	and.q r30, r30, #0x1000000
-	li r1, #0
+	moveq r1, #0
 	bne r30, r0, .Lcmp1
 	bge r29, r0, .Lcmptrue1
 	bra .Lcmp1
 .Lcmptrue1:
-	li r1, #1
+	moveq r1, #1
 .Lcmp1:
 	move.l r2, r1
 	dcvtif f2, r2
@@ -52,7 +51,6 @@ single_to_ulong:
 	dcvtfi r1, f0
 	lsl.q r2, r2, #63
 	or.q r1, r1, r2
-	move.q r1, r1
 	rts
 .size single_to_ulong,.-single_to_ulong
 .section .text,"ax"

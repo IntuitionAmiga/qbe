@@ -13,7 +13,13 @@ for in in test/ie64/*.ssa
 do
 	gold=${in%.ssa}.s
 	printf '%-45s' "$(basename "$in")..."
-	"$bin" -t ie64 -o "$tmp" "$in"
+	# The golden files pin the call sequences of the back end, so they
+	# are generated without inlining; inline-*.ssa tests run with it.
+	case "$(basename "$in")" in
+	inline-*) noinline= ;;
+	*) noinline=-fno-inline ;;
+	esac
+	"$bin" -t ie64 $noinline -o "$tmp" "$in"
 	cat "$gold" > "$expected"
 	if diff -u "$expected" "$tmp"
 	then

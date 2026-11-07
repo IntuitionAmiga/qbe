@@ -6,8 +6,6 @@ f:
 	load.q r1, 8(r31)
 	load.l r1, (r1)
 	sext.l r1, r1
-	move.l r1, r1
-	sext.l r1, r1
 	rts
 .size f,.-f
 .section .text,"ax"
@@ -21,12 +19,12 @@ g:
 	lea r7, 0(r25)
 	sub.q r31, r31, #16
 	move.q r8, r31
-	li r1, #1
-	li r2, #2
-	li r3, #3
-	li r4, #4
-	li r5, #5
-	li r6, #6
+	moveq r1, #1
+	moveq r2, #2
+	moveq r3, #3
+	moveq r4, #4
+	moveq r5, #5
+	moveq r6, #6
 	move.l r30, #lo32(s+0)
 	movt r30, #hi32(s+0)
 	load.l r9, (r30)
@@ -34,7 +32,6 @@ g:
 	store.q r7, (r8)
 	jsr f
 	add.q r31, r31, #16
-	move.l r1, r1
 	sext.l r1, r1
 	move.q r31, r25
 	load.q r25, 8(r31)

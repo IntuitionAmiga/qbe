@@ -42,7 +42,6 @@ spill_copy:
 	add.q r3, r3, r4
 	add.q r2, r2, r3
 	add.q r1, r1, r2
-	move.q r1, r1
 	load.q r18, 32(r31)
 	load.q r19, 40(r31)
 	load.q r20, 48(r31)

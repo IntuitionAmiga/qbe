@@ -70,9 +70,9 @@ facilities:
 	dsqrt f0, f2
 	fmovsr r1
 	fmovcr r1
-	li r1, #1
+	moveq r1, #1
 	fmovsc r1
-	li r1, #2
+	moveq r1, #2
 	fmovcc r1
 .L1:
 	load.q r18, 0(r31)

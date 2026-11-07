@@ -24,11 +24,9 @@ g:
 	store.q r18, 8(r31)
 	lea r18, 0(r31)
 	move.q r1, r18
-	li r2, #2
+	moveq r2, #2
 	jsr f
 	load.l r1, (r18)
-	sext.l r1, r1
-	move.l r1, r1
 	sext.l r1, r1
 	load.q r18, 8(r31)
 	add.q r31, r31, #24

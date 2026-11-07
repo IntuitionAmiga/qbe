@@ -1,0 +1,43 @@
+# Operations that read more than the low 32 bits of a register get
+# operands in the extension they need: the 32-bit logical shift and the
+# unsigned divide want zero-extended input, DIVS and the integer to
+# double conversion want sign-extended input.
+export function w $shr_signed_byte(w %x, w %n) {
+@start
+	%a =w extsb %x
+	%r =w shr %a, 4
+	ret %r
+}
+
+export function w $shr_param(w %x) {
+@start
+	%r =w shr %x, 3
+	ret %r
+}
+
+export function w $sdiv_sum(w %x, w %y, w %z) {
+@start
+	%a =w add %x, %y
+	%r =w div %a, %z
+	ret %r
+}
+
+export function w $sdiv_neg_const(w %x) {
+@start
+	%r =w div %x, -5
+	ret %r
+}
+
+export function w $udiv_sum(w %x, w %y, w %z) {
+@start
+	%a =w sub %x, %y
+	%r =w udiv %a, %z
+	ret %r
+}
+
+export function d $swtod_sum(w %x, w %y) {
+@start
+	%a =w add %x, %y
+	%r =d swtof %a
+	ret %r
+}

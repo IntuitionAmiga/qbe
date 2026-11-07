@@ -87,7 +87,7 @@ data(Dat *d)
 }
 
 static void
-func(Fn *fn)
+funcdo(Fn *fn)
 {
 	uint n;
 
@@ -159,6 +159,48 @@ func(Fn *fn)
 			fprintf(outf, "/* end function %s */\n\n", fn->name);
 	} else
 		fprintf(stderr, "\n");
+}
+
+/* With inlining the functions of a unit are held until the unit has been
+ * parsed.  Only the IE64 target does so, at -O2 and above. */
+static Fn **fnq;
+static int nfnq, capfnq;
+static int inlining, noinline;
+
+static void flushfuncs(void);
+
+static void
+func(Fn *fn)
+{
+	if (!fn) {
+		flushfuncs();
+		return;
+	}
+	if (!inlining) {
+		funcdo(fn);
+		freeall();
+		return;
+	}
+	if (nfnq == capfnq) {
+		capfnq = capfnq ? 2*capfnq : 64;
+		fnq = realloc(fnq, capfnq * sizeof fnq[0]);
+		if (!fnq)
+			die("out of memory");
+	}
+	fnq[nfnq++] = fn;
+}
+
+static void
+flushfuncs(void)
+{
+	int n;
+
+	if (!nfnq)
+		return;
+	inlinefns(fnq, nfnq);
+	for (n=0; n<nfnq; n++)
+		funcdo(fnq[n]);
+	nfnq = 0;
 	freeall();
 }
 
@@ -188,6 +230,10 @@ main(int ac, char *av[])
 				}
 			break;
 		case 'f':
+			if (strcmp(optarg, "no-inline") == 0) {
+				noinline = 1;
+				break;
+			}
 			if (strncmp(optarg, "ie64-unit-prefix=",
 			    sizeof "ie64-unit-prefix=" - 1) != 0) {
 				fprintf(stderr, "invalid option '-f%s'\n", optarg);
@@ -242,8 +288,10 @@ main(int ac, char *av[])
 			}
 			fprintf(hf, "\n");
 			fprintf(hf, "\t%-11s dump debug information\n", "-d <flags>");
+			fprintf(hf, "\t%-11s do not inline leaf functions (ie64, -O2 and up)\n", "-fno-inline");
 			exit(c != 'h');
 		}
+	inlining = strcmp(T.name, "ie64") == 0 && optlevel >= 2 && !noinline && !dbg;
 	do {
 		f = av[optind];
 		if (!f || strcmp(f, "-") == 0) {

@@ -4,7 +4,6 @@
 .align 16
 toint:
 	fcvtfi r1, f0
-	move.l r1, r1
 	sext.l r1, r1
 	rts
 .size toint,.-toint

@@ -14,7 +14,6 @@ f:
 	load.q r2, (r3)
 	add.q r2, r2, #8
 	store.q r2, (r3)
-	move.l r1, r1
 	sext.l r1, r1
 	add.q r31, r31, #8
 	rts
@@ -29,8 +28,8 @@ g:
 	move.q r25, r31
 	sub.q r31, r31, #16
 	move.q r2, r31
-	li r1, #1
-	li r3, #2
+	moveq r1, #1
+	moveq r3, #2
 	store.q r3, (r2)
 	add.q r2, r2, #8
 	move.l r30, #lo32(.L__ie64_fconst_0+0)
@@ -39,7 +38,6 @@ g:
 	dstore f0, (r2)
 	jsr f
 	add.q r31, r31, #16
-	move.l r1, r1
 	sext.l r1, r1
 	move.q r31, r25
 	load.q r25, 0(r31)

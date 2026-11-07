@@ -147,12 +147,22 @@ emitintload(Ref dst, int cls, int64_t n, FILE *f)
 {
 	uint64_t bits = (uint64_t)n;
 
-	if (cls == Kw || bits <= UINT32_MAX) {
-		fputs("li ", f);
+	/* One instruction where one will do.  moveq sign-extends a 32-bit
+	 * immediate; move.l zero-extends one.  A w constant is always the
+	 * zero-extended 32-bit value, which is the form the facts in ext.c
+	 * and the 32-bit shifts and divisions rely on. */
+	if (cls == Kw)
+		bits = (uint32_t)bits;
+	if (cls == Kw ? bits <= INT32_MAX : n >= INT32_MIN && n <= INT32_MAX) {
+		fputs("moveq ", f);
 		emitreg(dst, f);
-		fputs(", #", f);
-		emitint(cls == Kw ? (int64_t)(int32_t)n : n, f);
-		fputc('\n', f);
+		fprintf(f, ", #%"PRId32"\n", (int32_t)bits);
+		return;
+	}
+	if (bits <= UINT32_MAX) {
+		fputs("move.l ", f);
+		emitreg(dst, f);
+		fprintf(f, ", #0x%08"PRIx32"\n", (uint32_t)bits);
 		return;
 	}
 	fputs("move.l ", f);
@@ -298,6 +308,8 @@ emitcopy(Ins *i, Fn *fn, FILE *f)
 
 	if (!isreg(i->to))
 		die("IE64 copy destination is not a register");
+	if (i->cls == Kl && isreg(i->arg[0]) && req(i->to, i->arg[0]))
+		return;
 	fputc('\t', f);
 	if (isreg(i->arg[0])) {
 		if (i->cls == Kd)
@@ -712,7 +724,8 @@ emitins(Ins *i, Fn *fn, FILE *f)
 			emitreg(i->to, f);
 			fprintf(f, ", %d(r%d)\n", slotoffset(i->arg[0]),
 				slotbase(i->arg[0]));
-			if (i->op == Oloadsb || i->op == Oloadsh || i->op == Oloadsw) {
+			if (i->op == Oloadsb || i->op == Oloadsh
+			|| (i->op == Oloadsw && i->cls == Kl)) {
 				fprintf(f, "\tsext.%c ", s);
 				emitreg(i->to, f);
 				fprintf(f, ", r%u\n", i->to.val);
@@ -736,7 +749,8 @@ emitins(Ins *i, Fn *fn, FILE *f)
 		fputs(", (", f);
 		emitreg(i->arg[0], f);
 		fputs(")\n", f);
-		if (i->op == Oloadsb || i->op == Oloadsh || i->op == Oloadsw) {
+		if (i->op == Oloadsb || i->op == Oloadsh
+			|| (i->op == Oloadsw && i->cls == Kl)) {
 			fprintf(f, "\tsext.%c ", s);
 			emitreg(i->to, f);
 			fprintf(f, ", r%u\n", i->to.val);
@@ -765,9 +779,14 @@ emitins(Ins *i, Fn *fn, FILE *f)
 		}
 		s = suffix(i->cls);
 		if (stackoff >= 0 && !isreg(i->arg[0])) {
-			fputs("\tli r30, ", f);
-			emitvalue(i->arg[0], fn, f);
-			fputc('\n', f);
+			Con *sc;
+
+			if (rtype(i->arg[0]) != RCon
+			|| (sc = &fn->con[i->arg[0].val])->type != CBits)
+				die("IE64 store value is not selected in '%s'", fn->name);
+			fputc('\t', f);
+			emitintload(TMP(R30), i->op == Ostorel ? Kl : Kw,
+				sc->bits.i, f);
 			i->arg[0] = TMP(R30);
 		}
 		if (i->op == Ostoreb)
@@ -872,6 +891,7 @@ emitins(Ins *i, Fn *fn, FILE *f)
 		static unsigned cmpid;
 		char *br;
 		unsigned id;
+		Ref res;
 
 		if (iscmp(i->op, &k, &cc) && KBASE(k) == 0) {
 			if (!isreg(i->arg[0]) || !isreg(i->arg[1]))
@@ -890,18 +910,27 @@ emitins(Ins *i, Fn *fn, FILE *f)
 			default: die("IE64 comparison value is not implemented");
 			}
 			id = cmpid++;
-			fputs("\tli r30, #0\n\t", f);
+			/* Build the result in its own register unless that register
+			 * holds an operand: the branch still reads the operands. */
+			res = req(i->to, i->arg[0]) || req(i->to, i->arg[1])
+				? TMP(R30) : i->to;
+			fputs("\tmoveq ", f);
+			emitreg(res, f);
+			fputs(", #0\n\t", f);
 			fputs(br, f);
 			fputc(' ', f);
 			if (cc == Ciuge || cc == Ciult)
 				emitreg(i->arg[1], f), fputs(", ", f), emitreg(i->arg[0], f);
 			else
 				emitreg(i->arg[0], f), fputs(", ", f), emitreg(i->arg[1], f);
-			fprintf(f, ", .Lcmp%s%u\n\tli r30, #1\n.Lcmp%s%u:\n\tmove.q ",
-				"", id,
-				"", id);
-			emitreg(i->to, f);
-			fputs(", r30\n", f);
+			fprintf(f, ", .Lcmp%u\n\tmoveq ", id);
+			emitreg(res, f);
+			fprintf(f, ", #1\n.Lcmp%u:\n", id);
+			if (!req(res, i->to)) {
+				fputs("\tmove.q ", f);
+				emitreg(i->to, f);
+				fputs(", r30\n", f);
+			}
 			return;
 		}
 		if (iscmp(i->op, &k, &cc) && (k == Ks || k == Kd)) {
@@ -917,7 +946,7 @@ emitins(Ins *i, Fn *fn, FILE *f)
 			fputs(", ", f);
 			emitreg(i->arg[1], f);
 			fputs("\n\tfmovsr r30\n\tand.q r30, r30, #0x1000000\n", f);
-			fprintf(f, "\tli ");
+			fputs("\tmoveq ", f);
 			emitreg(i->to, f);
 			fputs(", #0\n", f);
 			yes = 0;
@@ -949,7 +978,7 @@ emitins(Ins *i, Fn *fn, FILE *f)
 				fputs("r29", f);
 				fprintf(f, ", r0, .Lcmptrue%s%u\n", "", id);
 			}
-			fprintf(f, "\tbra .Lcmp%s%u\n.Lcmptrue%s%u:\n\tli ",
+			fprintf(f, "\tbra .Lcmp%s%u\n.Lcmptrue%s%u:\n\tmoveq ",
 				"", id,
 				"", id);
 			emitreg(i->to, f);
@@ -1000,6 +1029,9 @@ emitbranch(int cmp, int invert, Ref a, Ref b, Blk *to, int id0, Fn *fn, FILE *f)
 		a = b;
 		b = t;
 	}
+	/* HOOK(branch-immediate): a constant operand reaches here only if
+	 * isel kept one.  Today it is loaded into r30; the immediate form of
+	 * the branch, once it exists, replaces these two loads. */
 	if (!isreg(a) && rtype(a) == RCon) {
 		fputc('\t', f);
 		emitintload(TMP(R30), Kl, fn->con[a.val].bits.i, f);
@@ -1198,26 +1230,30 @@ ie64_emitfn(Fn *fn, FILE *f)
 		case Jretw:
 		case Jretl:
 			j = b->jmp.type - Jretw;
-			fputs("\t", f);
 			if (isreg(b->jmp.arg)) {
-				fprintf(f, "move.%c r1, ", j == 0 ? 'l' : 'q');
-				emitreg(b->jmp.arg, f);
-				fputc('\n', f);
+				if (j == 0)
+					fputs("\tsext.l r1, ", f), emitreg(b->jmp.arg, f), fputc('\n', f);
+				else if (!req(b->jmp.arg, TMP(R1)))
+					fputs("\tmove.q r1, ", f), emitreg(b->jmp.arg, f), fputc('\n', f);
 			} else if (rtype(b->jmp.arg) == RCon) {
 				c = &fn->con[b->jmp.arg.val];
-				if (c->type == CAddr)
+				if (c->type == CAddr) {
+					fputc('\t', f);
 					emitaddr(TMP(R1), str(c->sym.id),
 						c->bits.i, f);
-				else if (c->type == CBits)
-					emitintload(TMP(R1), j == 0 ? Kw : Kl,
-						c->bits.i, f);
-				else
+					if (j == 0)
+						fputs("\tsext.l r1, r1\n", f);
+				} else if (c->type == CBits) {
+					/* A w result is returned sign-extended: load the
+					 * sign-extended constant directly. */
+					fputc('\t', f);
+					emitintload(TMP(R1), Kl,
+						j == 0 ? (int64_t)(int32_t)c->bits.i : c->bits.i, f);
+				} else
 					die("IE64 return constant is invalid in '%s'",
 						fn->name);
 			} else
 				die("IE64 return selection missing in '%s'", fn->name);
-			if (j == 0)
-				fputs("\tsext.l r1, r1\n", f);
 			if (fn->dynalloc)
 				fputs("\tmove.q r31, r25\n", f);
 			if (nsaves)

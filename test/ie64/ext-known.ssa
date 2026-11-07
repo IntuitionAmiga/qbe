@@ -1,0 +1,76 @@
+# Known-extension tracking: a w value produced by a 32-bit operation, a
+# load or a mask is already zero-extended, so a compare or an extension
+# of it needs no extra instruction.
+export function w $cmp_loaded(l %p, l %q) {
+@start
+	%a =w loaduw %p
+	%b =w loaduw %q
+	%r =w cultw %a, %b
+	ret %r
+}
+
+export function w $cmp_masked(w %x) {
+@start
+	%a =w and %x, 255
+	%r =w csltw %a, 100
+	ret %r
+}
+
+export function w $cmp_param(w %x, w %y) {
+@start
+	%r =w cultw %x, %y
+	ret %r
+}
+
+export function l $zext_after_add(w %x, w %y) {
+@start
+	%a =w add %x, %y
+	%r =l extuw %a
+	ret %r
+}
+
+export function l $zext_param(w %x) {
+@start
+	%r =l extuw %x
+	ret %r
+}
+
+export function l $sext_masked(w %x) {
+@start
+	%a =w and %x, 127
+	%r =l extsw %a
+	ret %r
+}
+
+export function l $sext_param(w %x) {
+@start
+	%r =l extsw %x
+	ret %r
+}
+
+export function w $byte_twice(w %x) {
+@start
+	%a =w extub %x
+	%b =w extub %a
+	ret %b
+}
+
+export function w $switch_chain(w %x) {
+@start
+	%a =w ceqw %x, 1
+	jnz %a, @one, @n1
+@n1
+	%b =w ceqw %x, 2
+	jnz %b, @two, @n2
+@n2
+	%c =w ceqw %x, 3
+	jnz %c, @three, @other
+@one
+	ret 10
+@two
+	ret 20
+@three
+	ret 30
+@other
+	ret 0
+}

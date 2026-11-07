@@ -4,7 +4,7 @@
 .type hidden_function,@function
 .align 16
 hidden_function:
-	li r1, #7
+	moveq r1, #7
 	rts
 .size hidden_function,.-hidden_function
 .section .data,"aw"

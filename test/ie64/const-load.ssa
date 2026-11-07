@@ -1,0 +1,70 @@
+# Integer constants load with one instruction where one will do:
+# moveq for values in int32 range, move.l for 2^31..2^32-1, and the
+# move.l/movt pair only for the rest.
+export function w $w_small() {
+@start
+	ret 7
+}
+
+export function w $w_negative() {
+@start
+	ret -7
+}
+
+export function w $w_int_min() {
+@start
+	ret -2147483648
+}
+
+export function l $l_small() {
+@start
+	ret 7
+}
+
+export function l $l_negative() {
+@start
+	ret -2
+}
+
+export function l $l_int_min() {
+@start
+	ret -2147483648
+}
+
+export function l $l_int_max() {
+@start
+	ret 2147483647
+}
+
+export function l $l_uint_low() {
+@start
+	ret 2147483648
+}
+
+export function l $l_uint_max() {
+@start
+	ret 4294967295
+}
+
+export function l $l_wide() {
+@start
+	ret 4294967296
+}
+
+export function l $l_below_int_min() {
+@start
+	ret -2147483649
+}
+
+export function l $l_min() {
+@start
+	ret -9223372036854775808
+}
+
+export function l $l_use(l %a) {
+@start
+	%r =l add %a, 4294967295
+	%s =l add %r, 2147483648
+	%t =l add %s, -2147483648
+	ret %t
+}

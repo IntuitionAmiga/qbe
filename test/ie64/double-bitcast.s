@@ -19,6 +19,5 @@ double_to_bits:
 	dstore f0, (r31)
 	load.q r1, (r31)
 	add.q r31, r31, #16
-	move.q r1, r1
 	rts
 .size double_to_bits,.-double_to_bits

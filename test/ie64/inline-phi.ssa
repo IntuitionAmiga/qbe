@@ -1,0 +1,21 @@
+# The successors of an inlined call's block take their phi arguments from
+# the code after the call.
+function w $twice(w %a) {
+@start
+	%r =w add %a, %a
+	ret %r
+}
+
+export function w $caller(w %x, w %c) {
+@start
+	%t =w call $twice(w %x)
+	jnz %c, @yes, @no
+@yes
+	%u =w call $twice(w %t)
+	jmp @join
+@no
+	%v =w sub %t, 1
+@join
+	%r =w phi @yes %u, @no %v
+	ret %r
+}

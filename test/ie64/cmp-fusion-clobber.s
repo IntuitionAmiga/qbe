@@ -7,22 +7,19 @@ aftercall:
 	store.q r18, 0(r31)
 	sext.l r1, r1
 	sext.l r2, r2
-	li r30, #0
+	moveq r18, #0
 	bge r1, r2, .Lcmp0
-	li r30, #1
+	moveq r18, #1
 .Lcmp0:
-	move.q r18, r30
 	jsr sink
 	bne r18, r0, .L2
 .L1:
-	li r1, #0
-	sext.l r1, r1
+	moveq r1, #0
 	load.q r18, 0(r31)
 	add.q r31, r31, #8
 	rts
 .L2:
-	li r1, #1
-	sext.l r1, r1
+	moveq r1, #1
 	load.q r18, 0(r31)
 	add.q r31, r31, #8
 	rts
@@ -34,9 +31,9 @@ aftercall:
 afterdef:
 	sext.l r1, r1
 	sext.l r2, r2
-	li r30, #0
+	moveq r30, #0
 	bge r1, r2, .Lcmp1
-	li r30, #1
+	moveq r30, #1
 .Lcmp1:
 	move.q r1, r30
 	add.q r2, r3, #8
@@ -45,12 +42,10 @@ afterdef:
 	store.q r2, (r30)
 	bne r1, r0, .L5
 .L4:
-	li r1, #0
-	sext.l r1, r1
+	moveq r1, #0
 	rts
 .L5:
-	li r1, #1
-	sext.l r1, r1
+	moveq r1, #1
 	rts
 .size afterdef,.-afterdef
 .section .text,"ax"
@@ -65,12 +60,10 @@ stillfused:
 	store.q r3, (r30)
 	blt r1, r2, .L8
 .L7:
-	li r1, #0
-	sext.l r1, r1
+	moveq r1, #0
 	rts
 .L8:
-	li r1, #1
-	sext.l r1, r1
+	moveq r1, #1
 	rts
 .size stillfused,.-stillfused
 .section .bss,"aw"

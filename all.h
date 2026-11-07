@@ -559,6 +559,7 @@ void elimsb(Fn *);
 
 /* cfg.c */
 Blk *newblk(void);
+void inlinefns(Fn **, int);
 void fillpreds(Fn *);
 void fillcfg(Fn *);
 void filldom(Fn *);

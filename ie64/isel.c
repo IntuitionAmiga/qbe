@@ -74,6 +74,83 @@ fixarg(Ref *r, int k, Ins *i, Fn *fn)
 	*r = t;
 }
 
+/* Is an extension a no-op for what is known about its operand? */
+static int
+extisnop(Ins *i, Fn *fn)
+{
+	Ref r = i->arg[0];
+
+	if (rtype(r) != RTmp || isreg(r))
+		return 0;
+	switch (i->op) {
+	case Oextub: return ie64_uwidth(fn, r, Kw) <= 8;
+	case Oextuh: return ie64_uwidth(fn, r, Kw) <= 16;
+	case Oextuw: return ie64_uwidth(fn, r, Kw) <= 32;
+	case Oextsb: return ie64_swidth(fn, r, Kw) <= 8;
+	case Oextsh: return ie64_swidth(fn, r, Kw) <= 16;
+	case Oextsw: return ie64_swidth(fn, r, Kw) <= 32;
+	}
+	return 0;
+}
+
+typedef struct Cmparg Cmparg;
+struct Cmparg {
+	Ref use;	/* operand of the 64-bit compare */
+	Ref orig;	/* operand of the w compare */
+	Ref con;	/* extended constant, when orig is one */
+	Ref cpy;	/* w temporary a non-numeric constant is copied to */
+	int how;	/* 0 use as is, 1 numeric constant, 2 extend */
+};
+
+/* Decide how a w compare operand reaches 64 bits.  A numeric constant is
+ * extended at compile time.  A temporary is used as is when its known
+ * width already has the extension the compare needs; the zero-extension
+ * of w values by the emitter makes this the usual case. */
+static void
+cmpplan(Ref r, int sign, Cmparg *a, Fn *fn)
+{
+	Con *c;
+	int64_t v;
+
+	a->orig = a->use = r;
+	a->cpy = a->con = R;
+	a->how = 0;
+	if (rtype(r) == RCon && (c = &fn->con[r.val])->type == CBits && !c->flt) {
+		v = c->bits.i;
+		v = sign ? (int64_t)(int32_t)v : (int64_t)(uint32_t)v;
+		/* HOOK(branch-immediate): when IE64 gains a compare-and-branch
+		 * with an immediate, keep this constant as an RCon operand of a
+		 * compare that feeds a branch (v is the extended value, in
+		 * int32 range or not) instead of loading it into a register,
+		 * and let emitbranch() in emit.c print the immediate form. */
+		a->how = 1;
+		a->con = getcon(v, fn);
+		a->use = newtmp("ie64cmp", Kl, fn);
+		return;
+	}
+	if (rtype(r) == RTmp && !isreg(r)
+	&& (sign ? ie64_swidth(fn, r, Kw) <= 32 : ie64_uwidth(fn, r, Kw) <= 32))
+		return;
+	a->how = 2;
+	a->use = newtmp("ie64cmp", Kl, fn);
+	if (rtype(r) == RCon)
+		a->cpy = newtmp("ie64cmp", Kw, fn);
+}
+
+static void
+cmpemit(Cmparg *a, int sign, Fn *fn)
+{
+	(void)fn;
+	if (a->how == 1) {
+		emit(Ocopy, Kl, a->use, a->con, R);
+	} else if (a->how == 2) {
+		emit(sign ? Oextsw : Oextuw, Kl, a->use,
+			req(a->cpy, R) ? a->orig : a->cpy, R);
+		if (!req(a->cpy, R))
+			emit(Ocopy, Kw, a->cpy, a->orig, R);
+	}
+}
+
 void
 ie64_isel(Fn *fn)
 {
@@ -84,7 +161,8 @@ ie64_isel(Fn *fn)
 	int64_t n;
 	Slotmemo memo;
 	uint pa;
-	int a, ck, cc;
+	int a, ck, cc, pn, npend, pendsign;
+	Cmparg pend[2];
 	Con *c;
 
 	for (b=fn->start; b; b=b->link)
@@ -103,6 +181,8 @@ ie64_isel(Fn *fn)
 			&& (n < 0 || (uint64_t)n > UINT32_MAX))
 				die("IE64 immediate operand is outside the supported range");
 		}
+
+	ie64_canon(fn);
 
 	/* ABI lowering uses Osalloc around calls with stack arguments.  Keep a
 	 * stable frame base whenever those adjustments can coexist with slots. */
@@ -132,6 +212,11 @@ ie64_isel(Fn *fn)
 			}
 
 	for (b=fn->start; b; b=b->link) {
+		/* A w result is returned sign-extended.  A value known to be
+		 * non-negative is the same register either way. */
+		if (b->jmp.type == Jretw && rtype(b->jmp.arg) == RTmp
+		&& !isreg(b->jmp.arg) && ie64_swidth(fn, b->jmp.arg, Kw) <= 32)
+			b->jmp.type = Jretl;
 		curi = &insb[NIns];
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			--i;
@@ -189,24 +274,25 @@ ie64_isel(Fn *fn)
 				continue;
 			}
 			if (iscmp(i->op, &ck, &cc) && ck == Kw) {
-				Ref left = i->arg[0], right = i->arg[1];
-				Ref leftsrc = left, rightsrc = right;
-				int extop = cc >= Cisge && cc <= Cislt ? Oextsw : Oextuw;
+				Cmparg ca[2];
+				int sign = cc >= Cisge && cc <= Cislt;
 
-				i->arg[0] = newtmp("ie64cmp", Kl, fn);
-				i->arg[1] = newtmp("ie64cmp", Kl, fn);
+				/* The compare runs on 64 bits: bring both w operands to
+				 * the same extension first. */
+				cmpplan(i->arg[0], sign, &ca[0], fn);
+				cmpplan(i->arg[1], sign, &ca[1], fn);
+				i->arg[0] = ca[0].use;
+				i->arg[1] = ca[1].use;
 				i->op += Ocmpl - Ocmpw;
 				emiti(*i);
-				if (rtype(right) == RCon)
-					rightsrc = newtmp("ie64cmp", Kw, fn);
-				emit(extop, Kl, i->arg[1], rightsrc, R);
-				if (!req(rightsrc, right))
-					emit(Ocopy, Kw, rightsrc, right, R);
-				if (rtype(left) == RCon)
-					leftsrc = newtmp("ie64cmp", Kw, fn);
-				emit(extop, Kl, i->arg[0], leftsrc, R);
-				if (!req(leftsrc, left))
-					emit(Ocopy, Kw, leftsrc, left, R);
+				cmpemit(&ca[1], sign, fn);
+				cmpemit(&ca[0], sign, fn);
+				continue;
+			}
+			if (isext(i->op) && extisnop(i, fn)) {
+				/* The operand already has the extension: a plain copy,
+				 * which register allocation usually coalesces. */
+				emit(Ocopy, i->cls, i->to, i->arg[0], R);
 				continue;
 			}
 			if (i->op == Ostoui || i->op == Odtoui) {
@@ -246,12 +332,38 @@ ie64_isel(Fn *fn)
 					emit(Oie64fcvtsd, Kd, x, i->arg[0], R);
 				continue;
 			}
+			/* Several w operations read more than the low 32 bits of a
+			 * register: the 32-bit shift right and unsigned division
+			 * take the register as it is, DIVS and the integer to
+			 * double conversion take all 64 bits as signed.  Bring the
+			 * operands to the extension they need. */
+			npend = 0;
+			if (i->cls == Kw || (i->op == Oswtof && i->cls == Kd)) {
+				int first = 0, last = -1;
+
+				if (i->op == Oshr || i->op == Oudiv || i->op == Ourem)
+					last = i->op == Oshr ? 0 : 1;
+				else if (i->op == Odiv)
+					last = 1;
+				else if (i->op == Oswtof)
+					last = 0;
+				pendsign = i->op == Odiv || i->op == Oswtof;
+				for (pn=first; pn<=last; pn++) {
+					cmpplan(i->arg[pn], pendsign, &pend[npend], fn);
+					if (pend[npend].how == 0)
+						continue;
+					i->arg[pn] = pend[npend].use;
+					npend++;
+				}
+			}
 			emiti(*i);
 			ii = curi;
 			if (ii->op != Onop && ii->op != Ocopy) {
 				fixarg(&ii->arg[0], argcls(ii, 0), ii, fn);
 				fixarg(&ii->arg[1], argcls(ii, 1), ii, fn);
 			}
+			for (pn=0; pn<npend; pn++)
+				cmpemit(&pend[pn], pendsign, fn);
 		}
 		/* Materialise every allocation slot the block names -- instruction
 		 * operands, successor phi arguments and the jump argument alike -- at

@@ -89,7 +89,6 @@ wide_spill:
 	add.q r1, r1, r4
 	add.q r2, r2, r3
 	add.q r1, r1, r2
-	move.q r1, r1
 	load.q r18, 80(r31)
 	load.q r19, 88(r31)
 	load.q r20, 96(r31)

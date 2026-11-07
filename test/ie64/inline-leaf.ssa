@@ -1,0 +1,37 @@
+# Small leaf functions of the unit are inlined into their callers.
+function w $max(w %a, w %b) {
+@start
+	%c =w csgtw %a, %b
+	jnz %c, @a, @b
+@a
+	ret %a
+@b
+	ret %b
+}
+
+function l $scaled(l %base, l %i) {
+@start
+	%slot =l alloc8 8
+	%o =l mul %i, 4
+	storel %o, %slot
+	%p =l loadl %slot
+	%r =l add %base, %p
+	ret %r
+}
+
+function w $nonleaf(w %a) {
+@start
+	%r =w call $max(w %a, w 3)
+	%s =w call $external(w %r)
+	ret %s
+}
+
+export function w $caller(w %x, w %y, l %p) {
+@start
+	%m =w call $max(w %x, w %y)
+	%q =l call $scaled(l %p, l 3)
+	%v =w loadw %q
+	%r =w add %m, %v
+	%n =w call $nonleaf(w %r)
+	ret %n
+}

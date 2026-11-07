@@ -13,11 +13,10 @@ f:
 	move.l r30, #lo32(x+0)
 	movt r30, #hi32(x+0)
 	store.q r2, (r30)
-	li r2, #3
+	moveq r2, #3
 	move.l r30, #lo32(x+0)
 	movt r30, #hi32(x+0)
 	store.q r2, (r30)
-	move.q r1, r1
 	rts
 .size f,.-f
 .section .text,"ax"
