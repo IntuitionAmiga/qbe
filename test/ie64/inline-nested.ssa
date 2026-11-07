@@ -1,0 +1,35 @@
+# A function that already had a call inlined is itself inlined.  Its
+# hoisted allocs must not displace its parameters from the head of its
+# entry block, or the parameter copies read the wrong instructions.
+function $leaf(l %p, l %v) {
+@start
+	%sp =l alloc8 8
+	storel %p, %sp
+	%sv =l alloc4 2
+	storeh %v, %sv
+@body
+	%x =w loaduh %sv
+	%q =l loadl %sp
+	storeh %x, %q
+	ret
+}
+
+function $middle(l %p, l %v) {
+@start
+	%sp =l alloc8 8
+	storel %p, %sp
+	%sv =l alloc4 2
+	storeh %v, %sv
+@body
+	%a =l loadl %sp
+	%b =w loaduh %sv
+	%c =l extuh %b
+	call $leaf(l %a, l %c)
+	ret
+}
+
+export function $top(l %p, l %v) {
+@start
+	call $middle(l %p, l %v)
+	ret
+}

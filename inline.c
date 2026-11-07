@@ -85,7 +85,7 @@ classify(Cand *c)
 			ni++;
 			if (ispar(i->op)) {
 				if (b != g->start || i->op != Opar
-				|| c->npar >= 8)
+				|| c->npar >= 8 || i != &b->ins[c->npar])
 					return;
 				c->par[c->npar++] = i->cls;
 				continue;
@@ -343,10 +343,18 @@ inlinefns(Fn **fns, int nf)
 			}
 		}
 		if (nhoist) {
-			ni = alloc((fn->start->nins + nhoist) * sizeof ni[0]);
-			icpy(ni, hoist, nhoist);
-			icpy(ni + nhoist, fn->start->ins, fn->start->nins);
-			idup(fn->start, ni, fn->start->nins + nhoist);
+			/* Keep the parameters first: a function inlined later
+			 * takes its parameters from the head of its entry block. */
+			Blk *s = fn->start;
+			uint np = 0;
+
+			while (np < s->nins && ispar(s->ins[np].op))
+				np++;
+			ni = alloc((s->nins + nhoist) * sizeof ni[0]);
+			icpy(ni, s->ins, np);
+			icpy(ni + np, hoist, nhoist);
+			icpy(ni + np + nhoist, s->ins + np, s->nins - np);
+			idup(s, ni, s->nins + nhoist);
 		}
 		if (sites)
 			renumber(fn);
