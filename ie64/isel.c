@@ -46,6 +46,21 @@ slotarg(Ref *r, Slotmemo *m, Fn *fn)
 	*r = t;
 }
 
+/* Is r a zero operand of an integer compare that the emitter turns into
+ * a branch (or a branch and a constant), so that it can name r0? */
+static int
+iszerocmp(Ins *i, Ref *r, Fn *fn)
+{
+	Con *c;
+	int ck, cc;
+
+	return iscmp(i->op, &ck, &cc) && KBASE(ck) == 0
+		&& (r == &i->arg[0] || r == &i->arg[1])
+		&& rtype(*r) == RCon
+		&& (c = &fn->con[r->val])->type == CBits && !c->flt
+		&& c->bits.i == 0;
+}
+
 static void
 fixarg(Ref *r, int k, Ins *i, Fn *fn)
 {
@@ -57,6 +72,9 @@ fixarg(Ref *r, int k, Ins *i, Fn *fn)
 	if (isie64immop(i->op) && r == &i->arg[0])
 		return;
 	if (i->op == Osalloc)
+		return;
+	/* A compare against zero reads r0: no load needed. */
+	if (iszerocmp(i, r, fn))
 		return;
 	/* Keep direct call targets symbolic for the IE64 JSR form. */
 	if (i->op == Ocall && r == &i->arg[0]
@@ -107,7 +125,7 @@ struct Cmparg {
  * width already has the extension the compare needs; the zero-extension
  * of w values by the emitter makes this the usual case. */
 static void
-cmpplan(Ref r, int sign, Cmparg *a, Fn *fn)
+cmpplan(Ref r, int sign, int forcmp, Cmparg *a, Fn *fn)
 {
 	Con *c;
 	int64_t v;
@@ -118,6 +136,12 @@ cmpplan(Ref r, int sign, Cmparg *a, Fn *fn)
 	if (rtype(r) == RCon && (c = &fn->con[r.val])->type == CBits && !c->flt) {
 		v = c->bits.i;
 		v = sign ? (int64_t)(int32_t)v : (int64_t)(uint32_t)v;
+		/* A compare against zero reads r0: the constant stays an
+		 * operand and the emitter names the register. */
+		if (v == 0 && forcmp) {
+			a->use = getcon(0, fn);
+			return;
+		}
 		/* HOOK(branch-immediate): when IE64 gains a compare-and-branch
 		 * with an immediate, keep this constant as an RCon operand of a
 		 * compare that feeds a branch (v is the extended value, in
@@ -279,8 +303,8 @@ ie64_isel(Fn *fn)
 
 				/* The compare runs on 64 bits: bring both w operands to
 				 * the same extension first. */
-				cmpplan(i->arg[0], sign, &ca[0], fn);
-				cmpplan(i->arg[1], sign, &ca[1], fn);
+				cmpplan(i->arg[0], sign, 1, &ca[0], fn);
+				cmpplan(i->arg[1], sign, 1, &ca[1], fn);
 				i->arg[0] = ca[0].use;
 				i->arg[1] = ca[1].use;
 				i->op += Ocmpl - Ocmpw;
@@ -349,12 +373,20 @@ ie64_isel(Fn *fn)
 					last = 0;
 				pendsign = i->op == Odiv || i->op == Oswtof;
 				for (pn=first; pn<=last; pn++) {
-					cmpplan(i->arg[pn], pendsign, &pend[npend], fn);
+					cmpplan(i->arg[pn], pendsign, 0, &pend[npend], fn);
 					if (pend[npend].how == 0)
 						continue;
 					i->arg[pn] = pend[npend].use;
 					npend++;
 				}
+			}
+			/* IE64 immediates are unsigned: x + (-k) is x - k. */
+			if (i->op == Oadd && i->cls == Kl
+			&& rtype(i->arg[1]) == RCon
+			&& (c = &fn->con[i->arg[1].val])->type == CBits && !c->flt
+			&& c->bits.i < 0 && c->bits.i >= -(int64_t)UINT32_MAX) {
+				i->op = Osub;
+				i->arg[1] = getcon(-c->bits.i, fn);
 			}
 			emiti(*i);
 			ii = curi;

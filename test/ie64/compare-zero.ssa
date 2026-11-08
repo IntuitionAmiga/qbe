@@ -1,0 +1,74 @@
+# A compare against the constant zero names r0 instead of loading the
+# constant into a register, for branches and for compare values.
+export function w $eq0_branch(w %x) {
+@start
+	%c =w ceqw %x, 0
+	jnz %c, @yes, @no
+@yes
+	ret 1
+@no
+	ret 2
+}
+
+export function w $slt0_branch(w %x) {
+@start
+	%c =w csltw %x, 0
+	jnz %c, @yes, @no
+@yes
+	ret 1
+@no
+	ret 2
+}
+
+export function w $zero_left(l %x) {
+@start
+	%c =w csgtl 0, %x
+	jnz %c, @yes, @no
+@yes
+	ret 1
+@no
+	ret 2
+}
+
+export function w $ugt0_long(l %x) {
+@start
+	%c =w cugtl %x, 0
+	jnz %c, @yes, @no
+@yes
+	ret 1
+@no
+	ret 2
+}
+
+export function w $uge0_long(l %x, l %y) {
+@start
+	%c =w culel 0, %x
+	jnz %c, @yes, @no
+@yes
+	ret 1
+@no
+	ret %y
+}
+
+export function w $ne0_value(l %x) {
+@start
+	%r =w cnel %x, 0
+	ret %r
+}
+
+export function w $ule0_wvalue(w %x) {
+@start
+	%r =w culew %x, 0
+	ret %r
+}
+
+# A non-zero constant still goes through a register.
+export function w $ne1_branch(l %x) {
+@start
+	%c =w cnel %x, 1
+	jnz %c, @yes, @no
+@yes
+	ret 1
+@no
+	ret 2
+}

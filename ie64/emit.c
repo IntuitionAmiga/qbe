@@ -189,6 +189,25 @@ emitreg(Ref r, FILE *f)
 		fprintf(f, "r%u", r.val);
 }
 
+/* A compare operand: a register, or the constant zero as r0. */
+static int
+iszeroref(Ref r, Fn *fn)
+{
+	Con *c;
+
+	return rtype(r) == RCon && (c = &fn->con[r.val])->type == CBits
+		&& !c->flt && c->bits.i == 0;
+}
+
+static void
+emitcmpreg(Ref r, Fn *fn, FILE *f)
+{
+	if (iszeroref(r, fn))
+		fputs("r0", f);
+	else
+		emitreg(r, f);
+}
+
 static void
 emitaddr(Ref r, char *name, int64_t addend, FILE *f)
 {
@@ -250,6 +269,20 @@ emitvalue(Ref r, Fn *fn, FILE *f)
 
 static int slotoffset(Ref);
 static int slotbase(Ref);
+
+/* Displacement folded into the memory instruction being emitted by
+ * foldaddrs(); zero when there is none. */
+static int64_t emitoff;
+
+static void
+emitmem(Ref r, FILE *f)
+{
+	if (emitoff)
+		fprintf(f, "%"PRId64, emitoff);
+	fputc('(', f);
+	emitreg(r, f);
+	fputc(')', f);
+}
 
 static void
 emitcopy(Ins *i, Fn *fn, FILE *f)
@@ -707,9 +740,9 @@ emitins(Ins *i, Fn *fn, FILE *f)
 			i->arg[0] = materializeaddr(i->arg[0], fn, f);
 			fputs(i->cls == Kd ? "\tdload " : "\tfload ", f);
 			emitreg(i->to, f);
-			fputs(", (", f);
-			emitreg(i->arg[0], f);
-			fputs(")\n", f);
+			fputs(", ", f);
+			emitmem(i->arg[0], f);
+			fputc('\n', f);
 			return;
 		}
 		s = suffix(i->cls);
@@ -746,9 +779,9 @@ emitins(Ins *i, Fn *fn, FILE *f)
 		fputs("\t", f);
 		fprintf(f, "load.%c ", s);
 		emitreg(i->to, f);
-		fputs(", (", f);
-		emitreg(i->arg[0], f);
-		fputs(")\n", f);
+		fputs(", ", f);
+		emitmem(i->arg[0], f);
+		fputc('\n', f);
 		if (i->op == Oloadsb || i->op == Oloadsh
 			|| (i->op == Oloadsw && i->cls == Kl)) {
 			fprintf(f, "\tsext.%c ", s);
@@ -771,9 +804,9 @@ emitins(Ins *i, Fn *fn, FILE *f)
 			if (stackoff >= 0)
 				fprintf(f, ", %d(r%d)\n", stackoff, stackreg);
 			else {
-				fputs(", (", f);
-				emitreg(i->arg[1], f);
-				fputs(")\n", f);
+				fputs(", ", f);
+				emitmem(i->arg[1], f);
+				fputc('\n', f);
 			}
 			return;
 		}
@@ -802,9 +835,9 @@ emitins(Ins *i, Fn *fn, FILE *f)
 		if (stackoff >= 0)
 			fprintf(f, ", %d(r%d)\n", stackoff, stackreg);
 		else {
-			fputs(", (", f);
-			emitreg(i->arg[1], f);
-			fputs(")\n", f);
+			fputs(", ", f);
+			emitmem(i->arg[1], f);
+			fputc('\n', f);
 		}
 		return;
 	}
@@ -894,7 +927,8 @@ emitins(Ins *i, Fn *fn, FILE *f)
 		Ref res;
 
 		if (iscmp(i->op, &k, &cc) && KBASE(k) == 0) {
-			if (!isreg(i->arg[0]) || !isreg(i->arg[1]))
+			if ((!isreg(i->arg[0]) && !iszeroref(i->arg[0], fn))
+			|| (!isreg(i->arg[1]) && !iszeroref(i->arg[1], fn)))
 				die("IE64 comparison operands are not selected");
 			switch (cc) {
 			case Cieq: br = "bne"; break;
@@ -920,9 +954,9 @@ emitins(Ins *i, Fn *fn, FILE *f)
 			fputs(br, f);
 			fputc(' ', f);
 			if (cc == Ciuge || cc == Ciult)
-				emitreg(i->arg[1], f), fputs(", ", f), emitreg(i->arg[0], f);
+				emitcmpreg(i->arg[1], fn, f), fputs(", ", f), emitcmpreg(i->arg[0], fn, f);
 			else
-				emitreg(i->arg[0], f), fputs(", ", f), emitreg(i->arg[1], f);
+				emitcmpreg(i->arg[0], fn, f), fputs(", ", f), emitcmpreg(i->arg[1], fn, f);
 			fprintf(f, ", .Lcmp%u\n\tmoveq ", id);
 			emitreg(res, f);
 			fprintf(f, ", #1\n.Lcmp%u:\n", id);
@@ -1030,25 +1064,26 @@ emitbranch(int cmp, int invert, Ref a, Ref b, Blk *to, int id0, Fn *fn, FILE *f)
 		b = t;
 	}
 	/* HOOK(branch-immediate): a constant operand reaches here only if
-	 * isel kept one.  Today it is loaded into r30; the immediate form of
-	 * the branch, once it exists, replaces these two loads. */
-	if (!isreg(a) && rtype(a) == RCon) {
+	 * isel kept one.  Zero names r0.  Any other constant is loaded into
+	 * r30 today; the immediate form of the branch, once it exists,
+	 * replaces these two loads. */
+	if (!isreg(a) && !iszeroref(a, fn) && rtype(a) == RCon) {
 		fputc('\t', f);
 		emitintload(TMP(R30), Kl, fn->con[a.val].bits.i, f);
 		a = TMP(R30);
 	}
-	if (!isreg(b) && rtype(b) == RCon) {
+	if (!isreg(b) && !iszeroref(b, fn) && rtype(b) == RCon) {
 		fputc('\t', f);
 		emitintload(TMP(R30), Kl, fn->con[b.val].bits.i, f);
 		b = TMP(R30);
 	}
-	if (!isreg(a) || !isreg(b))
+	if ((!isreg(a) && !iszeroref(a, fn)) || (!isreg(b) && !iszeroref(b, fn)))
 		die("IE64 branch comparison is not selected");
 	n = name[cmp];
 	fprintf(f, "\t%s ", n);
-	emitreg(a, f);
+	emitcmpreg(a, fn, f);
 	fputs(", ", f);
-	emitreg(b, f);
+	emitcmpreg(b, fn, f);
 	fputs(", ", f);
 	emitlbl(id0+to->id, f);
 	fputc('\n', f);
@@ -1137,6 +1172,151 @@ fillreglive(Fn *fn)
 	return in;
 }
 
+/* Is the instruction a definition `t = base + k` that a memory operand can
+ * absorb?  That is an add or sub of a small constant, or the address of a
+ * stack slot. */
+static int
+addrdef(Ins *i, Fn *fn, Ref *base, int64_t *k)
+{
+	Con *c;
+	int64_t v;
+	int s;
+
+	if (!isreg(i->to) || i->to.val >= F0 || req(i->to, R))
+		return 0;
+	if (i->op == Oaddr) {
+		if (rtype(i->arg[0]) != RSlot)
+			return 0;
+		s = rsval(i->arg[0]);
+		*k = s < 0 ? emitframe - 4 * s : 4 * s;
+		*base = TMP(emitdynalloc ? R25 : R31);
+		return 1;
+	}
+	if ((i->op != Oadd && i->op != Osub) || i->cls != Kl
+	|| !isreg(i->arg[0]) || i->arg[0].val >= F0 || req(i->arg[0], R)
+	|| rtype(i->arg[1]) != RCon)
+		return 0;
+	c = &fn->con[i->arg[1].val];
+	if (c->type != CBits || c->flt)
+		return 0;
+	v = c->bits.i;
+	if (i->op == Osub)
+		v = -v;
+	if (c->bits.i < INT32_MIN || c->bits.i > INT32_MAX
+	|| v < INT32_MIN || v > INT32_MAX)
+		return 0;
+	*k = v;
+	*base = i->arg[0];
+	return 1;
+}
+
+static int
+callersave(Ref r)
+{
+	int *p;
+
+	for (p=ie64_rsave; *p>=0; p++)
+		if (*p == (int)r.val)
+			return 1;
+	return 0;
+}
+
+/* Fold `t = base + k` into the loads and stores that use t as their address,
+ * when t is dead afterwards.  Runs on allocated code.  off[] receives the
+ * displacement for each folded memory instruction; the definition becomes a
+ * nop.  The scan is deliberately conservative: it gives up at calls and at
+ * instructions with implicit register effects, at any other read of t, and at
+ * a use of t after the base register was overwritten. */
+static void
+foldaddrs(Fn *fn, Blk *b, bits *livein, int64_t *off)
+{
+	enum { MaxUses = 16 };
+	Ins *d, *j;
+	Ref t, base;
+	int64_t k;
+	uint use[MaxUses], p, q;
+	int n, dead, baseset;
+	bits out;
+
+	for (p=0; p<b->nins; p++) {
+		d = &b->ins[p];
+		if (!addrdef(d, fn, &base, &k))
+			continue;
+		t = d->to;
+		n = 0;
+		dead = 0;
+		baseset = 0;
+		for (q=p+1; q<b->nins; q++) {
+			int addruse = 0;
+
+			j = &b->ins[q];
+			if (j->op == Onop)
+				continue;
+			if (isie64op(j->op) || j->op == Osalloc || j->op == Oswap)
+				goto Skip;
+			if (iscallop(j->op)) {
+				/* A call reads its argument registers and clobbers the
+				 * caller-save set.  A register in that set that the call
+				 * does not read is dead at the call. */
+				if (insuse(j) & BIT(t.val))
+					goto Skip;
+				if (callersave(t)) {
+					dead = 1;
+					break;
+				}
+				if (callersave(base))
+					baseset = 1;
+			}
+			if (isload(j->op) && req(j->arg[0], t) && req(j->arg[1], R))
+				addruse = 1;
+			else if (isstore(j->op) && req(j->arg[1], t)
+			&& !req(j->arg[0], t))
+				addruse = 1;
+			if ((insuse(j) & BIT(t.val)) && !addruse)
+				goto Skip;
+			if (addruse) {
+				if (baseset || n == MaxUses || off[q])
+					goto Skip;
+				use[n++] = q;
+			}
+			if (isreg(j->to) && !req(j->to, R)) {
+				if (req(j->to, t)) {
+					dead = 1;
+					break;
+				}
+				if (req(j->to, base))
+					baseset = 1;
+			}
+		}
+		if (!dead) {
+			/* Falling off the end of the block: t must not be live out. */
+			out = 0;
+			if (b->s1)
+				out |= livein[b->s1->id];
+			if (b->s2)
+				out |= livein[b->s2->id];
+			if (rtype(b->jmp.arg) == RCall)
+				out |= T.retregs(b->jmp.arg, 0);
+			else if (isreg(b->jmp.arg))
+				out |= BIT(b->jmp.arg.val);
+			if (out & BIT(t.val))
+				continue;
+		}
+		if (!n)
+			continue;
+		for (q=0; (int)q<n; q++) {
+			j = &b->ins[use[q]];
+			if (isload(j->op))
+				j->arg[0] = base;
+			else
+				j->arg[1] = base;
+			off[use[q]] = k;
+		}
+		*d = (Ins){.op = Onop};
+	Skip:;
+	}
+}
+
 void
 ie64_emitfn(Fn *fn, FILE *f)
 {
@@ -1145,6 +1325,7 @@ ie64_emitfn(Fn *fn, FILE *f)
 	Con *c;
 	Ins *i, *cmp;
 	bits *livein, out;
+	int64_t *foff;
 	int first, j, ck, cc, frame, local, saveoff, nsaves;
 
 	/* IE64 JSR pushes an eight-byte return address.  A non-leaf frame therefore
@@ -1179,6 +1360,8 @@ ie64_emitfn(Fn *fn, FILE *f)
 		fputs("\tmove.q r25, r31\n", f);
 	livein = fillreglive(fn);
 	for (first=1, b=fn->start; b; b=b->link) {
+		foff = alloc((b->nins + 1) * sizeof foff[0]);
+		foldaddrs(fn, b, livein, foff);
 		cmp = 0;
 		if (b->jmp.type == Jjnz)
 			for (i=b->ins; i<&b->ins[b->nins]; i++)
@@ -1215,8 +1398,11 @@ ie64_emitfn(Fn *fn, FILE *f)
 		}
 		first = 0;
 		for (i=b->ins; i<&b->ins[b->nins]; i++)
-			if (i != cmp)
+			if (i != cmp) {
+				emitoff = foff[i - b->ins];
 				emitins(i, fn, f);
+				emitoff = 0;
+			}
 		switch (b->jmp.type) {
 		case Jret0:
 			if (fn->dynalloc)

@@ -4,9 +4,8 @@
 .align 16
 volatile_stack_float:
 	sub.q r31, r31, #8
-	lea r1, 0(r31)
-	fstore f0, (r1)
-	fload f0, (r1)
+	fstore f0, (r31)
+	fload f0, (r31)
 .L1:
 	add.q r31, r31, #8
 	rts
@@ -17,9 +16,8 @@ volatile_stack_float:
 .align 16
 volatile_stack_double:
 	sub.q r31, r31, #8
-	lea r1, 0(r31)
-	dstore f0, (r1)
-	dload f0, (r1)
+	dstore f0, (r31)
+	dload f0, (r31)
 .L3:
 	add.q r31, r31, #8
 	rts

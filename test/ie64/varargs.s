@@ -4,16 +4,15 @@
 .align 16
 f:
 	sub.q r31, r31, #8
-	lea r3, 0(r31)
 	lea r1, 16(r31)
-	store.q r1, (r3)
-	load.q r2, (r3)
+	store.q r1, (r31)
+	load.q r2, (r31)
 	load.l r1, (r2)
 	add.q r2, r2, #8
-	store.q r2, (r3)
-	load.q r2, (r3)
+	store.q r2, (r31)
+	load.q r2, (r31)
 	add.q r2, r2, #8
-	store.q r2, (r3)
+	store.q r2, (r31)
 	sext.l r1, r1
 	add.q r31, r31, #8
 	rts
@@ -31,11 +30,10 @@ g:
 	moveq r1, #1
 	moveq r3, #2
 	store.q r3, (r2)
-	add.q r2, r2, #8
 	move.l r30, #lo32(.L__ie64_fconst_0+0)
 	movt r30, #hi32(.L__ie64_fconst_0+0)
 	dload f0, (r30)
-	dstore f0, (r2)
+	dstore f0, 8(r2)
 	jsr f
 	add.q r31, r31, #16
 	sext.l r1, r1

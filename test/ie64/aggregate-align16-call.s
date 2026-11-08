@@ -19,10 +19,8 @@ call_aligned:
 	store.q r2, (r1)
 	move.l r2, #lo32(value+0)
 	movt r2, #hi32(value+0)
-	add.q r2, r2, #8
-	add.q r3, r1, #8
-	load.q r2, (r2)
-	store.q r2, (r3)
+	load.q r2, 8(r2)
+	store.q r2, 8(r1)
 	jsr take
 .L3:
 	add.q r31, r31, #24

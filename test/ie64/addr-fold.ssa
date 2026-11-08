@@ -1,0 +1,149 @@
+# An address built with add or sub of a constant is folded into the
+# displacement of the load or store that uses it, when the address register
+# is dead afterwards.
+export function l $load_off(l %p) {
+@start
+	%a =l add %p, 24
+	%v =l loadl %a
+	ret %v
+}
+
+export function w $load_neg(l %p) {
+@start
+	%a =l sub %p, 12
+	%v =w loadsw %a
+	ret %v
+}
+
+export function w $load_byte(l %p) {
+@start
+	%a =l add %p, 3
+	%v =w loadub %a
+	ret %v
+}
+
+export function $store_off(l %p, w %v) {
+@start
+	%a =l add %p, 40
+	storew %v, %a
+	ret
+}
+
+export function d $load_double(l %p) {
+@start
+	%a =l add %p, 16
+	%v =d loadd %a
+	ret %v
+}
+
+export function $store_single(l %p, s %v) {
+@start
+	%a =l add %p, 8
+	stores %v, %a
+	ret
+}
+
+# Two accesses through the same address register.
+export function l $copy_off(l %p) {
+@start
+	%a =l add %p, 64
+	%v =l loadl %a
+	%w =l add %v, %p
+	storel %w, %a
+	ret %p
+}
+
+# The loaded value reuses the base register before the second access:
+# the add stays.
+export function $base_overwritten(l %p) {
+@start
+	%a =l add %p, 64
+	%v =l loadl %a
+	%w =l add %v, 1
+	storel %w, %a
+	ret
+}
+
+# The address is returned as well: the add stays.
+export function l $addr_escapes(l %p) {
+@start
+	%a =l add %p, 24
+	%v =l loadl %a
+	%r =l add %v, %a
+	ret %r
+}
+
+# The address is the value stored: the add stays.
+export function $addr_stored(l %p, l %q) {
+@start
+	%a =l add %p, 24
+	storel %a, %q
+	ret
+}
+
+# Out of the signed 32-bit displacement range: the add stays.
+export function l $far_off(l %p) {
+@start
+	%a =l add %p, 4294967296
+	%v =l loadl %a
+	ret %v
+}
+
+# The address is used in another block: the add stays.
+export function l $addr_live_out(l %p, w %c) {
+@start
+	%a =l add %p, 8
+	%v =l loadl %a
+	jnz %c, @more, @done
+@more
+	call $ext2(l %a)
+	ret %v
+@done
+	ret %v
+}
+
+# A call between the add and the load: the add stays.
+export function l $across_call(l %p) {
+@start
+	%a =l add %p, 8
+	call $ext()
+	%v =l loadl %a
+	ret %v
+}
+
+# The base register dies and is reused before the access.
+export function l $base_reused(l %p, l %q) {
+@start
+	%a =l add %p, 8
+	%t =l mul %q, %q
+	%u =l loadl %a
+	%r =l add %t, %u
+	ret %r
+}
+
+# A stack slot address plus a constant.
+export function l $slot_field() {
+@start
+	%s =l alloc8 32
+	call $ext2(l %s)
+	%f =l add %s, 16
+	%v =l loadl %f
+	call $ext2(l %f)
+	ret %v
+}
+
+# A negative constant is a subtraction, so it folds as well.
+export function l $load_negative_add(l %p) {
+@start
+	%a =l add %p, -24
+	%v =l loadl %a
+	ret %v
+}
+
+# Subtracting a constant too large for a displacement stays an operation.
+export function l $load_far_negative(l %p) {
+@start
+	%a =l add %p, -4294967295
+	%v =l loadl %a
+	ret %v
+}

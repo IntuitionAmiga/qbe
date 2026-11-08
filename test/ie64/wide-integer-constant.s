@@ -22,7 +22,6 @@ wide_add:
 .type negative_add,@function
 .align 16
 negative_add:
-	moveq r2, #-1
-	add.q r1, r1, r2
+	sub.q r1, r1, #1
 	rts
 .size negative_add,.-negative_add

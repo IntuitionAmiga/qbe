@@ -51,8 +51,7 @@ caller:
 .L8:
 	move.l r1, r2
 .L9:
-	add.q r2, r3, #12
-	load.l r2, (r2)
+	load.l r2, 12(r3)
 	add.l r1, r2, r1
 	jsr nonleaf
 	sext.l r1, r1
