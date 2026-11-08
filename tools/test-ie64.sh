@@ -39,6 +39,15 @@ else
 	exit 1
 fi
 
+printf '%-45s' 'spilled jnz condition...'
+if "$bin" -t ie64 -o "$tmp" test/ie64/jnz-spilled-cond.ssa.compile && grep -F 'load.l r30' "$tmp" >/dev/null
+then
+	echo "[ok]"
+else
+	echo "[failed]"
+	exit 1
+fi
+
 printf '%-45s' 'initialised IE64 common data...'
 if "$bin" -t ie64 -o "$tmp" test/ie64/common-initialized.ssa.invalid 2>"$expected"
 then

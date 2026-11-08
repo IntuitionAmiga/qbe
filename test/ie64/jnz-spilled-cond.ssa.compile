@@ -1,0 +1,2376 @@
+# Reduced from picolibc strftime.c: a jnz whose condition the allocator
+# spilled to a stack slot (no fused compare). The back end must load it.
+function l $__strftime(l %.1, l %.3, l %.5, l %.7, l %.9) {
+@start.147
+	%.2 =l alloc8 8
+	storel %.1, %.2
+	%.4 =l alloc8 8
+	storel %.3, %.4
+	%.6 =l alloc8 8
+	storel %.5, %.6
+	%.8 =l alloc8 8
+	storel %.7, %.8
+	%.10 =l alloc4 4
+	storew %.9, %.10
+	%.11 =l alloc8 8
+	%.13 =l alloc4 4
+	%.14 =l alloc8 8
+	%.15 =l alloc8 8
+	%.16 =l alloc8 8
+	%.17 =l alloc4 1
+	%.18 =l alloc4 1
+	%.19 =l alloc8 8
+	%.20 =l alloc4 4
+	%.67 =l alloc8 8
+	%.235 =l alloc8 8
+	%.236 =l alloc4 4
+	%.241 =l alloc4 4
+	%.343 =l alloc4 4
+	%.346 =l alloc4 4
+	%.402 =l alloc4 4
+	%.408 =l alloc4 4
+	%.411 =l alloc4 4
+	%.430 =l alloc4 4
+	%.469 =l alloc4 10
+	%.470 =l alloc8 8
+	%.471 =l alloc4 4
+	%.549 =l alloc4 4
+	%.755 =l alloc8 8
+	%.958 =l alloc4 4
+	%.961 =l alloc4 4
+	%.970 =l alloc4 4
+	%.1022 =l alloc4 32
+	%.1023 =l alloc8 8
+	%.1101 =l alloc4 4
+	%.1136 =l alloc4 4
+	%.1164 =l alloc4 10
+	%.1165 =l alloc8 8
+	%.1166 =l alloc4 4
+	%.1172 =l alloc4 4
+	%.1230 =l alloc8 8
+	%.1271 =l alloc8 8
+	%.1272 =l alloc8 8
+@body.148
+	%.12 =l extsw 0
+	storel %.12, %.11
+	storew 0, %.13
+	storew 0, %.20
+@for_cond.149
+@for_body.150
+@while_cond.153
+	%.21 =l loadl %.6
+	%.22 =w loadsb %.21
+	%.23 =w extsb %.22
+	jnz %.23, @logic_and.156, @while_join.155
+@logic_and.156
+	%.24 =l loadl %.6
+	%.25 =w loadsb %.24
+	%.26 =w extsb %.25
+	%.27 =w cnew %.26, 37
+	jnz %.27, @while_body.154, @while_join.155
+@while_body.154
+	%.28 =l loadl %.11
+	%.29 =l loadl %.4
+	%.30 =l extsw 1
+	%.31 =l sub %.29, %.30
+	%.32 =w cultl %.28, %.31
+	jnz %.32, @if_true.157, @if_false.158
+@if_true.157
+	%.33 =l loadl %.6
+	%.34 =l add %.33, 1
+	storel %.34, %.6
+	%.35 =w loadsb %.33
+	%.36 =l loadl %.2
+	%.37 =l loadl %.11
+	%.38 =l add %.37, 1
+	storel %.38, %.11
+	%.39 =l mul %.37, 1
+	%.40 =l add %.36, %.39
+	storeb %.35, %.40
+	jmp @if_join.159
+@if_false.158
+	%.41 =l extsw 0
+	ret %.41
+@if_join.159
+	jmp @while_cond.153
+@while_join.155
+	%.42 =l loadl %.6
+	%.43 =w loadsb %.42
+	%.44 =w extsb %.43
+	jnz %.44, @if_false.161, @if_true.160
+@if_true.160
+	jmp @for_join.152
+@if_false.161
+	%.45 =l loadl %.6
+	%.46 =l add %.45, 1
+	storel %.46, %.6
+	storeb 0, %.18
+	%.47 =l extsw 0
+	storel %.47, %.19
+	%.48 =l loadl %.6
+	%.49 =w loadsb %.48
+	%.50 =w extsb %.49
+	%.51 =w ceqw %.50, 48
+	jnz %.51, @if_true.162, @logic_or.164
+@logic_or.164
+	%.52 =l loadl %.6
+	%.53 =w loadsb %.52
+	%.54 =w extsb %.53
+	%.55 =w ceqw %.54, 43
+	jnz %.55, @if_true.162, @if_false.163
+@if_true.162
+	%.56 =l loadl %.6
+	%.57 =l add %.56, 1
+	storel %.57, %.6
+	%.58 =w loadsb %.56
+	storeb %.58, %.18
+@if_false.163
+	%.59 =l loadl %.6
+	%.60 =w loadsb %.59
+	%.61 =w extsb %.60
+	%.62 =w csgew %.61, 49
+	jnz %.62, @logic_and.167, @if_false.166
+@logic_and.167
+	%.63 =l loadl %.6
+	%.64 =w loadsb %.63
+	%.65 =w extsb %.64
+	%.66 =w cslew %.65, 57
+	jnz %.66, @if_true.165, @if_false.166
+@if_true.165
+	%.68 =l loadl %.6
+	%.69 =l extsw 10
+	%.70 =l call extern $strtoul(l %.68, l %.67, l %.69)
+	storel %.70, %.19
+	%.71 =l loadl %.67
+	storel %.71, %.6
+@if_false.166
+	storeb 0, %.17
+	%.72 =l loadl %.6
+	%.73 =w loadsb %.72
+	%.74 =w extsb %.73
+	%.75 =w ceqw %.74, 69
+	jnz %.75, @if_true.168, @if_false.169
+@if_true.168
+	%.76 =l loadl %.6
+	%.77 =l add %.76, 1
+	storel %.77, %.6
+	%.78 =w loadsb %.76
+	storeb %.78, %.17
+	jmp @if_join.170
+@if_false.169
+	%.79 =l loadl %.6
+	%.80 =w loadsb %.79
+	%.81 =w extsb %.80
+	%.82 =w ceqw %.81, 79
+	jnz %.82, @if_true.171, @if_false.172
+@if_true.171
+	%.83 =l loadl %.6
+	%.84 =l add %.83, 1
+	storel %.84, %.6
+	%.85 =w loadsb %.83
+	storeb %.85, %.17
+@if_false.172
+@if_join.170
+	%.86 =l loadl %.6
+	%.87 =w loadsb %.86
+	%.88 =w extsb %.87
+	jmp @switch_cond.173
+@switch_case.175
+	%.89 =l loadl %.8
+	%.90 =l add %.89, 24
+	%.91 =w loadw %.90
+	%.92 =l extsw %.91
+	%.93 =l mul %.92, 8
+	%.94 =l add extern $__time_wday, %.93
+	%.95 =l loadl %.94
+	storel %.95, %.14
+	%.96 =l call extern $strlen(l %.95)
+	storel %.96, %.16
+	%.97 =l extsw 0
+	storel %.97, %.15
+@for_cond.176
+	%.98 =l loadl %.15
+	%.99 =l loadl %.16
+	%.100 =w cultl %.98, %.99
+	jnz %.100, @for_body.177, @for_join.179
+@for_body.177
+	%.101 =l loadl %.11
+	%.102 =l loadl %.4
+	%.103 =l extsw 1
+	%.104 =l sub %.102, %.103
+	%.105 =w cultl %.101, %.104
+	jnz %.105, @if_true.180, @if_false.181
+@if_true.180
+	%.106 =l loadl %.14
+	%.107 =l loadl %.15
+	%.108 =l mul %.107, 1
+	%.109 =l add %.106, %.108
+	%.110 =w loadsb %.109
+	%.111 =l loadl %.2
+	%.112 =l loadl %.11
+	%.113 =l add %.112, 1
+	storel %.113, %.11
+	%.114 =l mul %.112, 1
+	%.115 =l add %.111, %.114
+	storeb %.110, %.115
+	jmp @if_join.182
+@if_false.181
+	%.116 =l extsw 0
+	ret %.116
+@if_join.182
+@for_cont.178
+	%.117 =l loadl %.15
+	%.118 =l add %.117, 1
+	storel %.118, %.15
+	jmp @for_cond.176
+@for_join.179
+	jmp @switch_join.174
+@switch_case.183
+	%.119 =l loadl %.8
+	%.120 =l add %.119, 24
+	%.121 =w loadw %.120
+	%.122 =l extsw %.121
+	%.123 =l mul %.122, 8
+	%.124 =l add extern $__time_weekday, %.123
+	%.125 =l loadl %.124
+	storel %.125, %.14
+	%.126 =l call extern $strlen(l %.125)
+	storel %.126, %.16
+	%.127 =l extsw 0
+	storel %.127, %.15
+@for_cond.184
+	%.128 =l loadl %.15
+	%.129 =l loadl %.16
+	%.130 =w cultl %.128, %.129
+	jnz %.130, @for_body.185, @for_join.187
+@for_body.185
+	%.131 =l loadl %.11
+	%.132 =l loadl %.4
+	%.133 =l extsw 1
+	%.134 =l sub %.132, %.133
+	%.135 =w cultl %.131, %.134
+	jnz %.135, @if_true.188, @if_false.189
+@if_true.188
+	%.136 =l loadl %.14
+	%.137 =l loadl %.15
+	%.138 =l mul %.137, 1
+	%.139 =l add %.136, %.138
+	%.140 =w loadsb %.139
+	%.141 =l loadl %.2
+	%.142 =l loadl %.11
+	%.143 =l add %.142, 1
+	storel %.143, %.11
+	%.144 =l mul %.142, 1
+	%.145 =l add %.141, %.144
+	storeb %.140, %.145
+	jmp @if_join.190
+@if_false.189
+	%.146 =l extsw 0
+	ret %.146
+@if_join.190
+@for_cont.186
+	%.147 =l loadl %.15
+	%.148 =l add %.147, 1
+	storel %.148, %.15
+	jmp @for_cond.184
+@for_join.187
+	jmp @switch_join.174
+@switch_case.191
+@switch_case.192
+	%.149 =l loadl %.8
+	%.150 =l add %.149, 16
+	%.151 =w loadw %.150
+	%.152 =l extsw %.151
+	%.153 =l mul %.152, 8
+	%.154 =l add extern $__time_mon, %.153
+	%.155 =l loadl %.154
+	storel %.155, %.14
+	%.156 =l call extern $strlen(l %.155)
+	storel %.156, %.16
+	%.157 =l extsw 0
+	storel %.157, %.15
+@for_cond.193
+	%.158 =l loadl %.15
+	%.159 =l loadl %.16
+	%.160 =w cultl %.158, %.159
+	jnz %.160, @for_body.194, @for_join.196
+@for_body.194
+	%.161 =l loadl %.11
+	%.162 =l loadl %.4
+	%.163 =l extsw 1
+	%.164 =l sub %.162, %.163
+	%.165 =w cultl %.161, %.164
+	jnz %.165, @if_true.197, @if_false.198
+@if_true.197
+	%.166 =l loadl %.14
+	%.167 =l loadl %.15
+	%.168 =l mul %.167, 1
+	%.169 =l add %.166, %.168
+	%.170 =w loadsb %.169
+	%.171 =l loadl %.2
+	%.172 =l loadl %.11
+	%.173 =l add %.172, 1
+	storel %.173, %.11
+	%.174 =l mul %.172, 1
+	%.175 =l add %.171, %.174
+	storeb %.170, %.175
+	jmp @if_join.199
+@if_false.198
+	%.176 =l extsw 0
+	ret %.176
+@if_join.199
+@for_cont.195
+	%.177 =l loadl %.15
+	%.178 =l add %.177, 1
+	storel %.178, %.15
+	jmp @for_cond.193
+@for_join.196
+	jmp @switch_join.174
+@switch_case.200
+	%.179 =l loadl %.8
+	%.180 =l add %.179, 16
+	%.181 =w loadw %.180
+	%.182 =l extsw %.181
+	%.183 =l mul %.182, 8
+	%.184 =l add extern $__time_month, %.183
+	%.185 =l loadl %.184
+	storel %.185, %.14
+	%.186 =l call extern $strlen(l %.185)
+	storel %.186, %.16
+	%.187 =l extsw 0
+	storel %.187, %.15
+@for_cond.201
+	%.188 =l loadl %.15
+	%.189 =l loadl %.16
+	%.190 =w cultl %.188, %.189
+	jnz %.190, @for_body.202, @for_join.204
+@for_body.202
+	%.191 =l loadl %.11
+	%.192 =l loadl %.4
+	%.193 =l extsw 1
+	%.194 =l sub %.192, %.193
+	%.195 =w cultl %.191, %.194
+	jnz %.195, @if_true.205, @if_false.206
+@if_true.205
+	%.196 =l loadl %.14
+	%.197 =l loadl %.15
+	%.198 =l mul %.197, 1
+	%.199 =l add %.196, %.198
+	%.200 =w loadsb %.199
+	%.201 =l loadl %.2
+	%.202 =l loadl %.11
+	%.203 =l add %.202, 1
+	storel %.203, %.11
+	%.204 =l mul %.202, 1
+	%.205 =l add %.201, %.204
+	storeb %.200, %.205
+	jmp @if_join.207
+@if_false.206
+	%.206 =l extsw 0
+	ret %.206
+@if_join.207
+@for_cont.203
+	%.207 =l loadl %.15
+	%.208 =l add %.207, 1
+	storel %.208, %.15
+	jmp @for_cond.201
+@for_join.204
+	jmp @switch_join.174
+@switch_case.208
+	storel $.Lstring.12, %.14
+	%.209 =l call extern $strlen(l $.Lstring.12)
+	storel %.209, %.16
+	jmp @recurse.209
+@switch_case.210
+	storel $.Lstring.13, %.14
+	%.210 =l call extern $strlen(l $.Lstring.13)
+	storel %.210, %.16
+	jmp @recurse.209
+@switch_case.211
+	storel $.Lstring.14, %.14
+	%.211 =l call extern $strlen(l $.Lstring.14)
+	storel %.211, %.16
+	jmp @recurse.209
+@switch_case.212
+	storel $.Lstring.15, %.14
+	%.212 =l call extern $strlen(l $.Lstring.15)
+	storel %.212, %.16
+@recurse.209
+	%.213 =l loadl %.14
+	%.214 =w loadsb %.213
+	%.215 =w extsb %.214
+	jnz %.215, @if_true.213, @if_false.214
+@if_true.213
+	%.216 =l loadl %.2
+	%.217 =l loadl %.11
+	%.218 =l mul %.217, 1
+	%.219 =l add %.216, %.218
+	%.220 =l loadl %.4
+	%.221 =l loadl %.11
+	%.222 =l sub %.220, %.221
+	%.223 =l loadl %.14
+	%.224 =l loadl %.8
+	%.225 =w loadw %.10
+	%.226 =l extsw %.225
+	%.227 =l call $__strftime(l %.219, l %.222, l %.223, l %.224, l %.226)
+	storew %.227, %.13
+	%.228 =w loadw %.13
+	%.229 =w csgtw %.228, 0
+	jnz %.229, @if_true.215, @if_false.216
+@if_true.215
+	%.230 =l loadl %.11
+	%.231 =w loadw %.13
+	%.232 =l extsw %.231
+	%.233 =l add %.230, %.232
+	storel %.233, %.11
+	jmp @if_join.217
+@if_false.216
+	%.234 =l extsw 0
+	ret %.234
+@if_join.217
+@if_false.214
+	jmp @switch_join.174
+@switch_case.218
+	storel $.Lstring.16, %.235
+	%.237 =l loadl %.8
+	%.238 =l add %.237, 20
+	%.239 =w loadw %.238
+	%.240 =w add %.239, 1900
+	storew %.240, %.236
+	%.242 =w loadw %.236
+	%.243 =w div %.242, 100
+	%.244 =w loadw %.236
+	%.245 =w rem %.244, 100
+	%.246 =w csltw %.245, 0
+	%.247 =w sub %.243, %.246
+	storew %.247, %.241
+	%.248 =w loadsb %.18
+	%.249 =w extsb %.248
+	jnz %.249, @if_true.219, @if_false.220
+@if_true.219
+	%.250 =w loadw %.241
+	%.251 =w csgew %.250, 100
+	jnz %.251, @logic_and.223, @if_false.222
+@logic_and.223
+	%.252 =w loadsb %.18
+	%.253 =w extsb %.252
+	%.254 =w ceqw %.253, 43
+	jnz %.254, @if_true.221, @if_false.222
+@if_true.221
+	storel $.Lstring.17, %.235
+@if_false.222
+@if_false.220
+	%.255 =l loadl %.19
+	%.256 =l extsw 1
+	%.257 =w cultl %.255, %.256
+	jnz %.257, @if_true.224, @if_false.225
+@if_true.224
+	%.258 =l extsw 1
+	storel %.258, %.19
+@if_false.225
+	%.259 =l loadl %.2
+	%.260 =l loadl %.11
+	%.261 =l mul %.260, 1
+	%.262 =l add %.259, %.261
+	%.263 =l loadl %.4
+	%.264 =l loadl %.11
+	%.265 =l sub %.263, %.264
+	%.266 =l loadl %.235
+	%.267 =l loadl %.19
+	%.268 =w loadw %.241
+	%.269 =l extsw %.267
+	%.270 =l extsw %.268
+	%.271 =l call extern $__d_snprintf(l %.262, l %.265, l $.Lstring.18, ..., l %.266, l %.269, l %.270)
+	storew %.271, %.13
+	%.272 =w loadw %.13
+	%.273 =w csltw %.272, 0
+	jnz %.273, @if_true.226, @logic_or.228
+@logic_or.228
+	%.274 =l loadl %.11
+	%.275 =w loadw %.13
+	%.276 =l extsw %.275
+	%.277 =l add %.274, %.276
+	storel %.277, %.11
+	%.278 =l loadl %.4
+	%.279 =w cugel %.277, %.278
+	jnz %.279, @if_true.226, @if_false.227
+@if_true.226
+	%.280 =l extsw 0
+	ret %.280
+@if_false.227
+	jmp @switch_join.174
+@switch_case.229
+@switch_case.230
+	%.281 =l loadl %.2
+	%.282 =l loadl %.11
+	%.283 =l mul %.282, 1
+	%.284 =l add %.281, %.283
+	%.285 =l loadl %.4
+	%.286 =l loadl %.11
+	%.287 =l sub %.285, %.286
+	%.288 =l loadl %.6
+	%.289 =w loadsb %.288
+	%.290 =w extsb %.289
+	%.291 =w ceqw %.290, 100
+	jnz %.291, @cond_true.231, @cond_false.232
+@cond_true.231
+	jmp @cond_join.233
+@cond_false.232
+@cond_join.233
+	%.292 =l phi @cond_true.231 $.Lstring.19, @cond_false.232 $.Lstring.20
+	%.293 =l loadl %.8
+	%.294 =l add %.293, 12
+	%.295 =w loadw %.294
+	%.296 =l extsw %.295
+	%.297 =l call extern $__d_snprintf(l %.284, l %.287, l %.292, ..., l %.296)
+	storew %.297, %.13
+	%.298 =w loadw %.13
+	%.299 =w csltw %.298, 0
+	jnz %.299, @if_true.234, @logic_or.236
+@logic_or.236
+	%.300 =l loadl %.11
+	%.301 =w loadw %.13
+	%.302 =l extsw %.301
+	%.303 =l add %.300, %.302
+	storel %.303, %.11
+	%.304 =l loadl %.4
+	%.305 =w cugel %.303, %.304
+	jnz %.305, @if_true.234, @if_false.235
+@if_true.234
+	%.306 =l extsw 0
+	ret %.306
+@if_false.235
+	jmp @switch_join.174
+@switch_case.237
+	%.307 =l loadl %.2
+	%.308 =l loadl %.11
+	%.309 =l mul %.308, 1
+	%.310 =l add %.307, %.309
+	%.311 =l loadl %.4
+	%.312 =l loadl %.11
+	%.313 =l sub %.311, %.312
+	%.314 =l loadl %.8
+	%.315 =w loadw %.10
+	%.316 =l extsw %.315
+	%.317 =l call $__strftime(l %.310, l %.313, l $.Lstring.14, l %.314, l %.316)
+	storew %.317, %.13
+	%.318 =w loadw %.13
+	%.319 =w csgtw %.318, 0
+	jnz %.319, @if_true.238, @if_false.239
+@if_true.238
+	%.320 =l loadl %.11
+	%.321 =w loadw %.13
+	%.322 =l extsw %.321
+	%.323 =l add %.320, %.322
+	storel %.323, %.11
+	jmp @if_join.240
+@if_false.239
+	%.324 =l extsw 0
+	ret %.324
+@if_join.240
+	jmp @switch_join.174
+@switch_case.241
+	%.325 =l loadl %.2
+	%.326 =l loadl %.11
+	%.327 =l mul %.326, 1
+	%.328 =l add %.325, %.327
+	%.329 =l loadl %.4
+	%.330 =l loadl %.11
+	%.331 =l sub %.329, %.330
+	%.332 =l loadl %.8
+	%.333 =w loadw %.10
+	%.334 =l extsw %.333
+	%.335 =l call $__strftime(l %.328, l %.331, l $.Lstring.21, l %.332, l %.334)
+	storew %.335, %.13
+	%.336 =w loadw %.13
+	%.337 =w csgtw %.336, 0
+	jnz %.337, @if_true.242, @if_false.243
+@if_true.242
+	%.338 =l loadl %.11
+	%.339 =w loadw %.13
+	%.340 =l extsw %.339
+	%.341 =l add %.338, %.340
+	storel %.341, %.11
+	jmp @if_join.244
+@if_false.243
+	%.342 =l extsw 0
+	ret %.342
+@if_join.244
+	jmp @switch_join.174
+@switch_case.245
+	%.344 =l loadl %.8
+	%.345 =l call $iso_year_adjust(l %.344)
+	storew %.345, %.343
+	%.347 =l loadl %.8
+	%.348 =l add %.347, 20
+	%.349 =w loadw %.348
+	%.350 =w csgew %.349, 0
+	jnz %.350, @cond_true.246, @cond_false.247
+@cond_true.246
+	%.351 =l loadl %.8
+	%.352 =l add %.351, 20
+	%.353 =w loadw %.352
+	%.354 =w rem %.353, 100
+	jmp @cond_join.248
+@cond_false.247
+	%.355 =l loadl %.8
+	%.356 =l add %.355, 20
+	%.357 =w loadw %.356
+	%.358 =w add %.357, 1900
+	%.359 =l extsw %.358
+	%.360 =l call extern $abs(l %.359)
+	%.361 =w rem %.360, 100
+@cond_join.248
+	%.362 =w phi @cond_true.246 %.354, @cond_false.247 %.361
+	storew %.362, %.346
+	%.363 =w loadw %.343
+	%.364 =w csltw %.363, 0
+	jnz %.364, @logic_and.251, @if_false.250
+@logic_and.251
+	%.365 =l loadl %.8
+	%.366 =l add %.365, 20
+	%.367 =w loadw %.366
+	%.368 =w neg 1900
+	%.369 =w cslew %.367, %.368
+	jnz %.369, @if_true.249, @if_false.250
+@if_true.249
+	storew 1, %.343
+	jmp @if_join.252
+@if_false.250
+	%.370 =w loadw %.343
+	%.371 =w csgtw %.370, 0
+	jnz %.371, @logic_and.255, @if_false.254
+@logic_and.255
+	%.372 =l loadl %.8
+	%.373 =l add %.372, 20
+	%.374 =w loadw %.373
+	%.375 =w neg 1900
+	%.376 =w csltw %.374, %.375
+	jnz %.376, @if_true.253, @if_false.254
+@if_true.253
+	%.377 =w neg 1
+	storew %.377, %.343
+@if_false.254
+@if_join.252
+	%.378 =l loadl %.2
+	%.379 =l loadl %.11
+	%.380 =l mul %.379, 1
+	%.381 =l add %.378, %.380
+	%.382 =l loadl %.4
+	%.383 =l loadl %.11
+	%.384 =l sub %.382, %.383
+	%.385 =w loadw %.346
+	%.386 =w loadw %.343
+	%.387 =w add %.385, %.386
+	%.388 =w rem %.387, 100
+	%.389 =w add %.388, 100
+	%.390 =w rem %.389, 100
+	%.391 =l extsw %.390
+	%.392 =l call extern $__d_snprintf(l %.381, l %.384, l $.Lstring.19, ..., l %.391)
+	storew %.392, %.13
+	%.393 =w loadw %.13
+	%.394 =w csltw %.393, 0
+	jnz %.394, @if_true.256, @logic_or.258
+@logic_or.258
+	%.395 =l loadl %.11
+	%.396 =w loadw %.13
+	%.397 =l extsw %.396
+	%.398 =l add %.395, %.397
+	storel %.398, %.11
+	%.399 =l loadl %.4
+	%.400 =w cugel %.398, %.399
+	jnz %.400, @if_true.256, @if_false.257
+@if_true.256
+	%.401 =l extsw 0
+	ret %.401
+@if_false.257
+	jmp @switch_join.174
+@switch_case.259
+	%.403 =l loadl %.8
+	%.404 =l add %.403, 20
+	%.405 =w loadw %.404
+	%.406 =w neg 1900
+	%.407 =w csltw %.405, %.406
+	storew %.407, %.402
+	%.409 =l loadl %.8
+	%.410 =l call $iso_year_adjust(l %.409)
+	storew %.410, %.408
+	%.412 =l loadl %.8
+	%.413 =l add %.412, 20
+	%.414 =w loadw %.413
+	%.415 =w csgew %.414, 0
+	jnz %.415, @cond_true.260, @cond_false.261
+@cond_true.260
+	%.416 =l loadl %.8
+	%.417 =l add %.416, 20
+	%.418 =w loadw %.417
+	%.419 =w div %.418, 100
+	%.420 =w div 1900, 100
+	%.421 =w add %.419, %.420
+	jmp @cond_join.262
+@cond_false.261
+	%.422 =l loadl %.8
+	%.423 =l add %.422, 20
+	%.424 =w loadw %.423
+	%.425 =w add %.424, 1900
+	%.426 =l extsw %.425
+	%.427 =l call extern $abs(l %.426)
+	%.428 =w div %.427, 100
+@cond_join.262
+	%.429 =w phi @cond_true.260 %.421, @cond_false.261 %.428
+	storew %.429, %.411
+	%.431 =l loadl %.8
+	%.432 =l add %.431, 20
+	%.433 =w loadw %.432
+	%.434 =w csgew %.433, 0
+	jnz %.434, @cond_true.263, @cond_false.264
+@cond_true.263
+	%.435 =l loadl %.8
+	%.436 =l add %.435, 20
+	%.437 =w loadw %.436
+	%.438 =w rem %.437, 100
+	jmp @cond_join.265
+@cond_false.264
+	%.439 =l loadl %.8
+	%.440 =l add %.439, 20
+	%.441 =w loadw %.440
+	%.442 =w add %.441, 1900
+	%.443 =l extsw %.442
+	%.444 =l call extern $abs(l %.443)
+	%.445 =w rem %.444, 100
+@cond_join.265
+	%.446 =w phi @cond_true.263 %.438, @cond_false.264 %.445
+	storew %.446, %.430
+	%.447 =w loadw %.408
+	%.448 =w csltw %.447, 0
+	jnz %.448, @logic_and.268, @if_false.267
+@logic_and.268
+	%.449 =l loadl %.8
+	%.450 =l add %.449, 20
+	%.451 =w loadw %.450
+	%.452 =w neg 1900
+	%.453 =w cslew %.451, %.452
+	jnz %.453, @if_true.266, @if_false.267
+@if_true.266
+	storew 1, %.408
+	storew 1, %.402
+	jmp @if_join.269
+@if_false.267
+	%.454 =w loadw %.408
+	%.455 =w csgtw %.454, 0
+	jnz %.455, @logic_and.272, @if_false.271
+@logic_and.272
+	%.456 =w loadw %.402
+	jnz %.456, @if_true.270, @if_false.271
+@if_true.270
+	%.457 =w neg 1
+	storew %.457, %.408
+@if_false.271
+@if_join.269
+	%.458 =w loadw %.430
+	%.459 =w loadw %.408
+	%.460 =w add %.458, %.459
+	storew %.460, %.430
+	%.461 =w loadw %.430
+	%.462 =w ceqw %.461, 18446744073709551615
+	jnz %.462, @if_true.273, @if_false.274
+@if_true.273
+	storew 99, %.430
+	%.463 =w loadw %.411
+	%.464 =w sub %.463, 1
+	storew %.464, %.411
+	jmp @if_join.275
+@if_false.274
+	%.465 =w loadw %.430
+	%.466 =w ceqw %.465, 100
+	jnz %.466, @if_true.276, @if_false.277
+@if_true.276
+	storew 0, %.430
+	%.467 =w loadw %.411
+	%.468 =w add %.467, 1
+	storew %.468, %.411
+@if_false.277
+@if_join.275
+	storel %.469, %.470
+	%.472 =w loadw %.411
+	%.473 =w mul %.472, 100
+	%.474 =w loadw %.430
+	%.475 =w add %.473, %.474
+	storew %.475, %.471
+	%.476 =w loadw %.402
+	jnz %.476, @if_true.278, @if_false.279
+@if_true.278
+	%.477 =l loadl %.470
+	%.478 =l add %.477, 1
+	storel %.478, %.470
+	storeb 45, %.477
+	jmp @if_join.280
+@if_false.279
+	%.479 =w loadsb %.18
+	%.480 =w extsb %.479
+	%.481 =w ceqw %.480, 43
+	jnz %.481, @logic_and.283, @if_false.282
+@logic_and.283
+	%.482 =w loadw %.471
+	%.483 =w cugew %.482, 10000
+	jnz %.483, @if_true.281, @if_false.282
+@if_true.281
+	%.484 =l loadl %.470
+	%.485 =l add %.484, 1
+	storel %.485, %.470
+	storeb 43, %.484
+	storew 1, %.402
+@if_false.282
+@if_join.280
+	%.486 =l loadl %.19
+	%.487 =w cnel %.486, 0
+	jnz %.487, @logic_and.286, @if_false.285
+@logic_and.286
+	%.488 =w loadw %.402
+	jnz %.488, @if_true.284, @if_false.285
+@if_true.284
+	%.489 =l loadl %.19
+	%.490 =l sub %.489, 1
+	storel %.490, %.19
+@if_false.285
+	%.491 =l loadl %.470
+	%.492 =l add %.491, 1
+	storel %.492, %.470
+	storeb 37, %.491
+	%.493 =w loadsb %.18
+	%.494 =w extsb %.493
+	jnz %.494, @if_true.287, @if_false.288
+@if_true.287
+	%.495 =l loadl %.470
+	%.496 =l add %.495, 1
+	storel %.496, %.470
+	storeb 48, %.495
+@if_false.288
+	%.497 =l loadl %.470
+	%.498 =l call extern $strcpy(l %.497, l $.Lstring.22)
+	%.499 =l loadl %.2
+	%.500 =l loadl %.11
+	%.501 =l mul %.500, 1
+	%.502 =l add %.499, %.501
+	%.503 =l loadl %.4
+	%.504 =l loadl %.11
+	%.505 =l sub %.503, %.504
+	%.506 =l loadl %.19
+	%.507 =w loadw %.471
+	%.508 =l extsw %.506
+	%.509 =l extuw %.507
+	%.510 =l call extern $__d_snprintf(l %.502, l %.505, l %.469, ..., l %.508, l %.509)
+	storew %.510, %.13
+	%.511 =w loadw %.13
+	%.512 =w csltw %.511, 0
+	jnz %.512, @if_true.289, @logic_or.291
+@logic_or.291
+	%.513 =l loadl %.11
+	%.514 =w loadw %.13
+	%.515 =l extsw %.514
+	%.516 =l add %.513, %.515
+	storel %.516, %.11
+	%.517 =l loadl %.4
+	%.518 =w cugel %.516, %.517
+	jnz %.518, @if_true.289, @if_false.290
+@if_true.289
+	%.519 =l extsw 0
+	ret %.519
+@if_false.290
+	jmp @switch_join.174
+@switch_case.292
+@switch_case.293
+	%.520 =l loadl %.2
+	%.521 =l loadl %.11
+	%.522 =l mul %.521, 1
+	%.523 =l add %.520, %.522
+	%.524 =l loadl %.4
+	%.525 =l loadl %.11
+	%.526 =l sub %.524, %.525
+	%.527 =l loadl %.6
+	%.528 =w loadsb %.527
+	%.529 =w extsb %.528
+	%.530 =w ceqw %.529, 107
+	jnz %.530, @cond_true.294, @cond_false.295
+@cond_true.294
+	jmp @cond_join.296
+@cond_false.295
+@cond_join.296
+	%.531 =l phi @cond_true.294 $.Lstring.20, @cond_false.295 $.Lstring.19
+	%.532 =l loadl %.8
+	%.533 =l add %.532, 8
+	%.534 =w loadw %.533
+	%.535 =l extsw %.534
+	%.536 =l call extern $__d_snprintf(l %.523, l %.526, l %.531, ..., l %.535)
+	storew %.536, %.13
+	%.537 =w loadw %.13
+	%.538 =w csltw %.537, 0
+	jnz %.538, @if_true.297, @logic_or.299
+@logic_or.299
+	%.539 =l loadl %.11
+	%.540 =w loadw %.13
+	%.541 =l extsw %.540
+	%.542 =l add %.539, %.541
+	storel %.542, %.11
+	%.543 =l loadl %.4
+	%.544 =w cugel %.542, %.543
+	jnz %.544, @if_true.297, @if_false.298
+@if_true.297
+	%.545 =l extsw 0
+	ret %.545
+@if_false.298
+	jmp @switch_join.174
+@switch_case.300
+	%.546 =w loadsb %.17
+	%.547 =w extsb %.546
+	%.548 =w ceqw %.547, 79
+	jnz %.548, @if_true.301, @if_false.302
+@if_true.301
+	storeb 0, %.17
+@if_false.302
+@switch_case.303
+	%.550 =l loadl %.8
+	%.551 =l add %.550, 8
+	%.552 =w loadw %.551
+	jnz %.552, @logic_or.307, @cond_true.304
+@logic_or.307
+	%.553 =l loadl %.8
+	%.554 =l add %.553, 8
+	%.555 =w loadw %.554
+	%.556 =w ceqw %.555, 12
+	jnz %.556, @cond_true.304, @cond_false.305
+@cond_true.304
+	jmp @cond_join.306
+@cond_false.305
+	%.557 =l loadl %.8
+	%.558 =l add %.557, 8
+	%.559 =w loadw %.558
+	%.560 =w rem %.559, 12
+@cond_join.306
+	%.561 =w phi @cond_true.304 12, @cond_false.305 %.560
+	storew %.561, %.549
+	%.562 =l loadl %.2
+	%.563 =l loadl %.11
+	%.564 =l mul %.563, 1
+	%.565 =l add %.562, %.564
+	%.566 =l loadl %.4
+	%.567 =l loadl %.11
+	%.568 =l sub %.566, %.567
+	%.569 =l loadl %.6
+	%.570 =w loadsb %.569
+	%.571 =w extsb %.570
+	%.572 =w ceqw %.571, 73
+	jnz %.572, @cond_true.308, @cond_false.309
+@cond_true.308
+	jmp @cond_join.310
+@cond_false.309
+@cond_join.310
+	%.573 =l phi @cond_true.308 $.Lstring.19, @cond_false.309 $.Lstring.20
+	%.574 =w loadw %.549
+	%.575 =l extsw %.574
+	%.576 =l call extern $__d_snprintf(l %.565, l %.568, l %.573, ..., l %.575)
+	storew %.576, %.13
+	%.577 =w loadw %.13
+	%.578 =w csltw %.577, 0
+	jnz %.578, @if_true.311, @logic_or.313
+@logic_or.313
+	%.579 =l loadl %.11
+	%.580 =w loadw %.13
+	%.581 =l extsw %.580
+	%.582 =l add %.579, %.581
+	storel %.582, %.11
+	%.583 =l loadl %.4
+	%.584 =w cugel %.582, %.583
+	jnz %.584, @if_true.311, @if_false.312
+@if_true.311
+	%.585 =l extsw 0
+	ret %.585
+@if_false.312
+	jmp @switch_join.174
+@switch_case.314
+	%.586 =l loadl %.2
+	%.587 =l loadl %.11
+	%.588 =l mul %.587, 1
+	%.589 =l add %.586, %.588
+	%.590 =l loadl %.4
+	%.591 =l loadl %.11
+	%.592 =l sub %.590, %.591
+	%.593 =l loadl %.8
+	%.594 =l add %.593, 28
+	%.595 =w loadw %.594
+	%.596 =w add %.595, 1
+	%.597 =l extsw %.596
+	%.598 =l call extern $__d_snprintf(l %.589, l %.592, l $.Lstring.23, ..., l %.597)
+	storew %.598, %.13
+	%.599 =w loadw %.13
+	%.600 =w csltw %.599, 0
+	jnz %.600, @if_true.315, @logic_or.317
+@logic_or.317
+	%.601 =l loadl %.11
+	%.602 =w loadw %.13
+	%.603 =l extsw %.602
+	%.604 =l add %.601, %.603
+	storel %.604, %.11
+	%.605 =l loadl %.4
+	%.606 =w cugel %.604, %.605
+	jnz %.606, @if_true.315, @if_false.316
+@if_true.315
+	%.607 =l extsw 0
+	ret %.607
+@if_false.316
+	jmp @switch_join.174
+@switch_case.318
+	%.608 =l loadl %.2
+	%.609 =l loadl %.11
+	%.610 =l mul %.609, 1
+	%.611 =l add %.608, %.610
+	%.612 =l loadl %.4
+	%.613 =l loadl %.11
+	%.614 =l sub %.612, %.613
+	%.615 =l loadl %.8
+	%.616 =l add %.615, 16
+	%.617 =w loadw %.616
+	%.618 =w add %.617, 1
+	%.619 =l extsw %.618
+	%.620 =l call extern $__d_snprintf(l %.611, l %.614, l $.Lstring.19, ..., l %.619)
+	storew %.620, %.13
+	%.621 =w loadw %.13
+	%.622 =w csltw %.621, 0
+	jnz %.622, @if_true.319, @logic_or.321
+@logic_or.321
+	%.623 =l loadl %.11
+	%.624 =w loadw %.13
+	%.625 =l extsw %.624
+	%.626 =l add %.623, %.625
+	storel %.626, %.11
+	%.627 =l loadl %.4
+	%.628 =w cugel %.626, %.627
+	jnz %.628, @if_true.319, @if_false.320
+@if_true.319
+	%.629 =l extsw 0
+	ret %.629
+@if_false.320
+	jmp @switch_join.174
+@switch_case.322
+	%.630 =l loadl %.2
+	%.631 =l loadl %.11
+	%.632 =l mul %.631, 1
+	%.633 =l add %.630, %.632
+	%.634 =l loadl %.4
+	%.635 =l loadl %.11
+	%.636 =l sub %.634, %.635
+	%.637 =l loadl %.8
+	%.638 =l add %.637, 4
+	%.639 =w loadw %.638
+	%.640 =l extsw %.639
+	%.641 =l call extern $__d_snprintf(l %.633, l %.636, l $.Lstring.19, ..., l %.640)
+	storew %.641, %.13
+	%.642 =w loadw %.13
+	%.643 =w csltw %.642, 0
+	jnz %.643, @if_true.323, @logic_or.325
+@logic_or.325
+	%.644 =l loadl %.11
+	%.645 =w loadw %.13
+	%.646 =l extsw %.645
+	%.647 =l add %.644, %.646
+	storel %.647, %.11
+	%.648 =l loadl %.4
+	%.649 =w cugel %.647, %.648
+	jnz %.649, @if_true.323, @if_false.324
+@if_true.323
+	%.650 =l extsw 0
+	ret %.650
+@if_false.324
+	jmp @switch_join.174
+@switch_case.326
+	%.651 =l loadl %.11
+	%.652 =l loadl %.4
+	%.653 =l extsw 1
+	%.654 =l sub %.652, %.653
+	%.655 =w cultl %.651, %.654
+	jnz %.655, @if_true.327, @if_false.328
+@if_true.327
+	%.656 =l loadl %.2
+	%.657 =l loadl %.11
+	%.658 =l add %.657, 1
+	storel %.658, %.11
+	%.659 =l mul %.657, 1
+	%.660 =l add %.656, %.659
+	storeb 10, %.660
+	jmp @if_join.329
+@if_false.328
+	%.661 =l extsw 0
+	ret %.661
+@if_join.329
+	jmp @switch_join.174
+@switch_case.330
+@switch_case.331
+	%.662 =l loadl %.8
+	%.663 =l add %.662, 8
+	%.664 =w loadw %.663
+	%.665 =w csltw %.664, 12
+	jnz %.665, @cond_true.332, @cond_false.333
+@cond_true.332
+	jmp @cond_join.334
+@cond_false.333
+@cond_join.334
+	%.666 =w phi @cond_true.332 0, @cond_false.333 1
+	%.667 =l extsw %.666
+	%.668 =l mul %.667, 8
+	%.669 =l add extern $__time_am_pm, %.668
+	%.670 =l loadl %.669
+	storel %.670, %.14
+	%.671 =l call extern $strlen(l %.670)
+	storel %.671, %.16
+	%.672 =l extsw 0
+	storel %.672, %.15
+@for_cond.335
+	%.673 =l loadl %.15
+	%.674 =l loadl %.16
+	%.675 =w cultl %.673, %.674
+	jnz %.675, @for_body.336, @for_join.338
+@for_body.336
+	%.676 =l loadl %.11
+	%.677 =l loadl %.4
+	%.678 =l extsw 1
+	%.679 =l sub %.677, %.678
+	%.680 =w cultl %.676, %.679
+	jnz %.680, @if_true.339, @if_false.340
+@if_true.339
+	%.681 =l loadl %.6
+	%.682 =w loadsb %.681
+	%.683 =w extsb %.682
+	%.684 =w ceqw %.683, 80
+	jnz %.684, @cond_true.341, @cond_false.342
+@cond_true.341
+	%.685 =l loadl %.14
+	%.686 =l loadl %.15
+	%.687 =l mul %.686, 1
+	%.688 =l add %.685, %.687
+	%.689 =w loadsb %.688
+	%.690 =w extub %.689
+	%.691 =l extsw %.690
+	%.692 =l call extern $tolower(l %.691)
+	jmp @cond_join.343
+@cond_false.342
+	%.693 =l loadl %.14
+	%.694 =l loadl %.15
+	%.695 =l mul %.694, 1
+	%.696 =l add %.693, %.695
+	%.697 =w loadsb %.696
+@cond_join.343
+	%.698 =w phi @cond_true.341 %.692, @cond_false.342 %.697
+	%.699 =l loadl %.2
+	%.700 =l loadl %.11
+	%.701 =l add %.700, 1
+	storel %.701, %.11
+	%.702 =l mul %.700, 1
+	%.703 =l add %.699, %.702
+	storeb %.698, %.703
+	jmp @if_join.344
+@if_false.340
+	%.704 =l extsw 0
+	ret %.704
+@if_join.344
+@for_cont.337
+	%.705 =l loadl %.15
+	%.706 =l add %.705, 1
+	storel %.706, %.15
+	jmp @for_cond.335
+@for_join.338
+	jmp @switch_join.174
+@switch_case.345
+	%.707 =l loadl %.2
+	%.708 =l loadl %.11
+	%.709 =l mul %.708, 1
+	%.710 =l add %.707, %.709
+	%.711 =l loadl %.4
+	%.712 =l loadl %.11
+	%.713 =l sub %.711, %.712
+	%.714 =l loadl %.8
+	%.715 =l add %.714, 16
+	%.716 =w loadw %.715
+	%.717 =w div %.716, 3
+	%.718 =w add %.717, 1
+	%.719 =l extsw %.718
+	%.720 =l call extern $__d_snprintf(l %.710, l %.713, l $.Lstring.24, ..., l %.719)
+	storew %.720, %.13
+	%.721 =w loadw %.13
+	%.722 =w csltw %.721, 0
+	jnz %.722, @if_true.346, @logic_or.348
+@logic_or.348
+	%.723 =l loadl %.11
+	%.724 =w loadw %.13
+	%.725 =l extsw %.724
+	%.726 =l add %.723, %.725
+	storel %.726, %.11
+	%.727 =l loadl %.4
+	%.728 =w cugel %.726, %.727
+	jnz %.728, @if_true.346, @if_false.347
+@if_true.346
+	%.729 =l extsw 0
+	ret %.729
+@if_false.347
+	jmp @switch_join.174
+@switch_case.349
+	%.730 =l loadl %.2
+	%.731 =l loadl %.11
+	%.732 =l mul %.731, 1
+	%.733 =l add %.730, %.732
+	%.734 =l loadl %.4
+	%.735 =l loadl %.11
+	%.736 =l sub %.734, %.735
+	%.737 =l loadl %.8
+	%.738 =l add %.737, 8
+	%.739 =w loadw %.738
+	%.740 =l loadl %.8
+	%.741 =l add %.740, 4
+	%.742 =w loadw %.741
+	%.743 =l extsw %.739
+	%.744 =l extsw %.742
+	%.745 =l call extern $__d_snprintf(l %.733, l %.736, l $.Lstring.25, ..., l %.743, l %.744)
+	storew %.745, %.13
+	%.746 =w loadw %.13
+	%.747 =w csltw %.746, 0
+	jnz %.747, @if_true.350, @logic_or.352
+@logic_or.352
+	%.748 =l loadl %.11
+	%.749 =w loadw %.13
+	%.750 =l extsw %.749
+	%.751 =l add %.748, %.750
+	storel %.751, %.11
+	%.752 =l loadl %.4
+	%.753 =w cugel %.751, %.752
+	jnz %.753, @if_true.350, @if_false.351
+@if_true.350
+	%.754 =l extsw 0
+	ret %.754
+@if_false.351
+	jmp @switch_join.174
+@switch_case.353
+	%.756 =l extsw 0
+	storel %.756, %.755
+	%.757 =l loadl %.8
+	%.758 =l add %.757, 32
+	%.759 =w loadw %.758
+	%.760 =w csgew %.759, 0
+	jnz %.760, @if_true.354, @if_false.355
+@if_true.354
+	%.761 =w loadw %.20
+	jnz %.761, @if_false.357, @if_true.356
+@if_true.356
+	storew 1, %.20
+	call extern $tzset()
+@if_false.357
+	call extern $__retarget_lock_acquire_recursive(l extern $__lock___libc_recursive_mutex)
+	%.762 =l add extern $__tzinfo, 8
+	%.763 =l loadl %.8
+	%.764 =l add %.763, 32
+	%.765 =w loadw %.764
+	%.766 =w csgtw %.765, 0
+	%.767 =l extsw %.766
+	%.768 =l mul %.767, 40
+	%.769 =l add %.762, %.768
+	%.770 =l add %.769, 32
+	%.771 =l loadl %.770
+	%.772 =l neg %.771
+	storel %.772, %.755
+	call extern $__retarget_lock_release_recursive(l extern $__lock___libc_recursive_mutex)
+@if_false.355
+	%.773 =l loadl %.2
+	%.774 =l loadl %.11
+	%.775 =l mul %.774, 1
+	%.776 =l add %.773, %.775
+	%.777 =l loadl %.4
+	%.778 =l loadl %.11
+	%.779 =l sub %.777, %.778
+	%.780 =l loadl %.8
+	%.781 =l add %.780, 20
+	%.782 =w loadw %.781
+	%.783 =l extsw %.782
+	%.784 =l extsw 69
+	%.785 =l sub %.783, %.784
+	%.786 =l extsw 4
+	%.787 =l div %.785, %.786
+	%.788 =l loadl %.8
+	%.789 =l add %.788, 20
+	%.790 =w loadw %.789
+	%.791 =w sub %.790, 1
+	%.792 =w div %.791, 100
+	%.793 =l extsw %.792
+	%.794 =l sub %.787, %.793
+	%.795 =l loadl %.8
+	%.796 =l add %.795, 20
+	%.797 =w loadw %.796
+	%.798 =w add %.797, 299
+	%.799 =w div %.798, 400
+	%.800 =l extsw %.799
+	%.801 =l add %.794, %.800
+	%.802 =l loadl %.8
+	%.803 =l add %.802, 20
+	%.804 =w loadw %.803
+	%.805 =w sub %.804, 70
+	%.806 =w mul %.805, 365
+	%.807 =l extsw %.806
+	%.808 =l add %.801, %.807
+	%.809 =l loadl %.8
+	%.810 =l add %.809, 28
+	%.811 =w loadw %.810
+	%.812 =l extsw %.811
+	%.813 =l add %.808, %.812
+	%.814 =l extsw 24
+	%.815 =l mul %.813, %.814
+	%.816 =l loadl %.8
+	%.817 =l add %.816, 8
+	%.818 =w loadw %.817
+	%.819 =l extsw %.818
+	%.820 =l add %.815, %.819
+	%.821 =l extsw 60
+	%.822 =l mul %.820, %.821
+	%.823 =l loadl %.8
+	%.824 =l add %.823, 4
+	%.825 =w loadw %.824
+	%.826 =l extsw %.825
+	%.827 =l add %.822, %.826
+	%.828 =l extsw 60
+	%.829 =l mul %.827, %.828
+	%.830 =l loadl %.8
+	%.831 =l add %.830, 0
+	%.832 =w loadw %.831
+	%.833 =l extsw %.832
+	%.834 =l add %.829, %.833
+	%.835 =l loadl %.755
+	%.836 =l sub %.834, %.835
+	%.837 =l call extern $__d_snprintf(l %.776, l %.779, l $.Lstring.26, ..., l %.836)
+	storew %.837, %.13
+	%.838 =w loadw %.13
+	%.839 =w csltw %.838, 0
+	jnz %.839, @if_true.358, @logic_or.360
+@logic_or.360
+	%.840 =l loadl %.11
+	%.841 =w loadw %.13
+	%.842 =l extsw %.841
+	%.843 =l add %.840, %.842
+	storel %.843, %.11
+	%.844 =l loadl %.4
+	%.845 =w cugel %.843, %.844
+	jnz %.845, @if_true.358, @if_false.359
+@if_true.358
+	%.846 =l extsw 0
+	ret %.846
+@if_false.359
+	jmp @switch_join.174
+@switch_case.361
+	%.847 =l loadl %.2
+	%.848 =l loadl %.11
+	%.849 =l mul %.848, 1
+	%.850 =l add %.847, %.849
+	%.851 =l loadl %.4
+	%.852 =l loadl %.11
+	%.853 =l sub %.851, %.852
+	%.854 =l loadl %.8
+	%.855 =l add %.854, 0
+	%.856 =w loadw %.855
+	%.857 =l extsw %.856
+	%.858 =l call extern $__d_snprintf(l %.850, l %.853, l $.Lstring.19, ..., l %.857)
+	storew %.858, %.13
+	%.859 =w loadw %.13
+	%.860 =w csltw %.859, 0
+	jnz %.860, @if_true.362, @logic_or.364
+@logic_or.364
+	%.861 =l loadl %.11
+	%.862 =w loadw %.13
+	%.863 =l extsw %.862
+	%.864 =l add %.861, %.863
+	storel %.864, %.11
+	%.865 =l loadl %.4
+	%.866 =w cugel %.864, %.865
+	jnz %.866, @if_true.362, @if_false.363
+@if_true.362
+	%.867 =l extsw 0
+	ret %.867
+@if_false.363
+	jmp @switch_join.174
+@switch_case.365
+	%.868 =l loadl %.11
+	%.869 =l loadl %.4
+	%.870 =l extsw 1
+	%.871 =l sub %.869, %.870
+	%.872 =w cultl %.868, %.871
+	jnz %.872, @if_true.366, @if_false.367
+@if_true.366
+	%.873 =l loadl %.2
+	%.874 =l loadl %.11
+	%.875 =l add %.874, 1
+	storel %.875, %.11
+	%.876 =l mul %.874, 1
+	%.877 =l add %.873, %.876
+	storeb 9, %.877
+	jmp @if_join.368
+@if_false.367
+	%.878 =l extsw 0
+	ret %.878
+@if_join.368
+	jmp @switch_join.174
+@switch_case.369
+	%.879 =l loadl %.2
+	%.880 =l loadl %.11
+	%.881 =l mul %.880, 1
+	%.882 =l add %.879, %.881
+	%.883 =l loadl %.4
+	%.884 =l loadl %.11
+	%.885 =l sub %.883, %.884
+	%.886 =l loadl %.8
+	%.887 =l add %.886, 8
+	%.888 =w loadw %.887
+	%.889 =l loadl %.8
+	%.890 =l add %.889, 4
+	%.891 =w loadw %.890
+	%.892 =l loadl %.8
+	%.893 =l add %.892, 0
+	%.894 =w loadw %.893
+	%.895 =l extsw %.888
+	%.896 =l extsw %.891
+	%.897 =l extsw %.894
+	%.898 =l call extern $__d_snprintf(l %.882, l %.885, l $.Lstring.27, ..., l %.895, l %.896, l %.897)
+	storew %.898, %.13
+	%.899 =w loadw %.13
+	%.900 =w csltw %.899, 0
+	jnz %.900, @if_true.370, @logic_or.372
+@logic_or.372
+	%.901 =l loadl %.11
+	%.902 =w loadw %.13
+	%.903 =l extsw %.902
+	%.904 =l add %.901, %.903
+	storel %.904, %.11
+	%.905 =l loadl %.4
+	%.906 =w cugel %.904, %.905
+	jnz %.906, @if_true.370, @if_false.371
+@if_true.370
+	%.907 =l extsw 0
+	ret %.907
+@if_false.371
+	jmp @switch_join.174
+@switch_case.373
+	%.908 =l loadl %.11
+	%.909 =l loadl %.4
+	%.910 =l extsw 1
+	%.911 =l sub %.909, %.910
+	%.912 =w cultl %.908, %.911
+	jnz %.912, @if_true.374, @if_false.375
+@if_true.374
+	%.913 =l loadl %.8
+	%.914 =l add %.913, 24
+	%.915 =w loadw %.914
+	jnz %.915, @if_false.377, @if_true.376
+@if_true.376
+	%.916 =l loadl %.2
+	%.917 =l loadl %.11
+	%.918 =l add %.917, 1
+	storel %.918, %.11
+	%.919 =l mul %.917, 1
+	%.920 =l add %.916, %.919
+	storeb 55, %.920
+	jmp @if_join.378
+@if_false.377
+	%.921 =l loadl %.8
+	%.922 =l add %.921, 24
+	%.923 =w loadw %.922
+	%.924 =w add 48, %.923
+	%.925 =l loadl %.2
+	%.926 =l loadl %.11
+	%.927 =l add %.926, 1
+	storel %.927, %.11
+	%.928 =l mul %.926, 1
+	%.929 =l add %.925, %.928
+	storeb %.924, %.929
+@if_join.378
+	jmp @if_join.379
+@if_false.375
+	%.930 =l extsw 0
+	ret %.930
+@if_join.379
+	jmp @switch_join.174
+@switch_case.380
+	%.931 =l loadl %.2
+	%.932 =l loadl %.11
+	%.933 =l mul %.932, 1
+	%.934 =l add %.931, %.933
+	%.935 =l loadl %.4
+	%.936 =l loadl %.11
+	%.937 =l sub %.935, %.936
+	%.938 =l loadl %.8
+	%.939 =l add %.938, 28
+	%.940 =w loadw %.939
+	%.941 =w add %.940, 7
+	%.942 =l loadl %.8
+	%.943 =l add %.942, 24
+	%.944 =w loadw %.943
+	%.945 =w sub %.941, %.944
+	%.946 =w div %.945, 7
+	%.947 =l extsw %.946
+	%.948 =l call extern $__d_snprintf(l %.934, l %.937, l $.Lstring.19, ..., l %.947)
+	storew %.948, %.13
+	%.949 =w loadw %.13
+	%.950 =w csltw %.949, 0
+	jnz %.950, @if_true.381, @logic_or.383
+@logic_or.383
+	%.951 =l loadl %.11
+	%.952 =w loadw %.13
+	%.953 =l extsw %.952
+	%.954 =l add %.951, %.953
+	storel %.954, %.11
+	%.955 =l loadl %.4
+	%.956 =w cugel %.954, %.955
+	jnz %.956, @if_true.381, @if_false.382
+@if_true.381
+	%.957 =l extsw 0
+	ret %.957
+@if_false.382
+	jmp @switch_join.174
+@switch_case.384
+	%.959 =l loadl %.8
+	%.960 =l call $iso_year_adjust(l %.959)
+	storew %.960, %.958
+	%.962 =l loadl %.8
+	%.963 =l add %.962, 24
+	%.964 =w loadw %.963
+	jnz %.964, @cond_true.385, @cond_false.386
+@cond_true.385
+	%.965 =l loadl %.8
+	%.966 =l add %.965, 24
+	%.967 =w loadw %.966
+	%.968 =w sub %.967, 1
+	jmp @cond_join.387
+@cond_false.386
+@cond_join.387
+	%.969 =w phi @cond_true.385 %.968, @cond_false.386 6
+	storew %.969, %.961
+	%.971 =l loadl %.8
+	%.972 =l add %.971, 28
+	%.973 =w loadw %.972
+	%.974 =w add %.973, 10
+	%.975 =w loadw %.961
+	%.976 =w sub %.974, %.975
+	%.977 =w div %.976, 7
+	storew %.977, %.970
+	%.978 =w loadw %.958
+	%.979 =w csgtw %.978, 0
+	jnz %.979, @if_true.388, @if_false.389
+@if_true.388
+	storew 1, %.970
+	jmp @if_join.390
+@if_false.389
+	%.980 =w loadw %.958
+	%.981 =w csltw %.980, 0
+	jnz %.981, @if_true.391, @if_false.392
+@if_true.391
+	%.982 =w loadw %.961
+	%.983 =l loadl %.8
+	%.984 =l add %.983, 28
+	%.985 =w loadw %.984
+	%.986 =w sub %.982, %.985
+	%.987 =l loadl %.8
+	%.988 =l add %.987, 20
+	%.989 =w loadw %.988
+	%.990 =w sub 1900, 1
+	%.991 =l loadl %.8
+	%.992 =l add %.991, 20
+	%.993 =w loadw %.992
+	%.994 =w csltw %.993, 0
+	jnz %.994, @cond_true.393, @cond_false.394
+@cond_true.393
+	jmp @cond_join.395
+@cond_false.394
+@cond_join.395
+	%.995 =w phi @cond_true.393 0, @cond_false.394 2000
+	%.996 =w sub %.990, %.995
+	%.997 =l extsw %.989
+	%.998 =l extsw %.996
+	%.999 =l call $isleap2(l %.997, l %.998)
+	%.1000 =w sub %.986, %.999
+	%.1001 =w csgew 4, %.1000
+	%.1002 =w add 52, %.1001
+	storew %.1002, %.970
+@if_false.392
+@if_join.390
+	%.1003 =l loadl %.2
+	%.1004 =l loadl %.11
+	%.1005 =l mul %.1004, 1
+	%.1006 =l add %.1003, %.1005
+	%.1007 =l loadl %.4
+	%.1008 =l loadl %.11
+	%.1009 =l sub %.1007, %.1008
+	%.1010 =w loadw %.970
+	%.1011 =l extsw %.1010
+	%.1012 =l call extern $__d_snprintf(l %.1006, l %.1009, l $.Lstring.19, ..., l %.1011)
+	storew %.1012, %.13
+	%.1013 =w loadw %.13
+	%.1014 =w csltw %.1013, 0
+	jnz %.1014, @if_true.396, @logic_or.398
+@logic_or.398
+	%.1015 =l loadl %.11
+	%.1016 =w loadw %.13
+	%.1017 =l extsw %.1016
+	%.1018 =l add %.1015, %.1017
+	storel %.1018, %.11
+	%.1019 =l loadl %.4
+	%.1020 =w cugel %.1018, %.1019
+	jnz %.1020, @if_true.396, @if_false.397
+@if_true.396
+	%.1021 =l extsw 0
+	ret %.1021
+@if_false.397
+	jmp @switch_join.174
+@switch_case.399
+	storel %.1022, %.1023
+	%.1024 =l loadl %.1023
+	%.1025 =l call extern $strcpy(l %.1024, l $.Lstring.28)
+	%.1026 =l loadl %.1023
+	%.1027 =l loadl %.1023
+	%.1028 =l call extern $strlen(l %.1027)
+	%.1029 =l mul %.1028, 1
+	%.1030 =l add %.1026, %.1029
+	storel %.1030, %.1023
+	%.1031 =w loadsb %.18
+	%.1032 =w extsb %.1031
+	jnz %.1032, @if_true.400, @if_false.401
+@if_true.400
+	%.1033 =w loadsb %.18
+	%.1034 =l loadl %.1023
+	%.1035 =l add %.1034, 1
+	storel %.1035, %.1023
+	storeb %.1033, %.1034
+	jmp @if_join.402
+@if_false.401
+	%.1036 =l loadl %.1023
+	%.1037 =l add %.1036, 1
+	storel %.1037, %.1023
+	storeb 43, %.1036
+@if_join.402
+	%.1038 =w loadsb %.18
+	%.1039 =w extsb %.1038
+	jnz %.1039, @if_false.404, @if_true.403
+@if_true.403
+	%.1040 =l extsw 10
+	storel %.1040, %.19
+@if_false.404
+	%.1041 =l loadl %.19
+	%.1042 =l extsw 6
+	%.1043 =w cultl %.1041, %.1042
+	jnz %.1043, @if_true.405, @if_false.406
+@if_true.405
+	%.1044 =l extsw 6
+	storel %.1044, %.19
+@if_false.406
+	%.1045 =l loadl %.19
+	%.1046 =l extsw 6
+	%.1047 =l sub %.1045, %.1046
+	storel %.1047, %.19
+	%.1048 =l loadl %.19
+	%.1049 =w cnel %.1048, 0
+	jnz %.1049, @if_true.407, @if_false.408
+@if_true.407
+	%.1050 =l loadl %.1023
+	%.1051 =l extsw 32
+	%.1052 =l mul %.1051, 1
+	%.1053 =l add %.1022, %.1052
+	%.1054 =l loadl %.1023
+	%.1055 =l sub %.1053, %.1054
+	%.1056 =l div %.1055, 1
+	%.1057 =l loadl %.19
+	%.1058 =l call extern $__d_snprintf(l %.1050, l %.1056, l $.Lstring.29, ..., l %.1057)
+	storew %.1058, %.13
+	%.1059 =w loadw %.13
+	%.1060 =w csgtw %.1059, 0
+	jnz %.1060, @if_true.409, @if_false.410
+@if_true.409
+	%.1061 =l loadl %.1023
+	%.1062 =w loadw %.13
+	%.1063 =l extsw %.1062
+	%.1064 =l mul %.1063, 1
+	%.1065 =l add %.1061, %.1064
+	storel %.1065, %.1023
+@if_false.410
+@if_false.408
+	%.1066 =l loadl %.1023
+	%.1067 =l call extern $strcpy(l %.1066, l $.Lstring.30)
+	%.1068 =l loadl %.2
+	%.1069 =l loadl %.11
+	%.1070 =l mul %.1069, 1
+	%.1071 =l add %.1068, %.1070
+	%.1072 =l loadl %.4
+	%.1073 =l loadl %.11
+	%.1074 =l sub %.1072, %.1073
+	%.1075 =l loadl %.8
+	%.1076 =w loadw %.10
+	%.1077 =l extsw %.1076
+	%.1078 =l call $__strftime(l %.1071, l %.1074, l %.1022, l %.1075, l %.1077)
+	storew %.1078, %.13
+	%.1079 =w loadw %.13
+	%.1080 =w csgtw %.1079, 0
+	jnz %.1080, @if_true.411, @if_false.412
+@if_true.411
+	%.1081 =l loadl %.11
+	%.1082 =w loadw %.13
+	%.1083 =l extsw %.1082
+	%.1084 =l add %.1081, %.1083
+	storel %.1084, %.11
+	jmp @if_join.413
+@if_false.412
+	%.1085 =l extsw 0
+	ret %.1085
+@if_join.413
+	jmp @switch_join.174
+@switch_case.414
+	%.1086 =l loadl %.11
+	%.1087 =l loadl %.4
+	%.1088 =l extsw 1
+	%.1089 =l sub %.1087, %.1088
+	%.1090 =w cultl %.1086, %.1089
+	jnz %.1090, @if_true.415, @if_false.416
+@if_true.415
+	%.1091 =l loadl %.8
+	%.1092 =l add %.1091, 24
+	%.1093 =w loadw %.1092
+	%.1094 =w add 48, %.1093
+	%.1095 =l loadl %.2
+	%.1096 =l loadl %.11
+	%.1097 =l add %.1096, 1
+	storel %.1097, %.11
+	%.1098 =l mul %.1096, 1
+	%.1099 =l add %.1095, %.1098
+	storeb %.1094, %.1099
+	jmp @if_join.417
+@if_false.416
+	%.1100 =l extsw 0
+	ret %.1100
+@if_join.417
+	jmp @switch_join.174
+@switch_case.418
+	%.1102 =l loadl %.8
+	%.1103 =l add %.1102, 24
+	%.1104 =w loadw %.1103
+	jnz %.1104, @cond_true.419, @cond_false.420
+@cond_true.419
+	%.1105 =l loadl %.8
+	%.1106 =l add %.1105, 24
+	%.1107 =w loadw %.1106
+	%.1108 =w sub %.1107, 1
+	jmp @cond_join.421
+@cond_false.420
+@cond_join.421
+	%.1109 =w phi @cond_true.419 %.1108, @cond_false.420 6
+	storew %.1109, %.1101
+	%.1110 =l loadl %.8
+	%.1111 =l add %.1110, 28
+	%.1112 =w loadw %.1111
+	%.1113 =w add %.1112, 7
+	%.1114 =w loadw %.1101
+	%.1115 =w sub %.1113, %.1114
+	%.1116 =w div %.1115, 7
+	storew %.1116, %.1101
+	%.1117 =l loadl %.2
+	%.1118 =l loadl %.11
+	%.1119 =l mul %.1118, 1
+	%.1120 =l add %.1117, %.1119
+	%.1121 =l loadl %.4
+	%.1122 =l loadl %.11
+	%.1123 =l sub %.1121, %.1122
+	%.1124 =w loadw %.1101
+	%.1125 =l extsw %.1124
+	%.1126 =l call extern $__d_snprintf(l %.1120, l %.1123, l $.Lstring.19, ..., l %.1125)
+	storew %.1126, %.13
+	%.1127 =w loadw %.13
+	%.1128 =w csltw %.1127, 0
+	jnz %.1128, @if_true.422, @logic_or.424
+@logic_or.424
+	%.1129 =l loadl %.11
+	%.1130 =w loadw %.13
+	%.1131 =l extsw %.1130
+	%.1132 =l add %.1129, %.1131
+	storel %.1132, %.11
+	%.1133 =l loadl %.4
+	%.1134 =w cugel %.1132, %.1133
+	jnz %.1134, @if_true.422, @if_false.423
+@if_true.422
+	%.1135 =l extsw 0
+	ret %.1135
+@if_false.423
+	jmp @switch_join.174
+@switch_case.425
+	%.1137 =l loadl %.8
+	%.1138 =l add %.1137, 20
+	%.1139 =w loadw %.1138
+	%.1140 =w rem %.1139, 100
+	storew %.1140, %.1136
+	%.1141 =w loadw %.1136
+	%.1142 =w csltw %.1141, 0
+	jnz %.1142, @if_true.426, @if_false.427
+@if_true.426
+	%.1143 =w loadw %.1136
+	%.1144 =w add %.1143, 100
+	storew %.1144, %.1136
+@if_false.427
+	%.1145 =l loadl %.2
+	%.1146 =l loadl %.11
+	%.1147 =l mul %.1146, 1
+	%.1148 =l add %.1145, %.1147
+	%.1149 =l loadl %.4
+	%.1150 =l loadl %.11
+	%.1151 =l sub %.1149, %.1150
+	%.1152 =w loadw %.1136
+	%.1153 =l extsw %.1152
+	%.1154 =l call extern $__d_snprintf(l %.1148, l %.1151, l $.Lstring.19, ..., l %.1153)
+	storew %.1154, %.13
+	%.1155 =w loadw %.13
+	%.1156 =w csltw %.1155, 0
+	jnz %.1156, @if_true.428, @logic_or.430
+@logic_or.430
+	%.1157 =l loadl %.11
+	%.1158 =w loadw %.13
+	%.1159 =l extsw %.1158
+	%.1160 =l add %.1157, %.1159
+	storel %.1160, %.11
+	%.1161 =l loadl %.4
+	%.1162 =w cugel %.1160, %.1161
+	jnz %.1162, @if_true.428, @if_false.429
+@if_true.428
+	%.1163 =l extsw 0
+	ret %.1163
+@if_false.429
+	jmp @switch_join.174
+@switch_case.431
+	storel %.1164, %.1165
+	%.1167 =l loadl %.8
+	%.1168 =l add %.1167, 20
+	%.1169 =w loadw %.1168
+	%.1170 =w neg 1900
+	%.1171 =w csltw %.1169, %.1170
+	storew %.1171, %.1166
+	%.1173 =l loadl %.8
+	%.1174 =l add %.1173, 20
+	%.1175 =w loadw %.1174
+	%.1176 =w add %.1175, 1900
+	storew %.1176, %.1172
+	%.1177 =w loadw %.1166
+	jnz %.1177, @if_true.432, @if_false.433
+@if_true.432
+	%.1178 =l loadl %.1165
+	%.1179 =l add %.1178, 1
+	storel %.1179, %.1165
+	storeb 45, %.1178
+	%.1180 =w mul 2147483647, 2
+	%.1181 =w add %.1180, 1
+	%.1182 =w loadw %.1172
+	%.1183 =w sub %.1181, %.1182
+	%.1184 =w add %.1183, 1
+	storew %.1184, %.1172
+	jmp @if_join.434
+@if_false.433
+	%.1185 =w loadsb %.18
+	%.1186 =w extsb %.1185
+	%.1187 =w ceqw %.1186, 43
+	jnz %.1187, @logic_and.437, @if_false.436
+@logic_and.437
+	%.1188 =w loadw %.1172
+	%.1189 =w cugew %.1188, 10000
+	jnz %.1189, @if_true.435, @if_false.436
+@if_true.435
+	%.1190 =l loadl %.1165
+	%.1191 =l add %.1190, 1
+	storel %.1191, %.1165
+	storeb 43, %.1190
+	storew 1, %.1166
+@if_false.436
+@if_join.434
+	%.1192 =l loadl %.19
+	%.1193 =w cnel %.1192, 0
+	jnz %.1193, @logic_and.440, @if_false.439
+@logic_and.440
+	%.1194 =w loadw %.1166
+	jnz %.1194, @if_true.438, @if_false.439
+@if_true.438
+	%.1195 =l loadl %.19
+	%.1196 =l sub %.1195, 1
+	storel %.1196, %.19
+@if_false.439
+	%.1197 =l loadl %.1165
+	%.1198 =l add %.1197, 1
+	storel %.1198, %.1165
+	storeb 37, %.1197
+	%.1199 =w loadsb %.18
+	%.1200 =w extsb %.1199
+	jnz %.1200, @if_true.441, @if_false.442
+@if_true.441
+	%.1201 =l loadl %.1165
+	%.1202 =l add %.1201, 1
+	storel %.1202, %.1165
+	storeb 48, %.1201
+@if_false.442
+	%.1203 =l loadl %.1165
+	%.1204 =l call extern $strcpy(l %.1203, l $.Lstring.22)
+	%.1205 =l loadl %.2
+	%.1206 =l loadl %.11
+	%.1207 =l mul %.1206, 1
+	%.1208 =l add %.1205, %.1207
+	%.1209 =l loadl %.4
+	%.1210 =l loadl %.11
+	%.1211 =l sub %.1209, %.1210
+	%.1212 =l loadl %.19
+	%.1213 =w loadw %.1172
+	%.1214 =l extsw %.1212
+	%.1215 =l extuw %.1213
+	%.1216 =l call extern $__d_snprintf(l %.1208, l %.1211, l %.1164, ..., l %.1214, l %.1215)
+	storew %.1216, %.13
+	%.1217 =w loadw %.13
+	%.1218 =w csltw %.1217, 0
+	jnz %.1218, @if_true.443, @logic_or.445
+@logic_or.445
+	%.1219 =l loadl %.11
+	%.1220 =w loadw %.13
+	%.1221 =l extsw %.1220
+	%.1222 =l add %.1219, %.1221
+	storel %.1222, %.11
+	%.1223 =l loadl %.4
+	%.1224 =w cugel %.1222, %.1223
+	jnz %.1224, @if_true.443, @if_false.444
+@if_true.443
+	%.1225 =l extsw 0
+	ret %.1225
+@if_false.444
+	jmp @switch_join.174
+@switch_case.446
+	%.1226 =l loadl %.8
+	%.1227 =l add %.1226, 32
+	%.1228 =w loadw %.1227
+	%.1229 =w csgew %.1228, 0
+	jnz %.1229, @if_true.447, @if_false.448
+@if_true.447
+	%.1231 =w loadw %.20
+	jnz %.1231, @if_false.450, @if_true.449
+@if_true.449
+	call extern $tzset()
+	storew 1, %.20
+@if_false.450
+	call extern $__retarget_lock_acquire_recursive(l extern $__lock___libc_recursive_mutex)
+	%.1232 =l add extern $__tzinfo, 8
+	%.1233 =l loadl %.8
+	%.1234 =l add %.1233, 32
+	%.1235 =w loadw %.1234
+	%.1236 =w csgtw %.1235, 0
+	%.1237 =l extsw %.1236
+	%.1238 =l mul %.1237, 40
+	%.1239 =l add %.1232, %.1238
+	%.1240 =l add %.1239, 32
+	%.1241 =l loadl %.1240
+	%.1242 =l neg %.1241
+	storel %.1242, %.1230
+	call extern $__retarget_lock_release_recursive(l extern $__lock___libc_recursive_mutex)
+	%.1243 =l loadl %.2
+	%.1244 =l loadl %.11
+	%.1245 =l mul %.1244, 1
+	%.1246 =l add %.1243, %.1245
+	%.1247 =l loadl %.4
+	%.1248 =l loadl %.11
+	%.1249 =l sub %.1247, %.1248
+	%.1250 =l loadl %.1230
+	%.1251 =l mul 60, 60
+	%.1252 =l div %.1250, %.1251
+	%.1253 =l loadl %.1230
+	%.1254 =l div %.1253, 60
+	%.1255 =l call extern $labs(l %.1254)
+	%.1256 =l rem %.1255, 60
+	%.1257 =l call extern $__d_snprintf(l %.1246, l %.1249, l $.Lstring.31, ..., l %.1252, l %.1256)
+	storew %.1257, %.13
+	%.1258 =w loadw %.13
+	%.1259 =w csltw %.1258, 0
+	jnz %.1259, @if_true.451, @logic_or.453
+@logic_or.453
+	%.1260 =l loadl %.11
+	%.1261 =w loadw %.13
+	%.1262 =l extsw %.1261
+	%.1263 =l add %.1260, %.1262
+	storel %.1263, %.11
+	%.1264 =l loadl %.4
+	%.1265 =w cugel %.1263, %.1264
+	jnz %.1265, @if_true.451, @if_false.452
+@if_true.451
+	%.1266 =l extsw 0
+	ret %.1266
+@if_false.452
+@if_false.448
+	jmp @switch_join.174
+@switch_case.454
+	%.1267 =l loadl %.8
+	%.1268 =l add %.1267, 32
+	%.1269 =w loadw %.1268
+	%.1270 =w csgew %.1269, 0
+	jnz %.1270, @if_true.455, @if_false.456
+@if_true.455
+	%.1273 =l extsw 0
+	storel %.1273, %.1272
+	%.1274 =w loadw %.20
+	jnz %.1274, @if_false.458, @if_true.457
+@if_true.457
+	call extern $tzset()
+	storew 1, %.20
+@if_false.458
+	call extern $__retarget_lock_acquire_recursive(l extern $__lock___libc_recursive_mutex)
+	%.1275 =l loadl %.8
+	%.1276 =l add %.1275, 32
+	%.1277 =w loadw %.1276
+	%.1278 =w csgtw %.1277, 0
+	%.1279 =l extsw %.1278
+	%.1280 =l mul %.1279, 8
+	%.1281 =l add extern $tzname, %.1280
+	%.1282 =l loadl %.1281
+	storel %.1282, %.1272
+	%.1283 =l loadl %.1272
+	%.1284 =l call extern $strlen(l %.1283)
+	storel %.1284, %.1271
+	%.1285 =l extsw 0
+	storel %.1285, %.15
+@for_cond.459
+	%.1286 =l loadl %.15
+	%.1287 =l loadl %.1271
+	%.1288 =w cultl %.1286, %.1287
+	jnz %.1288, @for_body.460, @for_join.462
+@for_body.460
+	%.1289 =l loadl %.11
+	%.1290 =l loadl %.4
+	%.1291 =l extsw 1
+	%.1292 =l sub %.1290, %.1291
+	%.1293 =w cultl %.1289, %.1292
+	jnz %.1293, @if_true.463, @if_false.464
+@if_true.463
+	%.1294 =l loadl %.1272
+	%.1295 =l loadl %.15
+	%.1296 =l mul %.1295, 1
+	%.1297 =l add %.1294, %.1296
+	%.1298 =w loadsb %.1297
+	%.1299 =l loadl %.2
+	%.1300 =l loadl %.11
+	%.1301 =l add %.1300, 1
+	storel %.1301, %.11
+	%.1302 =l mul %.1300, 1
+	%.1303 =l add %.1299, %.1302
+	storeb %.1298, %.1303
+	jmp @if_join.465
+@if_false.464
+	call extern $__retarget_lock_release_recursive(l extern $__lock___libc_recursive_mutex)
+	%.1304 =l extsw 0
+	ret %.1304
+@if_join.465
+@for_cont.461
+	%.1305 =l loadl %.15
+	%.1306 =l add %.1305, 1
+	storel %.1306, %.15
+	jmp @for_cond.459
+@for_join.462
+	call extern $__retarget_lock_release_recursive(l extern $__lock___libc_recursive_mutex)
+@if_false.456
+	jmp @switch_join.174
+@switch_case.466
+	%.1307 =l loadl %.11
+	%.1308 =l loadl %.4
+	%.1309 =l extsw 1
+	%.1310 =l sub %.1308, %.1309
+	%.1311 =w cultl %.1307, %.1310
+	jnz %.1311, @if_true.467, @if_false.468
+@if_true.467
+	%.1312 =l loadl %.2
+	%.1313 =l loadl %.11
+	%.1314 =l add %.1313, 1
+	storel %.1314, %.11
+	%.1315 =l mul %.1313, 1
+	%.1316 =l add %.1312, %.1315
+	storeb 37, %.1316
+	jmp @if_join.469
+@if_false.468
+	%.1317 =l extsw 0
+	ret %.1317
+@if_join.469
+	jmp @switch_join.174
+@switch_default.470
+	%.1318 =l extsw 0
+	ret %.1318
+@switch_cond.173
+	%.1319 =w ceqw %.88, 97
+	jnz %.1319, @switch_case.175, @switch_ne.471
+@switch_ne.471
+	%.1320 =w cultw %.88, 97
+	jnz %.1320, @switch_lt.472, @switch_gt.473
+@switch_lt.472
+	%.1321 =w ceqw %.88, 73
+	jnz %.1321, @switch_case.303, @switch_ne.474
+@switch_ne.474
+	%.1322 =w cultw %.88, 73
+	jnz %.1322, @switch_lt.475, @switch_gt.476
+@switch_lt.475
+	%.1323 =w ceqw %.88, 68
+	jnz %.1323, @switch_case.237, @switch_ne.477
+@switch_ne.477
+	%.1324 =w cultw %.88, 68
+	jnz %.1324, @switch_lt.478, @switch_gt.479
+@switch_lt.478
+	%.1325 =w ceqw %.88, 66
+	jnz %.1325, @switch_case.200, @switch_ne.480
+@switch_ne.480
+	%.1326 =w cultw %.88, 66
+	jnz %.1326, @switch_lt.481, @switch_gt.482
+@switch_lt.481
+	%.1327 =w ceqw %.88, 65
+	jnz %.1327, @switch_case.183, @switch_ne.483
+@switch_ne.483
+	%.1328 =w cultw %.88, 65
+	jnz %.1328, @switch_lt.484, @switch_gt.485
+@switch_lt.484
+	%.1329 =w ceqw %.88, 37
+	jnz %.1329, @switch_case.466, @switch_ne.486
+@switch_ne.486
+	%.1330 =w cultw %.88, 37
+	jnz %.1330, @switch_lt.487, @switch_gt.488
+@switch_lt.487
+	jmp @switch_default.470
+@switch_gt.488
+	jmp @switch_default.470
+@switch_gt.485
+	jmp @switch_default.470
+@switch_gt.482
+	jmp @switch_case.218
+@switch_gt.479
+	%.1331 =w ceqw %.88, 71
+	jnz %.1331, @switch_case.259, @switch_ne.489
+@switch_ne.489
+	%.1332 =w cultw %.88, 71
+	jnz %.1332, @switch_lt.490, @switch_gt.491
+@switch_lt.490
+	%.1333 =w ceqw %.88, 70
+	jnz %.1333, @switch_case.241, @switch_ne.492
+@switch_ne.492
+	%.1334 =w cultw %.88, 70
+	jnz %.1334, @switch_lt.493, @switch_gt.494
+@switch_lt.493
+	jmp @switch_default.470
+@switch_gt.494
+	jmp @switch_default.470
+@switch_gt.491
+	jmp @switch_case.292
+@switch_gt.476
+	%.1335 =w ceqw %.88, 83
+	jnz %.1335, @switch_case.361, @switch_ne.495
+@switch_ne.495
+	%.1336 =w cultw %.88, 83
+	jnz %.1336, @switch_lt.496, @switch_gt.497
+@switch_lt.496
+	%.1337 =w ceqw %.88, 80
+	jnz %.1337, @switch_case.331, @switch_ne.498
+@switch_ne.498
+	%.1338 =w cultw %.88, 80
+	jnz %.1338, @switch_lt.499, @switch_gt.500
+@switch_lt.499
+	%.1339 =w ceqw %.88, 77
+	jnz %.1339, @switch_case.322, @switch_ne.501
+@switch_ne.501
+	%.1340 =w cultw %.88, 77
+	jnz %.1340, @switch_lt.502, @switch_gt.503
+@switch_lt.502
+	jmp @switch_default.470
+@switch_gt.503
+	jmp @switch_default.470
+@switch_gt.500
+	%.1341 =w ceqw %.88, 82
+	jnz %.1341, @switch_case.349, @switch_ne.504
+@switch_ne.504
+	%.1342 =w cultw %.88, 82
+	jnz %.1342, @switch_lt.505, @switch_gt.506
+@switch_lt.505
+	jmp @switch_default.470
+@switch_gt.506
+	jmp @switch_default.470
+@switch_gt.497
+	%.1343 =w ceqw %.88, 87
+	jnz %.1343, @switch_case.418, @switch_ne.507
+@switch_ne.507
+	%.1344 =w cultw %.88, 87
+	jnz %.1344, @switch_lt.508, @switch_gt.509
+@switch_lt.508
+	%.1345 =w ceqw %.88, 85
+	jnz %.1345, @switch_case.380, @switch_ne.510
+@switch_ne.510
+	%.1346 =w cultw %.88, 85
+	jnz %.1346, @switch_lt.511, @switch_gt.512
+@switch_lt.511
+	jmp @switch_case.369
+@switch_gt.512
+	jmp @switch_case.384
+@switch_gt.509
+	%.1347 =w ceqw %.88, 89
+	jnz %.1347, @switch_case.431, @switch_ne.513
+@switch_ne.513
+	%.1348 =w cultw %.88, 89
+	jnz %.1348, @switch_lt.514, @switch_gt.515
+@switch_lt.514
+	jmp @switch_case.212
+@switch_gt.515
+	%.1349 =w ceqw %.88, 90
+	jnz %.1349, @switch_case.454, @switch_ne.516
+@switch_ne.516
+	%.1350 =w cultw %.88, 90
+	jnz %.1350, @switch_lt.517, @switch_gt.518
+@switch_lt.517
+	jmp @switch_default.470
+@switch_gt.518
+	jmp @switch_default.470
+@switch_gt.473
+	%.1351 =w ceqw %.88, 112
+	jnz %.1351, @switch_case.330, @switch_ne.519
+@switch_ne.519
+	%.1352 =w cultw %.88, 112
+	jnz %.1352, @switch_lt.520, @switch_gt.521
+@switch_lt.520
+	%.1353 =w ceqw %.88, 104
+	jnz %.1353, @switch_case.192, @switch_ne.522
+@switch_ne.522
+	%.1354 =w cultw %.88, 104
+	jnz %.1354, @switch_lt.523, @switch_gt.524
+@switch_lt.523
+	%.1355 =w ceqw %.88, 99
+	jnz %.1355, @switch_case.208, @switch_ne.525
+@switch_ne.525
+	%.1356 =w cultw %.88, 99
+	jnz %.1356, @switch_lt.526, @switch_gt.527
+@switch_lt.526
+	jmp @switch_case.191
+@switch_gt.527
+	%.1357 =w ceqw %.88, 101
+	jnz %.1357, @switch_case.230, @switch_ne.528
+@switch_ne.528
+	%.1358 =w cultw %.88, 101
+	jnz %.1358, @switch_lt.529, @switch_gt.530
+@switch_lt.529
+	jmp @switch_case.229
+@switch_gt.530
+	%.1359 =w ceqw %.88, 103
+	jnz %.1359, @switch_case.245, @switch_ne.531
+@switch_ne.531
+	%.1360 =w cultw %.88, 103
+	jnz %.1360, @switch_lt.532, @switch_gt.533
+@switch_lt.532
+	jmp @switch_default.470
+@switch_gt.533
+	jmp @switch_default.470
+@switch_gt.524
+	%.1361 =w ceqw %.88, 108
+	jnz %.1361, @switch_case.300, @switch_ne.534
+@switch_ne.534
+	%.1362 =w cultw %.88, 108
+	jnz %.1362, @switch_lt.535, @switch_gt.536
+@switch_lt.535
+	%.1363 =w ceqw %.88, 107
+	jnz %.1363, @switch_case.293, @switch_ne.537
+@switch_ne.537
+	%.1364 =w cultw %.88, 107
+	jnz %.1364, @switch_lt.538, @switch_gt.539
+@switch_lt.538
+	%.1365 =w ceqw %.88, 106
+	jnz %.1365, @switch_case.314, @switch_ne.540
+@switch_ne.540
+	%.1366 =w cultw %.88, 106
+	jnz %.1366, @switch_lt.541, @switch_gt.542
+@switch_lt.541
+	jmp @switch_default.470
+@switch_gt.542
+	jmp @switch_default.470
+@switch_gt.539
+	jmp @switch_default.470
+@switch_gt.536
+	%.1367 =w ceqw %.88, 110
+	jnz %.1367, @switch_case.326, @switch_ne.543
+@switch_ne.543
+	%.1368 =w cultw %.88, 110
+	jnz %.1368, @switch_lt.544, @switch_gt.545
+@switch_lt.544
+	jmp @switch_case.318
+@switch_gt.545
+	jmp @switch_default.470
+@switch_gt.521
+	%.1369 =w ceqw %.88, 116
+	jnz %.1369, @switch_case.365, @switch_ne.546
+@switch_ne.546
+	%.1370 =w cultw %.88, 116
+	jnz %.1370, @switch_lt.547, @switch_gt.548
+@switch_lt.547
+	%.1371 =w ceqw %.88, 114
+	jnz %.1371, @switch_case.210, @switch_ne.549
+@switch_ne.549
+	%.1372 =w cultw %.88, 114
+	jnz %.1372, @switch_lt.550, @switch_gt.551
+@switch_lt.550
+	jmp @switch_case.345
+@switch_gt.551
+	jmp @switch_case.353
+@switch_gt.548
+	%.1373 =w ceqw %.88, 120
+	jnz %.1373, @switch_case.211, @switch_ne.552
+@switch_ne.552
+	%.1374 =w cultw %.88, 120
+	jnz %.1374, @switch_lt.553, @switch_gt.554
+@switch_lt.553
+	%.1375 =w ceqw %.88, 118
+	jnz %.1375, @switch_case.399, @switch_ne.555
+@switch_ne.555
+	%.1376 =w cultw %.88, 118
+	jnz %.1376, @switch_lt.556, @switch_gt.557
+@switch_lt.556
+	jmp @switch_case.373
+@switch_gt.557
+	jmp @switch_case.414
+@switch_gt.554
+	%.1377 =w ceqw %.88, 121
+	jnz %.1377, @switch_case.425, @switch_ne.558
+@switch_ne.558
+	%.1378 =w cultw %.88, 121
+	jnz %.1378, @switch_lt.559, @switch_gt.560
+@switch_lt.559
+	jmp @switch_default.470
+@switch_gt.560
+	%.1379 =w ceqw %.88, 122
+	jnz %.1379, @switch_case.446, @switch_ne.561
+@switch_ne.561
+	%.1380 =w cultw %.88, 122
+	jnz %.1380, @switch_lt.562, @switch_gt.563
+@switch_lt.562
+	jmp @switch_default.470
+@switch_gt.563
+	jmp @switch_default.470
+@switch_join.174
+	%.1381 =l loadl %.6
+	%.1382 =w loadsb %.1381
+	%.1383 =w extsb %.1382
+	jnz %.1383, @if_true.564, @if_false.565
+@if_true.564
+	%.1384 =l loadl %.6
+	%.1385 =l add %.1384, 1
+	storel %.1385, %.6
+	jmp @if_join.566
+@if_false.565
+	jmp @for_join.152
+@if_join.566
+@for_cont.151
+	jmp @for_cond.149
+@for_join.152
+	%.1386 =l loadl %.4
+	%.1387 =w cnel %.1386, 0
+	jnz %.1387, @if_true.567, @if_false.568
+@if_true.567
+	%.1388 =l loadl %.2
+	%.1389 =l loadl %.11
+	%.1390 =l mul %.1389, 1
+	%.1391 =l add %.1388, %.1390
+	storeb 0, %.1391
+@if_false.568
+	%.1392 =l loadl %.11
+	ret %.1392
+}

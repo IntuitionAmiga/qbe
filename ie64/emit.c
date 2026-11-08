@@ -1883,6 +1883,14 @@ ie64_emitfn(Fn *fn, FILE *f)
 			break;
 		case Jjnz:
 			if (!cmp) {
+				if (rtype(b->jmp.arg) == RSlot) {
+					/* A condition the allocator spilled: load it
+					 * into the scratch register and test that. The
+					 * jnz condition is a word. */
+					fprintf(f, "\tload.l r30, %d(r%d)\n",
+						slotoffset(b->jmp.arg), slotbase(b->jmp.arg));
+					b->jmp.arg = TMP(R30);
+				}
 				if (!isreg(b->jmp.arg))
 					die("IE64 conditional value is not selected in '%s'", fn->name);
 				if (b->link == b->s2) {
