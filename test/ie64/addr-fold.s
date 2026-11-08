@@ -29,7 +29,6 @@ load_byte:
 .align 16
 store_off:
 	store.l r2, 40(r1)
-.L4:
 	rts
 .size store_off,.-store_off
 .section .text,"ax"
@@ -38,7 +37,6 @@ store_off:
 .align 16
 load_double:
 	dload f0, 16(r1)
-.L6:
 	rts
 .size load_double,.-load_double
 .section .text,"ax"
@@ -47,7 +45,6 @@ load_double:
 .align 16
 store_single:
 	fstore f0, 8(r1)
-.L8:
 	rts
 .size store_single,.-store_single
 .section .text,"ax"
@@ -69,7 +66,6 @@ base_overwritten:
 	load.q r1, (r2)
 	add.q r1, r1, #1
 	store.q r1, (r2)
-.L11:
 	rts
 .size base_overwritten,.-base_overwritten
 .section .text,"ax"
@@ -89,7 +85,6 @@ addr_escapes:
 addr_stored:
 	add.q r1, r1, #24
 	store.q r1, (r2)
-.L14:
 	rts
 .size addr_stored,.-addr_stored
 .section .text,"ax"

@@ -1,0 +1,11 @@
+# A w arithmetic shift right of a value below 2^31 is a logical shift,
+# so the result stays narrow and the following extension is a no-op.
+export function w $sar_narrow(w %a) {
+@start
+	%b =w extub %a
+	%c =w sar %b, 1
+	%d =w extub %c
+	%e =w sar %d, 2
+	%f =w extuh %e
+	ret %f
+}

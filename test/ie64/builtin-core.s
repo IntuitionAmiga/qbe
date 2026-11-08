@@ -10,6 +10,5 @@ f:
 	suaen
 	suadis
 	halt
-.L1:
 	rts
 .size f,.-f

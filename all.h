@@ -44,6 +44,7 @@ struct Target {
 	char name[16];
 	char apple;
 	char windows;
+	char nosinkshared; /* gcm: do not copy a shared value to its use */
 	int gpr0;   /* first general purpose reg */
 	int ngpr;
 	int fpr0;   /* first floating point reg */

@@ -390,6 +390,10 @@ sinkref(Fn *fn, Blk *b, Ref *pr)
 	|| pinned(t->def)
 	|| !cheap(t->def))
 		return;
+	/* A value with other uses stays where it is: copying it costs an
+	 * instruction on a target with registers to spare. */
+	if (T.nosinkshared && t->nuse > 1)
+		return;
 
 	/* sink t->def to b */
 	i = *t->def;

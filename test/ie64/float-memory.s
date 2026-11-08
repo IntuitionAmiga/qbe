@@ -6,7 +6,6 @@ roundtrip:
 	move.l r30, #lo32(g+0)
 	movt r30, #hi32(g+0)
 	fstore f0, (r30)
-.L1:
 	rts
 .size roundtrip,.-roundtrip
 .section .data,"aw"

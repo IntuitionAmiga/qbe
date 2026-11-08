@@ -70,11 +70,12 @@ uge0_long:
 .type ne0_value,@function
 .align 16
 ne0_value:
-	moveq r30, #0
 	beq r1, r0, .Lcmp0
-	moveq r30, #1
+	moveq r1, #1
+	bra .Lcmpe0
 .Lcmp0:
-	move.q r1, r30
+	moveq r1, #0
+.Lcmpe0:
 	rts
 .size ne0_value,.-ne0_value
 .section .text,"ax"
@@ -83,11 +84,12 @@ ne0_value:
 .align 16
 ule0_wvalue:
 	move.l r1, r1
-	moveq r30, #0
 	bhi r1, r0, .Lcmp1
-	moveq r30, #1
+	moveq r1, #1
+	bra .Lcmpe1
 .Lcmp1:
-	move.q r1, r30
+	moveq r1, #0
+.Lcmpe1:
 	rts
 .size ule0_wvalue,.-ule0_wvalue
 .section .text,"ax"

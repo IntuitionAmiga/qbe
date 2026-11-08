@@ -18,7 +18,7 @@ max:
 .type scaled,@function
 .align 16
 scaled:
-	mulu.q r2, r2, #4
+	lsl.q r2, r2, #2
 	add.q r1, r1, r2
 	rts
 .size scaled,.-scaled

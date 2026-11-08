@@ -31,11 +31,12 @@ aftercall:
 afterdef:
 	sext.l r1, r1
 	sext.l r2, r2
-	moveq r30, #0
 	bge r1, r2, .Lcmp1
-	moveq r30, #1
+	moveq r1, #1
+	bra .Lcmpe1
 .Lcmp1:
-	move.q r1, r30
+	moveq r1, #0
+.Lcmpe1:
 	add.q r2, r3, #8
 	move.l r30, #lo32(slot+0)
 	movt r30, #hi32(slot+0)

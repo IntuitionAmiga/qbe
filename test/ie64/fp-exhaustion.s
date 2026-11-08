@@ -4,7 +4,6 @@
 .align 16
 fp_callee:
 	fmov f0, f7
-.L1:
 	rts
 .size fp_callee,.-fp_callee
 .section .text,"ax"
@@ -23,7 +22,6 @@ fp_caller:
 	dstore f8, (r1)
 	jsr fp_callee
 	add.q r31, r31, #16
-.L3:
 	move.q r31, r25
 	load.q r25, 0(r31)
 	fload f8, 8(r31)

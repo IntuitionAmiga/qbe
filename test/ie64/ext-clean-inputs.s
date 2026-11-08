@@ -59,6 +59,5 @@ swtod_sum:
 	add.l r1, r1, r2
 	sext.l r1, r1
 	dcvtif f0, r1
-.L6:
 	rts
 .size swtod_sum,.-swtod_sum

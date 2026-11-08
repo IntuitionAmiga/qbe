@@ -74,7 +74,6 @@ facilities:
 	fmovsc r1
 	moveq r1, #2
 	fmovcc r1
-.L1:
 	load.q r18, 0(r31)
 	load.q r19, 8(r31)
 	load.q r20, 16(r31)

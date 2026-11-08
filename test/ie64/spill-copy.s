@@ -19,14 +19,11 @@ spill_copy:
 	move.q r19, r6
 	load.q r18, 96(r31)
 	load.q r4, 104(r31)
-	lea r30, 0(r31)
-	store.q r4, (r30)
+	store.q r4, 0(r31)
 	load.q r1, 112(r31)
-	lea r30, 8(r31)
-	store.q r1, (r30)
+	store.q r1, 8(r31)
 	load.q r6, 120(r31)
-	lea r30, 16(r31)
-	store.q r6, (r30)
+	store.q r6, 16(r31)
 	jsr clobber
 	move.q r3, r24
 	move.q r2, r23
@@ -57,6 +54,5 @@ spill_copy:
 .type clobber,@function
 .align 16
 clobber:
-.L2:
 	rts
 .size clobber,.-clobber

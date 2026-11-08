@@ -18,11 +18,9 @@ sum_nine_doubles:
 	dload f12, 104(r31)
 	dload f6, 112(r31)
 	dload f10, 120(r31)
-	lea r30, 8(r31)
-	dstore f10, (r30)
+	dstore f10, 8(r31)
 	dload f10, 128(r31)
-	lea r30, 0(r31)
-	dstore f10, (r30)
+	dstore f10, 0(r31)
 	dload f10, 8(r31)
 	dadd f2, f0, f2
 	dload f0, 0(r31)
@@ -33,7 +31,6 @@ sum_nine_doubles:
 	dadd f4, f4, f6
 	dadd f2, f2, f4
 	dadd f0, f0, f2
-.L1:
 	fload f8, 16(r31)
 	fload f9, 24(r31)
 	fload f10, 32(r31)

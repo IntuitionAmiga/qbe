@@ -5,11 +5,12 @@
 slt_const:
 	sext.l r1, r1
 	moveq r2, #-5
-	moveq r30, #0
 	bge r1, r2, .Lcmp0
-	moveq r30, #1
+	moveq r1, #1
+	bra .Lcmpe0
 .Lcmp0:
-	move.q r1, r30
+	moveq r1, #0
+.Lcmpe0:
 	rts
 .size slt_const,.-slt_const
 .section .text,"ax"
@@ -20,11 +21,12 @@ sgt_const_left:
 	move.l r2, r1
 	moveq r1, #100
 	sext.l r2, r2
-	moveq r30, #0
 	ble r1, r2, .Lcmp1
-	moveq r30, #1
+	moveq r1, #1
+	bra .Lcmpe1
 .Lcmp1:
-	move.q r1, r30
+	moveq r1, #0
+.Lcmpe1:
 	rts
 .size sgt_const_left,.-sgt_const_left
 .section .text,"ax"
@@ -34,11 +36,12 @@ sgt_const_left:
 ult_const:
 	move.l r1, r1
 	move.l r2, #0xee6b2800
-	moveq r30, #0
 	bls r2, r1, .Lcmp2
-	moveq r30, #1
+	moveq r1, #1
+	bra .Lcmpe2
 .Lcmp2:
-	move.q r1, r30
+	moveq r1, #0
+.Lcmpe2:
 	rts
 .size ult_const,.-ult_const
 .section .text,"ax"
@@ -48,11 +51,12 @@ ult_const:
 eq_const:
 	move.l r1, r1
 	move.l r2, #0xffffffff
-	moveq r30, #0
 	bne r1, r2, .Lcmp3
-	moveq r30, #1
+	moveq r1, #1
+	bra .Lcmpe3
 .Lcmp3:
-	move.q r1, r30
+	moveq r1, #0
+.Lcmpe3:
 	rts
 .size eq_const,.-eq_const
 .section .text,"ax"

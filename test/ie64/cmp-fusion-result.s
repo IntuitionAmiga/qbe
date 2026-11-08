@@ -5,11 +5,12 @@
 storeresult:
 	sext.l r1, r1
 	sext.l r2, r2
-	moveq r30, #0
 	bge r1, r2, .Lcmp0
-	moveq r30, #1
+	moveq r1, #1
+	bra .Lcmpe0
 .Lcmp0:
-	move.q r1, r30
+	moveq r1, #0
+.Lcmpe0:
 	store.b r1, (r3)
 	bne r1, r0, .L2
 .L1:
@@ -26,11 +27,12 @@ storeresult:
 liveout:
 	sext.l r1, r1
 	sext.l r2, r2
-	moveq r30, #0
 	bge r1, r2, .Lcmp1
-	moveq r30, #1
+	moveq r1, #1
+	bra .Lcmpe1
 .Lcmp1:
-	move.q r1, r30
+	moveq r1, #0
+.Lcmpe1:
 	bne r1, r0, .L5
 .L4:
 	moveq r1, #7
@@ -48,11 +50,12 @@ liveout:
 phiout:
 	sext.l r1, r1
 	sext.l r2, r2
-	moveq r30, #0
 	bge r1, r2, .Lcmp2
-	moveq r30, #1
+	moveq r1, #1
+	bra .Lcmpe2
 .Lcmp2:
-	move.q r1, r30
+	moveq r1, #0
+.Lcmpe2:
 	bne r1, r0, .L8
 .L7:
 	moveq r1, #9
@@ -71,17 +74,17 @@ phiout:
 phifalse:
 	sext.l r1, r1
 	sext.l r2, r2
-	moveq r30, #0
 	bge r1, r2, .Lcmp3
-	moveq r30, #1
+	moveq r1, #1
+	bra .Lcmpe3
 .Lcmp3:
-	move.q r1, r30
+	moveq r1, #0
+.Lcmpe3:
 	beq r1, r0, .L13
 .L11:
 	move.l r30, #lo32(slot+0)
 	movt r30, #hi32(slot+0)
 	store.q r3, (r30)
-.L12:
 	moveq r1, #9
 .L13:
 	rts

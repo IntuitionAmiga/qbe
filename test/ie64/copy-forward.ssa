@@ -1,0 +1,39 @@
+# An operation whose result is only copied to another register writes
+# that register itself: the phi copy of the conditional update in this
+# CRC step is gone.  The unknown entry values come in as l parameters.
+export function l $crc_step(l %data0, l %crc0) {
+@start
+@head
+	%i =w phi @start 0, @join2 %i1
+	%crc =w phi @start %crc0, @join2 %crc3
+	%data =w phi @start %data0, @join2 %data2
+	%in =w extub %i
+	%k =w csltw %in, 8
+	jnz %k, @body, @done
+@body
+	%x =w and %data, 1
+	%y =w and %crc, 1
+	%z =w xor %x, %y
+	jnz %z, @flip, @join1
+@flip
+	%f =w extuh %crc
+	%g =w xor %f, 16386
+	jmp @join1
+@join1
+	%crc1 =w phi @body %crc, @flip %g
+	%h =w extuh %crc1
+	%crc2 =w sar %h, 1
+	jnz %z, @set, @join2
+@set
+	%s =w or %crc2, 32768
+	jmp @join2
+@join2
+	%crc3 =w phi @join1 %crc2, @set %s
+	%i1 =w add %in, 1
+	%d =w extub %data
+	%data2 =w sar %d, 1
+	jmp @head
+@done
+	%r =l extuh %crc
+	ret %r
+}

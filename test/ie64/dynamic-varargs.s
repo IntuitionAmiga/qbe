@@ -32,6 +32,5 @@ dynamic_varargs:
 .type use,@function
 .align 16
 use:
-.L2:
 	rts
 .size use,.-use

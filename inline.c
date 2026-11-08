@@ -5,8 +5,8 @@
  *
  * The functions of a unit are held after parsing, before any pass has
  * run, so every body is still the plain IL a front end wrote: stack
- * variables are allocs, there are no phis, and a temporary may be defined
- * more than once.  A call to a candidate is replaced by a copy of the
+ * variables are allocs, phis come only from the front end's conditional
+ * expressions, and a temporary may be defined more than once.  A call to a candidate is replaced by a copy of the
  * callee's blocks.  The argument values are copied into the callee's
  * parameter temporaries, each return becomes a copy of the result and a
  * jump to the code after the call, and the callee's allocs move to the
@@ -15,7 +15,7 @@
  * output, as it may be called from elsewhere.
  *
  * A candidate is a non-variadic function without aggregate parameters or
- * results, without calls, phis, private target operations or dynamic
+ * results, without calls, private target operations or dynamic
  * allocation, within a size bound.  Functions are taken in the order the
  * unit defines them, so a function that has inlined its own callees can
  * itself become a candidate when it is still within the bound.
@@ -79,7 +79,7 @@ classify(Cand *c)
 	ret = -2;
 	for (b=g->start; b; b=b->link) {
 		nb++;
-		if (b->phi)
+		if (b->phi && b == g->start)
 			return;
 		for (i=b->ins; i<&b->ins[b->nins]; i++) {
 			ni++;
@@ -156,6 +156,30 @@ remap(Map *m, Ref r)
 		return m->con[r.val];
 	}
 	return r;
+}
+
+/* Copy the phis of a callee block. */
+static void
+copyphis(Map *m, Blk *gb, Blk *nb)
+{
+	Phi *p, *np, **tail;
+	uint j;
+
+	tail = &nb->phi;
+	for (p=gb->phi; p; p=p->link) {
+		np = alloc(sizeof *np);
+		*np = *p;
+		np->to = remap(m, p->to);
+		np->arg = alloc(p->narg * sizeof np->arg[0]);
+		np->blk = alloc(p->narg * sizeof np->blk[0]);
+		for (j=0; j<p->narg; j++) {
+			np->arg[j] = remap(m, p->arg[j]);
+			np->blk[j] = m->blk[p->blk[j]->id];
+		}
+		np->link = 0;
+		*tail = np;
+		tail = &np->link;
+	}
 }
 
 /* Inline the call at index k of block b.  Returns the continuation block. */
@@ -258,6 +282,7 @@ inlinecall(Fn *fn, Cand *c, Blk *b, uint k, uint a0, Ins **hoist, uint *nhoist, 
 			o->arg[1] = remap(&m, i->arg[1]);
 			o++;
 		}
+		copyphis(&m, gb, nb);
 		nb->jmp = gb->jmp;
 		if (isret(gb->jmp.type)) {
 			if (gb->jmp.type != Jret0 && !req(to, R))
@@ -356,8 +381,15 @@ inlinefns(Fn **fns, int nf)
 			icpy(ni + np + nhoist, s->ins + np, s->nins - np);
 			idup(s, ni, s->nins + nhoist);
 		}
-		if (sites)
+		if (sites) {
+			/* The calls may all be gone. */
+			fn->leaf = 1;
+			for (b=fn->start; b; b=b->link)
+				for (i=b->ins; i<&b->ins[b->nins]; i++)
+					if (i->op == Ocall)
+						fn->leaf = 0;
 			renumber(fn);
+		}
 		classify(&cs[f]);
 	}
 }

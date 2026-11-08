@@ -4,7 +4,6 @@
 .align 16
 callee:
 	fload f0, 16(r31)
-.L1:
 	rts
 .size callee,.-callee
 .section .text,"ax"
@@ -24,7 +23,6 @@ caller:
 	fstore f8, 8(r7)
 	jsr callee
 	add.q r31, r31, #16
-.L3:
 	move.q r31, r25
 	load.q r25, 0(r31)
 	fload f8, 8(r31)

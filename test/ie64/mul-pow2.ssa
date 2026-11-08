@@ -1,0 +1,14 @@
+# A multiplication by a power of two is a shift; other constants are not.
+export function l $scale(l %x, w %y) {
+@start
+	%a =l mul %x, 8
+	%b =w mul %y, 16
+	%c =l extuw %b
+	%d =l add %a, %c
+	%e =l mul %d, 12
+	%f =l mul %e, 1
+	%g =w mul %y, 2147483648
+	%h =l extuw %g
+	%i =l add %f, %h
+	ret %i
+}

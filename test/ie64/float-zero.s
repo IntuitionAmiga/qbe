@@ -6,7 +6,6 @@ single_zero:
 	move.l r30, #lo32(.L__ie64_fconst_0+0)
 	movt r30, #hi32(.L__ie64_fconst_0+0)
 	fload f0, (r30)
-.L1:
 	rts
 .size single_zero,.-single_zero
 .section .text,"ax"
@@ -17,7 +16,6 @@ double_zero:
 	move.l r30, #lo32(.L__ie64_fconst_1+0)
 	movt r30, #hi32(.L__ie64_fconst_1+0)
 	dload f0, (r30)
-.L3:
 	rts
 .size double_zero,.-double_zero
 .section .text,"ax"
@@ -33,7 +31,6 @@ both_zero:
 	movt r30, #hi32(.L__ie64_fconst_1+0)
 	dload f2, (r30)
 	jsr consume_zeros
-.L5:
 	add.q r31, r31, #8
 	rts
 .size both_zero,.-both_zero
@@ -42,7 +39,6 @@ both_zero:
 .type consume_zeros,@function
 .align 16
 consume_zeros:
-.L7:
 	rts
 .size consume_zeros,.-consume_zeros
 .section .rodata,"a"

@@ -13,7 +13,8 @@ float_swap:
 	fmov f0, f1
 	fload f1, (r31)
 	add.q r31, r31, #16
-	bra .L1
+	sub.l r2, r1, #1
+	bne r2, r0, .L2
 .L3:
 	rts
 .size float_swap,.-float_swap
@@ -32,7 +33,8 @@ double_swap:
 	dmov f0, f2
 	dload f2, (r31)
 	add.q r31, r31, #16
-	bra .L5
+	sub.l r2, r1, #1
+	bne r2, r0, .L6
 .L7:
 	rts
 .size double_swap,.-double_swap

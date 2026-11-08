@@ -30,7 +30,6 @@ discard:
 	move.l r30, #lo32(x+0)
 	movt r30, #hi32(x+0)
 	load.q r1, (r30)
-.L2:
 	rts
 .size discard,.-discard
 .section .bss,"aw"

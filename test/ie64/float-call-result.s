@@ -5,7 +5,6 @@
 call_float:
 	sub.q r31, r31, #8
 	jsr returns_float
-.L1:
 	add.q r31, r31, #8
 	rts
 .size call_float,.-call_float
@@ -16,7 +15,6 @@ call_float:
 call_double:
 	sub.q r31, r31, #8
 	jsr returns_double
-.L3:
 	add.q r31, r31, #8
 	rts
 .size call_double,.-call_double

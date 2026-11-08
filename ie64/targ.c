@@ -22,6 +22,7 @@ ie64_memargs(int op)
 
 Target T_ie64 = {
 	.name = "ie64",
+	.nosinkshared = 1,
 	.gpr0 = R1,
 	.ngpr = NGPR,
 	.fpr0 = F0,

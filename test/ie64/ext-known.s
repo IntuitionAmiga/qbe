@@ -5,11 +5,12 @@
 cmp_loaded:
 	load.l r1, (r1)
 	load.l r2, (r2)
-	moveq r30, #0
 	bls r2, r1, .Lcmp0
-	moveq r30, #1
+	moveq r1, #1
+	bra .Lcmpe0
 .Lcmp0:
-	move.q r1, r30
+	moveq r1, #0
+.Lcmpe0:
 	rts
 .size cmp_loaded,.-cmp_loaded
 .section .text,"ax"
@@ -19,11 +20,12 @@ cmp_loaded:
 cmp_masked:
 	and.l r1, r1, #255
 	moveq r2, #100
-	moveq r30, #0
 	bge r1, r2, .Lcmp1
-	moveq r30, #1
+	moveq r1, #1
+	bra .Lcmpe1
 .Lcmp1:
-	move.q r1, r30
+	moveq r1, #0
+.Lcmpe1:
 	rts
 .size cmp_masked,.-cmp_masked
 .section .text,"ax"
@@ -33,11 +35,12 @@ cmp_masked:
 cmp_param:
 	move.l r1, r1
 	move.l r2, r2
-	moveq r30, #0
 	bls r2, r1, .Lcmp2
-	moveq r30, #1
+	moveq r1, #1
+	bra .Lcmpe2
 .Lcmp2:
-	move.q r1, r30
+	moveq r1, #0
+.Lcmpe2:
 	rts
 .size cmp_param,.-cmp_param
 .section .text,"ax"

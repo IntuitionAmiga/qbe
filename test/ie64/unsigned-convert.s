@@ -63,7 +63,6 @@ ulong_to_double:
 	or.q r1, r1, r2
 	dcvtif f0, r1
 	dadd f0, f0, f0
-.L3:
 	rts
 .size ulong_to_double,.-ulong_to_double
 .section .text,"ax"
@@ -77,7 +76,6 @@ ulong_to_single:
 	dcvtif f0, r1
 	dadd f0, f0, f0
 	fcvtds f0, f0
-.L5:
 	rts
 .size ulong_to_single,.-ulong_to_single
 .section .text,"ax"
@@ -87,7 +85,6 @@ ulong_to_single:
 uint_to_double:
 	move.l r1, r1
 	dcvtif f0, r1
-.L7:
 	rts
 .size uint_to_double,.-uint_to_double
 .section .text,"ax"
@@ -98,7 +95,6 @@ uint_to_single:
 	move.l r1, r1
 	dcvtif f0, r1
 	fcvtds f0, f0
-.L9:
 	rts
 .size uint_to_single,.-uint_to_single
 .section .rodata,"a"

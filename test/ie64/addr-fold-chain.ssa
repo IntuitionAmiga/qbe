@@ -1,0 +1,16 @@
+# A stack address plus a constant, used as the address of an access, is
+# one displacement from the frame: the add is folded into the access and
+# then the address of the slot is folded in turn.
+export function w $chain(w %v, w %c) {
+@start
+	%a =l alloc8 64
+	%p =l add %a, 48
+	storew %v, %p
+	jnz %c, @esc, @out
+@esc
+	%r =w call $use(l %a)
+	ret %r
+@out
+	%x =w loadw %p
+	ret %x
+}

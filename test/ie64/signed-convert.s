@@ -12,7 +12,6 @@ double_to_long:
 .align 16
 long_to_double:
 	dcvtif f0, r1
-.L2:
 	rts
 .size long_to_double,.-long_to_double
 .section .text,"ax"
@@ -31,6 +30,5 @@ single_to_long:
 long_to_single:
 	dcvtif f0, r1
 	fcvtds f0, f0
-.L5:
 	rts
 .size long_to_single,.-long_to_single

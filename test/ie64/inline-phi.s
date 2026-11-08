@@ -12,7 +12,6 @@ twice:
 .type caller,@function
 .align 16
 caller:
-	sub.q r31, r31, #8
 	add.l r1, r1, r1
 	bne r2, r0, .L3
 .L2:
@@ -22,6 +21,5 @@ caller:
 	add.l r1, r1, r1
 .L4:
 	sext.l r1, r1
-	add.q r31, r31, #8
 	rts
 .size caller,.-caller

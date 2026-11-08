@@ -793,7 +793,7 @@ emitins(Ins *i, Fn *fn, FILE *f)
 	if (isstore(i->op)) {
 		char s;
 		int stackoff = -1, stackreg = 31;
-		if (rtype(i->arg[1]) == RSlot && rsval(i->arg[1]) < 0) {
+		if (rtype(i->arg[1]) == RSlot) {
 			stackoff = slotoffset(i->arg[1]);
 			stackreg = slotbase(i->arg[1]);
 		} else
@@ -924,7 +924,6 @@ emitins(Ins *i, Fn *fn, FILE *f)
 		static unsigned cmpid;
 		char *br;
 		unsigned id;
-		Ref res;
 
 		if (iscmp(i->op, &k, &cc) && KBASE(k) == 0) {
 			if ((!isreg(i->arg[0]) && !iszeroref(i->arg[0], fn))
@@ -944,12 +943,25 @@ emitins(Ins *i, Fn *fn, FILE *f)
 			default: die("IE64 comparison value is not implemented");
 			}
 			id = cmpid++;
-			/* Build the result in its own register unless that register
-			 * holds an operand: the branch still reads the operands. */
-			res = req(i->to, i->arg[0]) || req(i->to, i->arg[1])
-				? TMP(R30) : i->to;
+			/* The branch reads the operands before the result is written,
+			 * so the result may share a register with an operand. */
+			if (req(i->to, i->arg[0]) || req(i->to, i->arg[1])) {
+				fputc('\t', f);
+				fputs(br, f);
+				fputc(' ', f);
+				if (cc == Ciuge || cc == Ciult)
+					emitcmpreg(i->arg[1], fn, f), fputs(", ", f), emitcmpreg(i->arg[0], fn, f);
+				else
+					emitcmpreg(i->arg[0], fn, f), fputs(", ", f), emitcmpreg(i->arg[1], fn, f);
+				fprintf(f, ", .Lcmp%u\n\tmoveq ", id);
+				emitreg(i->to, f);
+				fprintf(f, ", #1\n\tbra .Lcmpe%u\n.Lcmp%u:\n\tmoveq ", id, id);
+				emitreg(i->to, f);
+				fprintf(f, ", #0\n.Lcmpe%u:\n", id);
+				return;
+			}
 			fputs("\tmoveq ", f);
-			emitreg(res, f);
+			emitreg(i->to, f);
 			fputs(", #0\n\t", f);
 			fputs(br, f);
 			fputc(' ', f);
@@ -958,13 +970,8 @@ emitins(Ins *i, Fn *fn, FILE *f)
 			else
 				emitcmpreg(i->arg[0], fn, f), fputs(", ", f), emitcmpreg(i->arg[1], fn, f);
 			fprintf(f, ", .Lcmp%u\n\tmoveq ", id);
-			emitreg(res, f);
+			emitreg(i->to, f);
 			fprintf(f, ", #1\n.Lcmp%u:\n", id);
-			if (!req(res, i->to)) {
-				fputs("\tmove.q ", f);
-				emitreg(i->to, f);
-				fputs(", r30\n", f);
-			}
 			return;
 		}
 		if (iscmp(i->op, &k, &cc) && (k == Ks || k == Kd)) {
@@ -1238,7 +1245,10 @@ foldaddrs(Fn *fn, Blk *b, bits *livein, int64_t *off)
 	int n, dead, baseset;
 	bits out;
 
-	for (p=0; p<b->nins; p++) {
+	/* Last definition first: when the base of one folded address is the
+	 * result of another definition, the earlier one is folded into the
+	 * same access in turn. */
+	for (p=b->nins; p-- > 0;) {
 		d = &b->ins[p];
 		if (!addrdef(d, fn, &base, &k))
 			continue;
@@ -1275,7 +1285,8 @@ foldaddrs(Fn *fn, Blk *b, bits *livein, int64_t *off)
 			if ((insuse(j) & BIT(t.val)) && !addruse)
 				goto Skip;
 			if (addruse) {
-				if (baseset || n == MaxUses || off[q])
+				if (baseset || n == MaxUses
+				|| off[q] + k < INT32_MIN || off[q] + k > INT32_MAX)
 					goto Skip;
 				use[n++] = q;
 			}
@@ -1310,11 +1321,410 @@ foldaddrs(Fn *fn, Blk *b, bits *livein, int64_t *off)
 				j->arg[0] = base;
 			else
 				j->arg[1] = base;
-			off[use[q]] = k;
+			off[use[q]] += k;
 		}
 		*d = (Ins){.op = Onop};
 	Skip:;
 	}
+}
+
+/* Registers live at the end of a block. */
+static bits
+liveout(Blk *b, bits *livein)
+{
+	bits out;
+
+	out = 0;
+	if (b->s1)
+		out |= livein[b->s1->id];
+	if (b->s2)
+		out |= livein[b->s2->id];
+	if (rtype(b->jmp.arg) == RCall)
+		out |= T.retregs(b->jmp.arg, 0);
+	else if (isreg(b->jmp.arg))
+		out |= BIT(b->jmp.arg.val);
+	return out;
+}
+
+/* Can the destination of this instruction be another register without
+ * changing the value it leaves?  Only a plain operation that writes one
+ * integer register, with the whole register as its result. */
+static int
+retargetable(Ins *x, int cpycls)
+{
+	if (!isreg(x->to) || x->to.val >= F0 || KBASE(x->cls) != 0)
+		return 0;
+	if (cpycls == Kw) {
+		/* move.l clears the upper half: the result must be clean. */
+		if (x->cls != Kw)
+			return 0;
+		switch (x->op) {
+		case Oextsb: case Oextsh: case Oextsw:
+		case Oloadsb: case Oloadsh: case Oloadsw:
+			return 0;
+		}
+	}
+	if (isload(x->op))
+		return 1;
+	switch (x->op) {
+	case Oadd: case Osub: case Omul: case Oand: case Oor: case Oxor:
+	case Oshl: case Oshr: case Osar: case Oudiv: case Ourem:
+	case Odiv: case Orem: case Oneg: case Ocopy: case Oaddr:
+	case Oextsb: case Oextub: case Oextsh: case Oextuh:
+	case Oextsw: case Oextuw:
+		return 1;
+	}
+	return 0;
+}
+
+static int
+plainreg(Ref r)
+{
+	return isreg(r) && r.val >= R1 && r.val <= R28 && r.val != R25;
+}
+
+/* `x = op ...; move d, x` where x is dead after the move: the operation
+ * can write d.  Phi copies and parameter shuffles leave many of these. */
+static void
+copyfwd(Fn *fn, Blk *b, bits *livein)
+{
+	Ins *c, *j, *x;
+	Ref rs, rd;
+	bits out;
+	int dead, abort_;
+
+	for (c=b->ins; c<&b->ins[b->nins]; c++) {
+		if (c->op != Ocopy || !plainreg(c->to) || !plainreg(c->arg[0])
+		|| req(c->to, c->arg[0]) || KBASE(c->cls) != 0)
+			continue;
+		rd = c->to;
+		rs = c->arg[0];
+		x = 0;
+		abort_ = 0;
+		for (j=c; j>b->ins;) {
+			--j;
+			if (j->op == Onop)
+				continue;
+			if (isie64op(j->op) || iscallop(j->op) || j->op == Oswap
+			|| j->op == Osalloc || j->op == Oie64nop)
+				break;
+			if (req(j->to, rs)) {
+				x = j;
+				break;
+			}
+			if ((insuse(j) & (BIT(rs.val) | BIT(rd.val)))
+			|| req(j->to, rd))
+				break;
+		}
+		if (!x || !retargetable(x, c->cls))
+			continue;
+		/* The source must be dead after the copy. */
+		dead = 0;
+		for (j=c+1; j<&b->ins[b->nins]; j++) {
+			if (j->op == Onop)
+				continue;
+			if (insuse(j) & BIT(rs.val))
+				break;
+			if (iscallop(j->op) && callersave(rs)) {
+				dead = 1;
+				break;
+			}
+			if (isie64op(j->op) || j->op == Oswap || j->op == Osalloc)
+				break;
+			if (req(j->to, rs)) {
+				dead = 1;
+				break;
+			}
+		}
+		if (j == &b->ins[b->nins]) {
+			out = liveout(b, livein);
+			dead = !(out & BIT(rs.val));
+		}
+		if (!dead)
+			continue;
+		x->to = rd;
+		*c = (Ins){.op = Onop};
+	}
+	(void)fn;
+	(void)abort_;
+}
+
+/* Registers an instruction or the end of a block mentions. */
+static bits
+insmention(Ins *i)
+{
+	bits m;
+
+	m = insuse(i);
+	if (isreg(i->to))
+		m |= BIT(i->to.val);
+	return m;
+}
+
+typedef struct Cand Cand;
+struct Cand {
+	Blk *b;
+	uint at;
+	Ref reg;
+	int64_t v;
+	int nuse;
+	uint use[8];
+	int usejmp;
+	int grp;
+};
+
+/* The value a constant load leaves in its register. */
+static int
+constload(Fn *fn, Ins *i, int64_t *v)
+{
+	Con *c;
+
+	if (i->op != Ocopy || !plainreg(i->to) || KBASE(i->cls) != 0
+	|| rtype(i->arg[0]) != RCon)
+		return 0;
+	c = &fn->con[i->arg[0].val];
+	if (c->type != CBits || c->flt)
+		return 0;
+	*v = i->cls == Kw ? (int64_t)(uint32_t)c->bits.i : c->bits.i;
+	return 1;
+}
+
+/* Hoist the constants a loop loads into registers that the loop leaves
+ * alone, out of the loop.  A loop without calls leaves most of the
+ * caller-save registers free. */
+static void
+hoistloop(Fn *fn, Blk *h, Blk *l, bits *livein)
+{
+	enum { MaxCand = 64 };
+	Blk *b, *p, *pre, *other, *x;
+	Ins *i, *j, *ni;
+	Cand *cs;
+	int64_t gv[32];
+	int gcnt[32], greg[32], ng, nc, k, q, r, n, ok, *rs;
+	bits mention, free_, lout;
+	uint npre, t;
+	int hascall = 0;
+
+	pre = 0;
+	npre = 0;
+	mention = 0;
+	for (b=fn->start; b; b=b->link) {
+		if (b->id < h->id || b->id > l->id) {
+			if (b->s1 == h || b->s2 == h) {
+				pre = b;
+				npre++;
+			}
+			if (b->s1 && b->s1 != h && b->s1->id >= h->id
+			&& b->s1->id <= l->id)
+				return;
+			if (b->s2 && b->s2 != h && b->s2->id >= h->id
+			&& b->s2->id <= l->id)
+				return;
+			continue;
+		}
+		for (i=b->ins; i<&b->ins[b->nins]; i++) {
+			if (i->op == Onop)
+				continue;
+			if (isie64op(i->op) || i->op == Oswap
+			|| i->op == Osalloc || i->op == Ovastart)
+				return;
+			if (iscallop(i->op))
+				hascall = 1;
+			mention |= insmention(i);
+		}
+		if (isreg(b->jmp.arg))
+			mention |= BIT(b->jmp.arg.val);
+		if (rtype(b->jmp.arg) == RCall)
+			return;
+	}
+	if (npre != 1 || !pre || (pre->jmp.type != Jjmp && pre->jmp.type != Jjnz))
+		return;
+	/* The registers free for a constant: caller-save, untouched by the
+	 * loop and the preheader, and dead on entry to the loop and on the
+	 * other way out of the preheader. */
+	free_ = 0;
+	/* A callee-save register that the function saves anyway costs
+	 * nothing; a caller-save one does not survive a call. */
+	if (!hascall)
+		for (rs=ie64_rsave; *rs>=0; rs++)
+			if (*rs < F0)
+				free_ |= BIT(*rs);
+	for (t=R18; t<=R24; t++)
+		if (fn->reg & BIT(t))
+			free_ |= BIT(t);
+	free_ &= ~mention & ~livein[h->id];
+	for (i=pre->ins; i<&pre->ins[pre->nins]; i++)
+		free_ &= ~insmention(i);
+	if (isreg(pre->jmp.arg))
+		free_ &= ~BIT(pre->jmp.arg.val);
+	other = pre->s1 == h ? pre->s2 : pre->s1;
+	if (pre->jmp.type == Jjnz && other)
+		free_ &= ~livein[other->id];
+	if (pre->jmp.type == Jjnz && other == h)
+		return;
+	if (!free_)
+		return;
+	cs = alloc(MaxCand * sizeof cs[0]);
+	nc = 0;
+	for (x=h; x && x->id <= l->id; x=x->link) {
+		lout = 0;
+		if (x->s1)
+			lout |= livein[x->s1->id];
+		if (x->s2)
+			lout |= livein[x->s2->id];
+		if (isreg(x->jmp.arg))
+			lout |= BIT(x->jmp.arg.val);
+		for (q=0; q<(int)x->nins; q++) {
+			Cand *c;
+			int64_t v;
+
+			i = &x->ins[q];
+			if (nc == MaxCand || !constload(fn, i, &v))
+				continue;
+			c = &cs[nc];
+			c->b = x;
+			c->at = q;
+			c->reg = i->to;
+			c->v = v;
+			c->nuse = 0;
+			c->usejmp = 0;
+			ok = 1;
+			for (j=i+1;; j++) {
+				if (j == &x->ins[x->nins]) {
+					if (isreg(x->jmp.arg) && req(x->jmp.arg, c->reg))
+						c->usejmp = 1;
+					else if (lout & BIT(c->reg.val))
+						ok = 0;
+					break;
+				}
+				if (j->op == Onop)
+					continue;
+				if (insuse(j) & BIT(c->reg.val)) {
+					if (c->nuse == 8) {
+						ok = 0;
+						break;
+					}
+					c->use[c->nuse++] = j - x->ins;
+				}
+				if (req(j->to, c->reg))
+					break;
+			}
+			/* A value that flows into a fused comparison's branch is
+			 * read through the comparison's operands: they are among
+			 * the uses above. */
+			if (ok && (c->nuse || c->usejmp))
+				nc++;
+		}
+	}
+	if (!nc)
+		return;
+	/* Group by value and take the most frequent first. */
+	ng = 0;
+	for (k=0; k<nc; k++) {
+		for (n=0; n<ng; n++)
+			if (gv[n] == cs[k].v)
+				break;
+		if (n == ng) {
+			if (ng == 32)
+				continue;
+			gv[ng] = cs[k].v;
+			gcnt[ng] = 0;
+			greg[ng] = -1;
+			ng++;
+		}
+		cs[k].grp = n;
+		gcnt[n]++;
+	}
+	for (n=0; n<ng; n++) {
+		r = -1;
+		for (k=0; k<ng; k++)
+			if (greg[k] < 0 && (r < 0 || gcnt[k] > gcnt[r]))
+				r = k;
+		if (r < 0)
+			break;
+		for (t=R1; t<=R30 && !(free_ & BIT(t)); t++)
+			;
+		if (t > R30)
+			break;
+		free_ &= ~BIT(t);
+		greg[r] = t;
+	}
+	nc = nc;
+	/* Rewrite the uses, drop the loads, and load once in the preheader. */
+	npre = 0;
+	for (n=0; n<ng; n++)
+		if (greg[n] >= 0)
+			npre++;
+	if (!npre)
+		return;
+	ni = vnew(pre->nins + npre, sizeof ni[0], PFn);
+	for (t=0; t<pre->nins; t++)
+		ni[t] = pre->ins[t];
+	for (n=0; n<ng; n++)
+		if (greg[n] >= 0)
+			ni[t++] = (Ins){.op = Ocopy, .cls = Kl, .to = TMP(greg[n]),
+				.arg = {getcon(gv[n], fn), R}};
+	pre->ins = ni;
+	pre->nins = t;
+	for (k=0; k<nc; k++) {
+		Cand *c = &cs[k];
+		Ref f;
+
+		if (greg[c->grp] < 0)
+			continue;
+		f = TMP(greg[c->grp]);
+		for (n=0; n<c->nuse; n++) {
+			j = &c->b->ins[c->use[n]];
+			if (req(j->arg[0], c->reg))
+				j->arg[0] = f;
+			if (req(j->arg[1], c->reg))
+				j->arg[1] = f;
+		}
+		if (c->usejmp)
+			c->b->jmp.arg = f;
+		c->b->ins[c->at] = (Ins){.op = Onop};
+	}
+	(void)p;
+}
+
+static void
+hoistconsts(Fn *fn)
+{
+	enum { MaxLoops = 32 };
+	Blk *hd[MaxLoops], *lt[MaxLoops], *b, *s, *t;
+	bits *livein;
+	int n, i, j, k;
+
+	n = 0;
+	for (b=fn->start; b; b=b->link)
+		for (k=0; k<2; k++) {
+			s = k ? b->s2 : b->s1;
+			if (!s || s->id > b->id)
+				continue;
+			for (i=0; i<n; i++)
+				if (hd[i] == s)
+					break;
+			if (i == n) {
+				if (n == MaxLoops)
+					return;
+				hd[n] = s;
+				lt[n++] = b;
+			} else if (lt[i]->id < b->id)
+				lt[i] = b;
+		}
+	/* Inner loops first, so that a constant moves out of several. */
+	for (i=0; i<n; i++)
+		for (j=i+1; j<n; j++)
+			if (lt[j]->id - hd[j]->id < lt[i]->id - hd[i]->id) {
+				s = hd[i]; hd[i] = hd[j]; hd[j] = s;
+				t = lt[i]; lt[i] = lt[j]; lt[j] = t;
+			}
+	/* Overlapping loops may take a second round. */
+	for (k=0; k<2; k++)
+		for (i=0; i<n; i++) {
+			livein = fillreglive(fn);
+			hoistloop(fn, hd[i], lt[i], livein);
+		}
 }
 
 void
@@ -1325,7 +1735,9 @@ ie64_emitfn(Fn *fn, FILE *f)
 	Con *c;
 	Ins *i, *cmp;
 	bits *livein, out;
-	int64_t *foff;
+	int64_t *foff, **foffs;
+	Ins **fused;
+	uint nb;
 	int first, j, ck, cc, frame, local, saveoff, nsaves;
 
 	/* IE64 JSR pushes an eight-byte return address.  A non-leaf frame therefore
@@ -1358,9 +1770,19 @@ ie64_emitfn(Fn *fn, FILE *f)
 		emitsaves(fn, saveoff, 0, f);
 	if (fn->dynalloc)
 		fputs("\tmove.q r25, r31\n", f);
+	ie64_dupjumps(fn);
+	ie64_mergeblocks(fn);
 	livein = fillreglive(fn);
-	for (first=1, b=fn->start; b; b=b->link) {
+	nb = fn->nblk;
+	foffs = alloc(nb * sizeof foffs[0]);
+	fused = alloc(nb * sizeof fused[0]);
+	for (b=fn->start; b; b=b->link)
+		copyfwd(fn, b, livein);
+	hoistconsts(fn);
+	livein = fillreglive(fn);
+	for (b=fn->start; b; b=b->link) {
 		foff = alloc((b->nins + 1) * sizeof foff[0]);
+		foffs[b->id] = foff;
 		foldaddrs(fn, b, livein, foff);
 		cmp = 0;
 		if (b->jmp.type == Jjnz)
@@ -1392,6 +1814,13 @@ ie64_emitfn(Fn *fn, FILE *f)
 			if (out & BIT(cmp->to.val))
 				cmp = 0;
 		}
+		fused[b->id] = cmp;
+	}
+	for (first=1, b=fn->start; b; b=b->link) {
+		foff = foffs[b->id];
+		cmp = fused[b->id];
+		if (cmp)
+			iscmp(cmp->op, &ck, &cc);
 		if (!first || b->npred > 1) {
 			emitlbl(id0+b->id, f);
 			fputs(":\n", f);

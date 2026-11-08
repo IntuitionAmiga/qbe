@@ -1,0 +1,22 @@
+# A loop closes with its own test: the jump back to a header that only
+# tests a condition is replaced by the test, so no unconditional branch
+# is left in the loop.
+export function w $sum(l %p, w %n) {
+@start
+	jmp @head
+@head
+	%i =w phi @start 0, @body %i1
+	%s =w phi @start 0, @body %s1
+	%c =w csltw %i, %n
+	jnz %c, @body, @done
+@body
+	%o =l extsw %i
+	%o4 =l mul %o, 4
+	%a =l add %p, %o4
+	%v =w loadw %a
+	%s1 =w add %s, %v
+	%i1 =w add %i, 1
+	jmp @head
+@done
+	ret %s
+}

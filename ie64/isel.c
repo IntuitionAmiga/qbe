@@ -92,24 +92,7 @@ fixarg(Ref *r, int k, Ins *i, Fn *fn)
 	*r = t;
 }
 
-/* Is an extension a no-op for what is known about its operand? */
-static int
-extisnop(Ins *i, Fn *fn)
-{
-	Ref r = i->arg[0];
-
-	if (rtype(r) != RTmp || isreg(r))
-		return 0;
-	switch (i->op) {
-	case Oextub: return ie64_uwidth(fn, r, Kw) <= 8;
-	case Oextuh: return ie64_uwidth(fn, r, Kw) <= 16;
-	case Oextuw: return ie64_uwidth(fn, r, Kw) <= 32;
-	case Oextsb: return ie64_swidth(fn, r, Kw) <= 8;
-	case Oextsh: return ie64_swidth(fn, r, Kw) <= 16;
-	case Oextsw: return ie64_swidth(fn, r, Kw) <= 32;
-	}
-	return 0;
-}
+#define extisnop ie64_extisnop
 
 typedef struct Cmparg Cmparg;
 struct Cmparg {
@@ -206,6 +189,7 @@ ie64_isel(Fn *fn)
 				die("IE64 immediate operand is outside the supported range");
 		}
 
+	ie64_rangecmp(fn);
 	ie64_canon(fn);
 
 	/* ABI lowering uses Osalloc around calls with stack arguments.  Keep a
@@ -379,6 +363,17 @@ ie64_isel(Fn *fn)
 					i->arg[pn] = pend[npend].use;
 					npend++;
 				}
+			}
+			/* A multiplication by a power of two is a shift. */
+			if (i->op == Omul && KBASE(i->cls) == 0
+			&& rtype(i->arg[1]) == RCon
+			&& (c = &fn->con[i->arg[1].val])->type == CBits && !c->flt
+			&& c->bits.i > 1 && (c->bits.i & (c->bits.i - 1)) == 0
+			&& (i->cls == Kl || c->bits.i <= INT32_MAX)) {
+				for (n=0; (INT64_C(1) << n) != c->bits.i; n++)
+					;
+				i->op = Oshl;
+				i->arg[1] = getcon(n, fn);
 			}
 			/* IE64 immediates are unsigned: x + (-k) is x - k. */
 			if (i->op == Oadd && i->cls == Kl

@@ -13,6 +13,5 @@ toint:
 .align 16
 tofloat:
 	fcvtif f0, r1
-.L2:
 	rts
 .size tofloat,.-tofloat

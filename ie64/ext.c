@@ -182,6 +182,14 @@ transfer(Fn *fn, Ins *i, int *ru, int *rs)
 		}
 		break;
 	case Osar:
+		/* A w value below 2^31 is non-negative, so the shift is a
+		 * logical one. */
+		if (kw && ua <= 31 && rtype(i->arg[1]) == RCon
+		&& (c = &fn->con[i->arg[1].val])->type == CBits
+		&& 0 < (v = c->bits.i) && v < 32) {
+			*ru = max(ua - (int)v, 0);
+			break;
+		}
 		if (!kw && rtype(i->arg[1]) == RCon
 		&& (c = &fn->con[i->arg[1].val])->type == CBits
 		&& 0 < (v = c->bits.i) && v < 64) {
@@ -319,6 +327,25 @@ zextuse(Ins *i, int n)
 		return 1;
 	if (iscmp(i->op, &ck, &cc) && ck == Kw)
 		return !(cc >= Cisge && cc <= Cislt);
+	return 0;
+}
+
+/* Is an extension a no-op for what is known about its operand? */
+int
+ie64_extisnop(Ins *i, Fn *fn)
+{
+	Ref r = i->arg[0];
+
+	if (rtype(r) != RTmp || isreg(r))
+		return 0;
+	switch (i->op) {
+	case Oextub: return ie64_uwidth(fn, r, Kw) <= 8;
+	case Oextuh: return ie64_uwidth(fn, r, Kw) <= 16;
+	case Oextuw: return ie64_uwidth(fn, r, Kw) <= 32;
+	case Oextsb: return ie64_swidth(fn, r, Kw) <= 8;
+	case Oextsh: return ie64_swidth(fn, r, Kw) <= 16;
+	case Oextsw: return ie64_swidth(fn, r, Kw) <= 32;
+	}
 	return 0;
 }
 

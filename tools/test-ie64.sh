@@ -137,7 +137,7 @@ else
 fi
 
 "$bin" -t ie64 -o "$tmp" test/ie64/wide-spill-align.ssa
-if grep -q 'lea r30, 8(r31)' "$tmp" && ! grep -q 'lea r30, 4(r31)' "$tmp"
+if grep -q 'store.q r[0-9]*, 8(r31)' "$tmp" && ! grep -q 'store.q r[0-9]*, 4(r31)' "$tmp"
 then
 	echo "wide spills after four-byte locals...             [ok]"
 else

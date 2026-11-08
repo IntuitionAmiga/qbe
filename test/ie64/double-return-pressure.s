@@ -6,7 +6,6 @@ make_double:
 	move.l r30, #lo32(.L__ie64_fconst_0+0)
 	movt r30, #hi32(.L__ie64_fconst_0+0)
 	dload f0, (r30)
-.L1:
 	rts
 .size make_double,.-make_double
 .section .text,"ax"
@@ -38,25 +37,21 @@ call_with_live_doubles:
 	move.l r30, #lo32(e+0)
 	movt r30, #hi32(e+0)
 	dload f4, (r30)
-	lea r30, 8(r31)
-	dstore f4, (r30)
+	dstore f4, 8(r31)
 	dmov f12, f2
 	move.l r30, #lo32(f+0)
 	movt r30, #hi32(f+0)
 	dload f2, (r30)
-	lea r30, 16(r31)
-	dstore f2, (r30)
+	dstore f2, 16(r31)
 	move.l r30, #lo32(g+0)
 	movt r30, #hi32(g+0)
 	dload f6, (r30)
-	lea r30, 24(r31)
-	dstore f6, (r30)
+	dstore f6, 24(r31)
 	dmov f10, f0
 	move.l r30, #lo32(h+0)
 	movt r30, #hi32(h+0)
 	dload f0, (r30)
-	lea r30, 32(r31)
-	dstore f0, (r30)
+	dstore f0, 32(r31)
 	jsr make_double
 	dmov f2, f12
 	dstore f0, 0(r31)
@@ -74,7 +69,6 @@ call_with_live_doubles:
 	dadd f4, f4, f6
 	dadd f2, f2, f4
 	dadd f0, f0, f2
-.L3:
 	fload f8, 48(r31)
 	fload f9, 56(r31)
 	fload f10, 64(r31)

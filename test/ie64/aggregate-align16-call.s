@@ -3,7 +3,6 @@
 .type take,@function
 .align 16
 take:
-.L1:
 	rts
 .size take,.-take
 .section .text,"ax"
@@ -22,7 +21,6 @@ call_aligned:
 	load.q r2, 8(r2)
 	store.q r2, 8(r1)
 	jsr take
-.L3:
 	add.q r31, r31, #24
 	rts
 .size call_aligned,.-call_aligned

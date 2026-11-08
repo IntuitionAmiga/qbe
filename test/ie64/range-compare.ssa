@@ -1,0 +1,49 @@
+# Two compares of one value against constants, joined by and, are one
+# unsigned compare of the offset value against the width of the range.
+export function w $isdigit(w %c) {
+@start
+	%x =w extub %c
+	%a =w csgew %x, 48
+	%b =w cslew %x, 57
+	%r =w and %a, %b
+	ret %r
+}
+
+export function w $in_signed(w %x) {
+@start
+	%a =w csgtw %x, -5
+	%b =w csltw %x, 100
+	%r =w and %b, %a
+	%s =w add %r, 7
+	ret %s
+}
+
+export function w $in_unsigned(w %x) {
+@start
+	%a =w cugew %x, 10
+	%b =w culew %x, 4000000000
+	%r =w and %a, %b
+	jnz %r, @yes, @no
+@yes
+	ret 1
+@no
+	ret 0
+}
+
+# Different signedness, or a value used twice, is left alone.
+export function w $mixed(w %x) {
+@start
+	%a =w csgew %x, 48
+	%b =w culew %x, 57
+	%r =w and %a, %b
+	ret %r
+}
+
+export function w $reused(w %x) {
+@start
+	%a =w csgew %x, 48
+	%b =w cslew %x, 57
+	%r =w and %a, %b
+	%s =w add %r, %a
+	ret %s
+}

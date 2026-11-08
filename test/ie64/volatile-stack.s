@@ -6,7 +6,6 @@ volatile_stack_float:
 	sub.q r31, r31, #8
 	fstore f0, (r31)
 	fload f0, (r31)
-.L1:
 	add.q r31, r31, #8
 	rts
 .size volatile_stack_float,.-volatile_stack_float
@@ -18,7 +17,6 @@ volatile_stack_double:
 	sub.q r31, r31, #8
 	dstore f0, (r31)
 	dload f0, (r31)
-.L3:
 	add.q r31, r31, #8
 	rts
 .size volatile_stack_double,.-volatile_stack_double

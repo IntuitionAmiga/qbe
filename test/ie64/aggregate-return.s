@@ -11,7 +11,6 @@ f:
 	store.l r1, (r3)
 	load.l r1, (r3)
 	store.l r1, (r2)
-.L1:
 	add.q r31, r31, #8
 	rts
 .size f,.-f

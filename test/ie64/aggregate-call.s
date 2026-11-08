@@ -3,7 +3,6 @@
 .type f,@function
 .align 16
 f:
-.L1:
 	rts
 .size f,.-f
 .section .text,"ax"
@@ -18,7 +17,6 @@ g:
 	load.l r2, (r30)
 	store.l r2, (r1)
 	jsr f
-.L3:
 	add.q r31, r31, #8
 	rts
 .size g,.-g
