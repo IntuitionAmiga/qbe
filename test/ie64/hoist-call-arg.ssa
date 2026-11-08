@@ -1,0 +1,41 @@
+# A constant loaded into an argument register of a call is not hoisted out of the loop: the call reads the register without naming it, and its result register holds another value afterwards.
+export function w $f(l %s, l %p, w %w, l %a, l %b, l %c, l %d, l %e) {
+@start
+	%x1 =l call $g(l %a)
+	%x2 =l call $g(l %b)
+	%x3 =l call $g(l %c)
+	%x4 =l call $g(l %d)
+	%x5 =l call $g(l %e)
+	%s1 =l add %x1, %x2
+	%s2 =l add %s1, %x3
+	%s3 =l add %s2, %x4
+	%s4 =l add %s3, %x5
+	%t =l call $g(l %s4)
+	%u =l add %t, %s4
+	%u1 =l add %u, %x1
+	%u2 =l add %u1, %x2
+	%u3 =l add %u2, %x3
+	%u4 =l add %u3, %x4
+	%u5 =l add %u4, %x5
+	%v =w call $h(l %u5)
+	%wv =w add %w, %v
+	jnz %v, @pre, @fail
+@pre
+	jmp @cond
+@cond
+	%w1 =w phi @pre %wv, @cont %w2
+	%cmp =w csgtw %w1, 0
+	jnz %cmp, @body, @done
+@body
+	%ch =l extsb 32
+	%r =l call %p(l %ch, l %s)
+	%neg =w csltl %r, 0
+	jnz %neg, @fail, @cont
+@cont
+	%w2 =w sub %w1, 1
+	jmp @cond
+@fail
+	ret -1
+@done
+	ret %w1
+}

@@ -1576,6 +1576,18 @@ constload(Fn *fn, Ins *i, int64_t *v)
 	return 1;
 }
 
+/* Does a call destroy the register? */
+static int
+callclobbers(int r)
+{
+	int *rs;
+
+	for (rs=ie64_rsave; *rs>=0; rs++)
+		if (*rs == r)
+			return 1;
+	return 0;
+}
+
 /* Hoist the constants a loop loads into registers that the loop leaves
  * alone, out of the loop.  A loop without calls leaves most of the
  * caller-save registers free. */
@@ -1687,13 +1699,22 @@ hoistloop(Fn *fn, Blk *h, Blk *l, bits *livein)
 				if (j->op == Onop)
 					continue;
 				if (insuse(j) & BIT(c->reg.val)) {
-					if (c->nuse == 8) {
+					/* A call reads its argument registers without
+					 * naming them: no operand to rewrite. */
+					if (c->nuse == 8 || (!req(j->arg[0], c->reg)
+					&& !req(j->arg[1], c->reg))) {
 						ok = 0;
 						break;
 					}
 					c->use[c->nuse++] = j - x->ins;
 				}
 				if (req(j->to, c->reg))
+					break;
+				/* A call writes its result registers and clobbers the
+				 * caller-save ones: a later read sees another value. */
+				if (iscallop(j->op) && rtype(j->arg[1]) == RCall
+				&& (T.retregs(j->arg[1], 0) & BIT(c->reg.val)
+				|| callclobbers(c->reg.val)))
 					break;
 			}
 			/* A value that flows into a fused comparison's branch is
