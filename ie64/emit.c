@@ -208,6 +208,20 @@ emitcmpreg(Ref r, Fn *fn, FILE *f)
 		emitreg(r, f);
 }
 
+/* A numeric constant other than zero: only -mbranch-imm leaves one as a
+ * compare operand. */
+static int
+isimmcon(Ref r, int64_t *v, Fn *fn)
+{
+	Con *c;
+
+	if (rtype(r) != RCon || (c = &fn->con[r.val])->type != CBits || c->flt
+	|| c->bits.i == 0)
+		return 0;
+	*v = c->bits.i;
+	return 1;
+}
+
 static void
 emitaddr(Ref r, char *name, int64_t addend, FILE *f)
 {
@@ -921,11 +935,22 @@ emitins(Ins *i, Fn *fn, FILE *f)
 	}
 	{
 		int k, cc;
+		int64_t imm;
 		static unsigned cmpid;
 		char *br;
 		unsigned id;
 
 		if (iscmp(i->op, &k, &cc) && KBASE(k) == 0) {
+			/* A compare that is not folded into its branch and kept an
+			 * immediate operand needs it in a register. */
+			for (k=0; ie64_branch_imm && k<2; k++)
+				if (isimmcon(i->arg[k], &imm, fn)
+				&& !isimmcon(i->arg[1-k], &imm, fn)) {
+					fputc('\t', f);
+					emitintload(TMP(R30), Kl, imm, f);
+					i->arg[k] = TMP(R30);
+				}
+			iscmp(i->op, &k, &cc);
 			if ((!isreg(i->arg[0]) && !iszeroref(i->arg[0], fn))
 			|| (!isreg(i->arg[1]) && !iszeroref(i->arg[1], fn)))
 				die("IE64 comparison operands are not selected");
@@ -1052,6 +1077,7 @@ emitbranch(int cmp, int invert, Ref a, Ref b, Blk *to, int id0, Fn *fn, FILE *f)
 	};
 	char *n;
 	Ref t;
+	int64_t imm;
 
 	if (cmp == Cieq || cmp == Cine) {
 		if (invert)
@@ -1065,15 +1091,31 @@ emitbranch(int cmp, int invert, Ref a, Ref b, Blk *to, int id0, Fn *fn, FILE *f)
 		if (invert)
 			cmp = inv[cmp-Ciuge];
 	}
+	/* -mbranch-imm: isel kept a constant that fits the immediate form.
+	 * The condition is already inverted if the layout needs it. */
+	if (ie64_branch_imm) {
+		int64_t va, vb;
+		int ca = isimmcon(a, &va, fn), cb = isimmcon(b, &vb, fn);
+
+		if (ca != cb) {
+			t = ca ? b : a;
+			if (isreg(t) && ie64_brimm(cmp, ca, ca ? va : vb, &n, &imm)) {
+				fprintf(f, "\t%s ", n);
+				emitreg(t, f);
+				fprintf(f, ", #%"PRId64", ", imm);
+				emitlbl(id0+to->id, f);
+				fputc('\n', f);
+				return;
+			}
+		}
+	}
 	if (cmp == Ciuge || cmp == Ciult) {
 		t = a;
 		a = b;
 		b = t;
 	}
-	/* HOOK(branch-immediate): a constant operand reaches here only if
-	 * isel kept one.  Zero names r0.  Any other constant is loaded into
-	 * r30 today; the immediate form of the branch, once it exists,
-	 * replaces these two loads. */
+	/* A constant operand reaches here only if isel kept one.  Zero
+	 * names r0.  Any other constant is loaded into r30. */
 	if (!isreg(a) && !iszeroref(a, fn) && rtype(a) == RCon) {
 		fputc('\t', f);
 		emitintload(TMP(R30), Kl, fn->con[a.val].bits.i, f);

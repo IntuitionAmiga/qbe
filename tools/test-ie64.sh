@@ -11,6 +11,10 @@ trap 'rm -f "$tmp" "$expected" "$image"' EXIT HUP INT TERM
 
 for in in test/ie64/*.ssa
 do
+	# brimm-*.ssa run twice below: with and without -mbranch-imm.
+	case "$(basename "$in")" in
+	brimm-*) continue ;;
+	esac
 	gold=${in%.ssa}.s
 	printf '%-45s' "$(basename "$in")..."
 	# The golden files pin the call sequences of the back end, so they
@@ -29,6 +33,38 @@ do
 		exit 1
 	fi
 done
+
+# Compare-and-branch with an immediate.  The .s golden is the output with
+# -mbranch-imm.  The .off.s golden is the output without it and must stay
+# the output of the compiler before the option existed.
+for in in test/ie64/brimm-*.ssa
+do
+	for mode in on off
+	do
+		case $mode in
+		on) flag=-mbranch-imm; gold=${in%.ssa}.s ;;
+		off) flag=; gold=${in%.ssa}.off.s ;;
+		esac
+		printf '%-45s' "$(basename "$in") ($mode)..."
+		"$bin" -t ie64 -fno-inline $flag -o "$tmp" "$in"
+		cat "$gold" > "$expected"
+		if diff -u "$expected" "$tmp"
+		then
+			echo "[ok]"
+		else
+			echo "[failed]"
+			exit 1
+		fi
+	done
+done
+
+printf '%-45s' '-mbranch-imm needs the ie64 target...'
+if "$bin" -t amd64_sysv -mbranch-imm -o "$tmp" test/ie64/branch-eq.ssa 2>/dev/null
+then
+	echo "[failed]"
+	exit 1
+fi
+echo "[ok]"
 
 printf '%-45s' 'legacy IE64 unit-prefix option...'
 if "$bin" -t ie64 -fie64-unit-prefix=compat -o "$tmp" test/ie64/branch-eq.ssa

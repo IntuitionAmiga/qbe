@@ -166,6 +166,7 @@ funcdo(Fn *fn)
 static Fn **fnq;
 static int nfnq, capfnq;
 static int inlining, noinline;
+extern int ie64_branch_imm;
 
 static void flushfuncs(void);
 
@@ -220,7 +221,7 @@ main(int ac, char *av[])
 
 	T = Deftgt;
 	outf = stdout;
-	while ((c = getopt(ac, av, "hd:f:O:o:t:")) != -1)
+	while ((c = getopt(ac, av, "hd:f:m:O:o:t:")) != -1)
 		switch (c) {
 		case 'd':
 			for (; *optarg; optarg++)
@@ -239,6 +240,13 @@ main(int ac, char *av[])
 				fprintf(stderr, "invalid option '-f%s'\n", optarg);
 				exit(1);
 			}
+			break;
+		case 'm':
+			if (strcmp(optarg, "branch-imm") != 0) {
+				fprintf(stderr, "invalid option '-m%s'\n", optarg);
+				exit(1);
+			}
+			ie64_branch_imm = 1;
 			break;
 		case 'o':
 			if (strcmp(optarg, "-") != 0) {
@@ -289,8 +297,13 @@ main(int ac, char *av[])
 			fprintf(hf, "\n");
 			fprintf(hf, "\t%-11s dump debug information\n", "-d <flags>");
 			fprintf(hf, "\t%-11s do not inline leaf functions (ie64, -O2 and up)\n", "-fno-inline");
+			fprintf(hf, "\t%-11s compare-and-branch with an immediate (ie64, needs engine support)\n", "-mbranch-imm");
 			exit(c != 'h');
 		}
+	if (ie64_branch_imm && strcmp(T.name, "ie64") != 0) {
+		fprintf(stderr, "-mbranch-imm needs the ie64 target\n");
+		exit(1);
+	}
 	inlining = strcmp(T.name, "ie64") == 0 && optlevel >= 2 && !noinline && !dbg;
 	do {
 		f = av[optind];

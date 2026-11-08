@@ -1,0 +1,1589 @@
+# Generated cases: each function is one compare feeding one branch.
+# Boundaries of the 16-bit immediate, with the N-1 rule for unsigned.
+export function w $w_eq_R_32766(w %x) {
+@start
+	%c =w ceqw %x, 32766
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_eq_R_32767(w %x) {
+@start
+	%c =w ceqw %x, 32767
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_eq_R_32768(w %x) {
+@start
+	%c =w ceqw %x, 32768
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_eq_R_32769(w %x) {
+@start
+	%c =w ceqw %x, 32769
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_eq_R_m32767(w %x) {
+@start
+	%c =w ceqw %x, -32767
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_eq_R_m32768(w %x) {
+@start
+	%c =w ceqw %x, -32768
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_eq_R_m32769(w %x) {
+@start
+	%c =w ceqw %x, -32769
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_eq_R_0(w %x) {
+@start
+	%c =w ceqw %x, 0
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_eq_R_1(w %x) {
+@start
+	%c =w ceqw %x, 1
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_eq_R_m1(w %x) {
+@start
+	%c =w ceqw %x, -1
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_eq_R_4294967295(w %x) {
+@start
+	%c =w ceqw %x, 4294967295
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_eq_R_2147483648(w %x) {
+@start
+	%c =w ceqw %x, 2147483648
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_slt_R_32766(w %x) {
+@start
+	%c =w csltw %x, 32766
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_slt_R_32767(w %x) {
+@start
+	%c =w csltw %x, 32767
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_slt_R_32768(w %x) {
+@start
+	%c =w csltw %x, 32768
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_slt_R_32769(w %x) {
+@start
+	%c =w csltw %x, 32769
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_slt_R_m32767(w %x) {
+@start
+	%c =w csltw %x, -32767
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_slt_R_m32768(w %x) {
+@start
+	%c =w csltw %x, -32768
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_slt_R_m32769(w %x) {
+@start
+	%c =w csltw %x, -32769
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_slt_R_0(w %x) {
+@start
+	%c =w csltw %x, 0
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_slt_R_1(w %x) {
+@start
+	%c =w csltw %x, 1
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_slt_R_m1(w %x) {
+@start
+	%c =w csltw %x, -1
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_slt_R_4294967295(w %x) {
+@start
+	%c =w csltw %x, 4294967295
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_slt_R_2147483648(w %x) {
+@start
+	%c =w csltw %x, 2147483648
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_ult_R_32766(w %x) {
+@start
+	%c =w cultw %x, 32766
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_ult_R_32767(w %x) {
+@start
+	%c =w cultw %x, 32767
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_ult_R_32768(w %x) {
+@start
+	%c =w cultw %x, 32768
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_ult_R_32769(w %x) {
+@start
+	%c =w cultw %x, 32769
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_ult_R_m32767(w %x) {
+@start
+	%c =w cultw %x, -32767
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_ult_R_m32768(w %x) {
+@start
+	%c =w cultw %x, -32768
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_ult_R_m32769(w %x) {
+@start
+	%c =w cultw %x, -32769
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_ult_R_0(w %x) {
+@start
+	%c =w cultw %x, 0
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_ult_R_1(w %x) {
+@start
+	%c =w cultw %x, 1
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_ult_R_m1(w %x) {
+@start
+	%c =w cultw %x, -1
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_ult_R_4294967295(w %x) {
+@start
+	%c =w cultw %x, 4294967295
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_ult_R_2147483648(w %x) {
+@start
+	%c =w cultw %x, 2147483648
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_uge_R_32766(w %x) {
+@start
+	%c =w cugew %x, 32766
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_uge_R_32767(w %x) {
+@start
+	%c =w cugew %x, 32767
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_uge_R_32768(w %x) {
+@start
+	%c =w cugew %x, 32768
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_uge_R_32769(w %x) {
+@start
+	%c =w cugew %x, 32769
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_uge_R_m32767(w %x) {
+@start
+	%c =w cugew %x, -32767
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_uge_R_m32768(w %x) {
+@start
+	%c =w cugew %x, -32768
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_uge_R_m32769(w %x) {
+@start
+	%c =w cugew %x, -32769
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_uge_R_0(w %x) {
+@start
+	%c =w cugew %x, 0
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_uge_R_1(w %x) {
+@start
+	%c =w cugew %x, 1
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_uge_R_m1(w %x) {
+@start
+	%c =w cugew %x, -1
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_uge_R_4294967295(w %x) {
+@start
+	%c =w cugew %x, 4294967295
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_uge_R_2147483648(w %x) {
+@start
+	%c =w cugew %x, 2147483648
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_ugt_R_32766(w %x) {
+@start
+	%c =w cugtw %x, 32766
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_ugt_R_32767(w %x) {
+@start
+	%c =w cugtw %x, 32767
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_ugt_R_32768(w %x) {
+@start
+	%c =w cugtw %x, 32768
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_ugt_R_32769(w %x) {
+@start
+	%c =w cugtw %x, 32769
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_ugt_R_m32767(w %x) {
+@start
+	%c =w cugtw %x, -32767
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_ugt_R_m32768(w %x) {
+@start
+	%c =w cugtw %x, -32768
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_ugt_R_m32769(w %x) {
+@start
+	%c =w cugtw %x, -32769
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_ugt_R_0(w %x) {
+@start
+	%c =w cugtw %x, 0
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_ugt_R_1(w %x) {
+@start
+	%c =w cugtw %x, 1
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_ugt_R_m1(w %x) {
+@start
+	%c =w cugtw %x, -1
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_ugt_R_4294967295(w %x) {
+@start
+	%c =w cugtw %x, 4294967295
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_ugt_R_2147483648(w %x) {
+@start
+	%c =w cugtw %x, 2147483648
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $w_uge_L_0(w %x) {
+@start
+	jmp @l
+@l
+	%i =w phi @start %x, @l %j
+	%j =w sub %i, 1
+	%c =w cugew 0, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $w_uge_L_1(w %x) {
+@start
+	jmp @l
+@l
+	%i =w phi @start %x, @l %j
+	%j =w sub %i, 1
+	%c =w cugew 1, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $w_uge_L_32768(w %x) {
+@start
+	jmp @l
+@l
+	%i =w phi @start %x, @l %j
+	%j =w sub %i, 1
+	%c =w cugew 32768, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $w_uge_L_32769(w %x) {
+@start
+	jmp @l
+@l
+	%i =w phi @start %x, @l %j
+	%j =w sub %i, 1
+	%c =w cugew 32769, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $w_uge_L_m1(w %x) {
+@start
+	jmp @l
+@l
+	%i =w phi @start %x, @l %j
+	%j =w sub %i, 1
+	%c =w cugew -1, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $w_uge_L_m32768(w %x) {
+@start
+	jmp @l
+@l
+	%i =w phi @start %x, @l %j
+	%j =w sub %i, 1
+	%c =w cugew -32768, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $w_uge_L_m32769(w %x) {
+@start
+	jmp @l
+@l
+	%i =w phi @start %x, @l %j
+	%j =w sub %i, 1
+	%c =w cugew -32769, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $w_ult_L_0(w %x) {
+@start
+	jmp @l
+@l
+	%i =w phi @start %x, @l %j
+	%j =w sub %i, 1
+	%c =w cultw 0, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $w_ult_L_1(w %x) {
+@start
+	jmp @l
+@l
+	%i =w phi @start %x, @l %j
+	%j =w sub %i, 1
+	%c =w cultw 1, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $w_ult_L_32768(w %x) {
+@start
+	jmp @l
+@l
+	%i =w phi @start %x, @l %j
+	%j =w sub %i, 1
+	%c =w cultw 32768, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $w_ult_L_32769(w %x) {
+@start
+	jmp @l
+@l
+	%i =w phi @start %x, @l %j
+	%j =w sub %i, 1
+	%c =w cultw 32769, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $w_ult_L_m1(w %x) {
+@start
+	jmp @l
+@l
+	%i =w phi @start %x, @l %j
+	%j =w sub %i, 1
+	%c =w cultw -1, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $w_ult_L_m32768(w %x) {
+@start
+	jmp @l
+@l
+	%i =w phi @start %x, @l %j
+	%j =w sub %i, 1
+	%c =w cultw -32768, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $w_ult_L_m32769(w %x) {
+@start
+	jmp @l
+@l
+	%i =w phi @start %x, @l %j
+	%j =w sub %i, 1
+	%c =w cultw -32769, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $w_sgt_L_0(w %x) {
+@start
+	jmp @l
+@l
+	%i =w phi @start %x, @l %j
+	%j =w sub %i, 1
+	%c =w csgtw 0, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $w_sgt_L_1(w %x) {
+@start
+	jmp @l
+@l
+	%i =w phi @start %x, @l %j
+	%j =w sub %i, 1
+	%c =w csgtw 1, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $w_sgt_L_32768(w %x) {
+@start
+	jmp @l
+@l
+	%i =w phi @start %x, @l %j
+	%j =w sub %i, 1
+	%c =w csgtw 32768, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $w_sgt_L_32769(w %x) {
+@start
+	jmp @l
+@l
+	%i =w phi @start %x, @l %j
+	%j =w sub %i, 1
+	%c =w csgtw 32769, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $w_sgt_L_m1(w %x) {
+@start
+	jmp @l
+@l
+	%i =w phi @start %x, @l %j
+	%j =w sub %i, 1
+	%c =w csgtw -1, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $w_sgt_L_m32768(w %x) {
+@start
+	jmp @l
+@l
+	%i =w phi @start %x, @l %j
+	%j =w sub %i, 1
+	%c =w csgtw -32768, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $w_sgt_L_m32769(w %x) {
+@start
+	jmp @l
+@l
+	%i =w phi @start %x, @l %j
+	%j =w sub %i, 1
+	%c =w csgtw -32769, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $l_eq_R_32766(l %x) {
+@start
+	%c =w ceql %x, 32766
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_eq_R_32767(l %x) {
+@start
+	%c =w ceql %x, 32767
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_eq_R_32768(l %x) {
+@start
+	%c =w ceql %x, 32768
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_eq_R_32769(l %x) {
+@start
+	%c =w ceql %x, 32769
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_eq_R_m32767(l %x) {
+@start
+	%c =w ceql %x, -32767
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_eq_R_m32768(l %x) {
+@start
+	%c =w ceql %x, -32768
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_eq_R_m32769(l %x) {
+@start
+	%c =w ceql %x, -32769
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_eq_R_0(l %x) {
+@start
+	%c =w ceql %x, 0
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_eq_R_1(l %x) {
+@start
+	%c =w ceql %x, 1
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_eq_R_m1(l %x) {
+@start
+	%c =w ceql %x, -1
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_eq_R_m2(l %x) {
+@start
+	%c =w ceql %x, -2
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_eq_R_m32770(l %x) {
+@start
+	%c =w ceql %x, -32770
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_eq_R_9223372036854775807(l %x) {
+@start
+	%c =w ceql %x, 9223372036854775807
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_slt_R_32766(l %x) {
+@start
+	%c =w csltl %x, 32766
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_slt_R_32767(l %x) {
+@start
+	%c =w csltl %x, 32767
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_slt_R_32768(l %x) {
+@start
+	%c =w csltl %x, 32768
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_slt_R_32769(l %x) {
+@start
+	%c =w csltl %x, 32769
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_slt_R_m32767(l %x) {
+@start
+	%c =w csltl %x, -32767
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_slt_R_m32768(l %x) {
+@start
+	%c =w csltl %x, -32768
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_slt_R_m32769(l %x) {
+@start
+	%c =w csltl %x, -32769
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_slt_R_0(l %x) {
+@start
+	%c =w csltl %x, 0
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_slt_R_1(l %x) {
+@start
+	%c =w csltl %x, 1
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_slt_R_m1(l %x) {
+@start
+	%c =w csltl %x, -1
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_slt_R_m2(l %x) {
+@start
+	%c =w csltl %x, -2
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_slt_R_m32770(l %x) {
+@start
+	%c =w csltl %x, -32770
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_slt_R_9223372036854775807(l %x) {
+@start
+	%c =w csltl %x, 9223372036854775807
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ult_R_32766(l %x) {
+@start
+	%c =w cultl %x, 32766
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ult_R_32767(l %x) {
+@start
+	%c =w cultl %x, 32767
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ult_R_32768(l %x) {
+@start
+	%c =w cultl %x, 32768
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ult_R_32769(l %x) {
+@start
+	%c =w cultl %x, 32769
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ult_R_m32767(l %x) {
+@start
+	%c =w cultl %x, -32767
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ult_R_m32768(l %x) {
+@start
+	%c =w cultl %x, -32768
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ult_R_m32769(l %x) {
+@start
+	%c =w cultl %x, -32769
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ult_R_0(l %x) {
+@start
+	%c =w cultl %x, 0
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ult_R_1(l %x) {
+@start
+	%c =w cultl %x, 1
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ult_R_m1(l %x) {
+@start
+	%c =w cultl %x, -1
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ult_R_m2(l %x) {
+@start
+	%c =w cultl %x, -2
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ult_R_m32770(l %x) {
+@start
+	%c =w cultl %x, -32770
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ult_R_9223372036854775807(l %x) {
+@start
+	%c =w cultl %x, 9223372036854775807
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_uge_R_32766(l %x) {
+@start
+	%c =w cugel %x, 32766
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_uge_R_32767(l %x) {
+@start
+	%c =w cugel %x, 32767
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_uge_R_32768(l %x) {
+@start
+	%c =w cugel %x, 32768
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_uge_R_32769(l %x) {
+@start
+	%c =w cugel %x, 32769
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_uge_R_m32767(l %x) {
+@start
+	%c =w cugel %x, -32767
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_uge_R_m32768(l %x) {
+@start
+	%c =w cugel %x, -32768
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_uge_R_m32769(l %x) {
+@start
+	%c =w cugel %x, -32769
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_uge_R_0(l %x) {
+@start
+	%c =w cugel %x, 0
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_uge_R_1(l %x) {
+@start
+	%c =w cugel %x, 1
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_uge_R_m1(l %x) {
+@start
+	%c =w cugel %x, -1
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_uge_R_m2(l %x) {
+@start
+	%c =w cugel %x, -2
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_uge_R_m32770(l %x) {
+@start
+	%c =w cugel %x, -32770
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_uge_R_9223372036854775807(l %x) {
+@start
+	%c =w cugel %x, 9223372036854775807
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ugt_R_32766(l %x) {
+@start
+	%c =w cugtl %x, 32766
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ugt_R_32767(l %x) {
+@start
+	%c =w cugtl %x, 32767
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ugt_R_32768(l %x) {
+@start
+	%c =w cugtl %x, 32768
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ugt_R_32769(l %x) {
+@start
+	%c =w cugtl %x, 32769
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ugt_R_m32767(l %x) {
+@start
+	%c =w cugtl %x, -32767
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ugt_R_m32768(l %x) {
+@start
+	%c =w cugtl %x, -32768
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ugt_R_m32769(l %x) {
+@start
+	%c =w cugtl %x, -32769
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ugt_R_0(l %x) {
+@start
+	%c =w cugtl %x, 0
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ugt_R_1(l %x) {
+@start
+	%c =w cugtl %x, 1
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ugt_R_m1(l %x) {
+@start
+	%c =w cugtl %x, -1
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ugt_R_m2(l %x) {
+@start
+	%c =w cugtl %x, -2
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ugt_R_m32770(l %x) {
+@start
+	%c =w cugtl %x, -32770
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_ugt_R_9223372036854775807(l %x) {
+@start
+	%c =w cugtl %x, 9223372036854775807
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+export function w $l_uge_L_0(l %x) {
+@start
+	jmp @l
+@l
+	%i =l phi @start %x, @l %j
+	%j =l sub %i, 1
+	%c =w cugel 0, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $l_uge_L_1(l %x) {
+@start
+	jmp @l
+@l
+	%i =l phi @start %x, @l %j
+	%j =l sub %i, 1
+	%c =w cugel 1, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $l_uge_L_32768(l %x) {
+@start
+	jmp @l
+@l
+	%i =l phi @start %x, @l %j
+	%j =l sub %i, 1
+	%c =w cugel 32768, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $l_uge_L_32769(l %x) {
+@start
+	jmp @l
+@l
+	%i =l phi @start %x, @l %j
+	%j =l sub %i, 1
+	%c =w cugel 32769, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $l_uge_L_m1(l %x) {
+@start
+	jmp @l
+@l
+	%i =l phi @start %x, @l %j
+	%j =l sub %i, 1
+	%c =w cugel -1, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $l_uge_L_m32768(l %x) {
+@start
+	jmp @l
+@l
+	%i =l phi @start %x, @l %j
+	%j =l sub %i, 1
+	%c =w cugel -32768, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $l_uge_L_m32769(l %x) {
+@start
+	jmp @l
+@l
+	%i =l phi @start %x, @l %j
+	%j =l sub %i, 1
+	%c =w cugel -32769, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $l_ult_L_0(l %x) {
+@start
+	jmp @l
+@l
+	%i =l phi @start %x, @l %j
+	%j =l sub %i, 1
+	%c =w cultl 0, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $l_ult_L_1(l %x) {
+@start
+	jmp @l
+@l
+	%i =l phi @start %x, @l %j
+	%j =l sub %i, 1
+	%c =w cultl 1, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $l_ult_L_32768(l %x) {
+@start
+	jmp @l
+@l
+	%i =l phi @start %x, @l %j
+	%j =l sub %i, 1
+	%c =w cultl 32768, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $l_ult_L_32769(l %x) {
+@start
+	jmp @l
+@l
+	%i =l phi @start %x, @l %j
+	%j =l sub %i, 1
+	%c =w cultl 32769, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $l_ult_L_m1(l %x) {
+@start
+	jmp @l
+@l
+	%i =l phi @start %x, @l %j
+	%j =l sub %i, 1
+	%c =w cultl -1, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $l_ult_L_m32768(l %x) {
+@start
+	jmp @l
+@l
+	%i =l phi @start %x, @l %j
+	%j =l sub %i, 1
+	%c =w cultl -32768, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $l_ult_L_m32769(l %x) {
+@start
+	jmp @l
+@l
+	%i =l phi @start %x, @l %j
+	%j =l sub %i, 1
+	%c =w cultl -32769, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $l_sgt_L_0(l %x) {
+@start
+	jmp @l
+@l
+	%i =l phi @start %x, @l %j
+	%j =l sub %i, 1
+	%c =w csgtl 0, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $l_sgt_L_1(l %x) {
+@start
+	jmp @l
+@l
+	%i =l phi @start %x, @l %j
+	%j =l sub %i, 1
+	%c =w csgtl 1, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $l_sgt_L_32768(l %x) {
+@start
+	jmp @l
+@l
+	%i =l phi @start %x, @l %j
+	%j =l sub %i, 1
+	%c =w csgtl 32768, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $l_sgt_L_32769(l %x) {
+@start
+	jmp @l
+@l
+	%i =l phi @start %x, @l %j
+	%j =l sub %i, 1
+	%c =w csgtl 32769, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $l_sgt_L_m1(l %x) {
+@start
+	jmp @l
+@l
+	%i =l phi @start %x, @l %j
+	%j =l sub %i, 1
+	%c =w csgtl -1, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $l_sgt_L_m32768(l %x) {
+@start
+	jmp @l
+@l
+	%i =l phi @start %x, @l %j
+	%j =l sub %i, 1
+	%c =w csgtl -32768, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}
+export function w $l_sgt_L_m32769(l %x) {
+@start
+	jmp @l
+@l
+	%i =l phi @start %x, @l %j
+	%j =l sub %i, 1
+	%c =w csgtl -32769, %j
+	jnz %c, @out, @l
+@out
+	ret 1
+}

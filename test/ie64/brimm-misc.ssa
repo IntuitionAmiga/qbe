@@ -1,0 +1,61 @@
+# Compares that do not feed a branch keep the register form, a compare
+# that feeds a branch and a value uses a register, a known zero-extended
+# w value and a loop bound use the immediate form.
+export function w $value_only(w %x) {
+@start
+	%r =w csltw %x, 7
+	ret %r
+}
+
+export function w $branch_and_value(w %x) {
+@start
+	%c =w csltw %x, 7
+	jnz %c, @y, @n
+@y
+	ret %c
+@n
+	ret 2
+}
+
+export function w $zero_ext(l %p) {
+@start
+	%b =w loadub %p
+	%c =w cultw %b, 100
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+
+export function w $loop(l %p) {
+@start
+	jmp @body
+@body
+	%i =w phi @start 0, @body %j
+	%j =w add %i, 1
+	%c =w csltw %j, 100
+	jnz %c, @body, @out
+@out
+	ret %j
+}
+
+export function w $two_regs(w %x, w %y) {
+@start
+	%c =w csltw %x, %y
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}
+
+export function w $zero(w %x) {
+@start
+	%c =w ceqw %x, 0
+	jnz %c, @y, @n
+@y
+	ret 1
+@n
+	ret 2
+}

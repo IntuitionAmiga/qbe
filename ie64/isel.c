@@ -61,6 +61,70 @@ iszerocmp(Ins *i, Ref *r, Fn *fn)
 		&& c->bits.i == 0;
 }
 
+/* The compare-and-branch with an immediate.  Given the condition of a
+ * compare, whether its constant is the left operand, and the constant
+ * as the 64-bit compare sees it, find the branch mnemonic and the signed
+ * 16-bit immediate that make the same decision on the other operand.
+ * Unsigned >= and < have no immediate form: N-1 with bhi or bls does the
+ * same, unless N is zero.  The result does not change when the branch is
+ * inverted, because that keeps each condition in its family. */
+int
+ie64_brimm(int cc, int constleft, int64_t v, char **name, int64_t *imm)
+{
+	static char *nm[] = {
+		[Cieq] = "beq", [Cine] = "bne",
+		[Cisge] = "bge", [Cisgt] = "bgt", [Cisle] = "ble", [Cislt] = "blt",
+		[Ciugt] = "bhi", [Ciule] = "bls",
+	};
+	uint64_t u = v;
+
+	if (constleft)
+		switch (cc) {
+		case Cisge: cc = Cisle; break;
+		case Cisgt: cc = Cislt; break;
+		case Cisle: cc = Cisge; break;
+		case Cislt: cc = Cisgt; break;
+		case Ciuge: cc = Ciule; break;
+		case Ciugt: cc = Ciult; break;
+		case Ciule: cc = Ciuge; break;
+		case Ciult: cc = Ciugt; break;
+		}
+	if (cc == Ciuge || cc == Ciult) {
+		if (u == 0)
+			return 0;
+		u--;
+		cc = cc == Ciuge ? Ciugt : Ciule;
+	}
+	v = (int64_t)u;
+	if (cc < 0 || cc >= (int)(sizeof nm / sizeof nm[0]) || !nm[cc])
+		return 0;
+	if (v < -32768 || v > 32767)
+		return 0;
+	*name = nm[cc];
+	*imm = v;
+	return 1;
+}
+
+/* Does the integer compare i feed the conditional jump of block b? */
+static int
+brimmfeeds(Blk *b, Ins *i)
+{
+	return b->jmp.type == Jjnz && req(i->to, b->jmp.arg);
+}
+
+/* A numeric constant, not zero (zero names r0)? */
+static int
+brimmcon(Ref r, int64_t *v, Fn *fn)
+{
+	Con *c;
+
+	if (rtype(r) != RCon || (c = &fn->con[r.val])->type != CBits || c->flt
+	|| c->bits.i == 0)
+		return 0;
+	*v = c->bits.i;
+	return 1;
+}
+
 static void
 fixarg(Ref *r, int k, Ins *i, Fn *fn)
 {
@@ -289,6 +353,22 @@ ie64_isel(Fn *fn)
 				 * the same extension first. */
 				cmpplan(i->arg[0], sign, 1, &ca[0], fn);
 				cmpplan(i->arg[1], sign, 1, &ca[1], fn);
+				/* A compare that feeds a branch keeps a constant that
+				 * fits the immediate form as an operand. */
+				if (ie64_branch_imm && brimmfeeds(b, i)) {
+					char *bn;
+					int64_t imm;
+
+					for (pn=0; pn<2; pn++)
+						if (ca[pn].how == 1
+						&& rtype(ca[1-pn].orig) != RCon
+						&& ie64_brimm(cc, pn == 0,
+							fn->con[ca[pn].con.val].bits.i, &bn, &imm)) {
+							ca[pn].use = ca[pn].con;
+							ca[pn].how = 0;
+							break;
+						}
+				}
 				i->arg[0] = ca[0].use;
 				i->arg[1] = ca[1].use;
 				i->op += Ocmpl - Ocmpw;
@@ -386,8 +466,24 @@ ie64_isel(Fn *fn)
 			emiti(*i);
 			ii = curi;
 			if (ii->op != Onop && ii->op != Ocopy) {
-				fixarg(&ii->arg[0], argcls(ii, 0), ii, fn);
-				fixarg(&ii->arg[1], argcls(ii, 1), ii, fn);
+				int keep = -1;
+
+				if (ie64_branch_imm && iscmp(ii->op, &ck, &cc)
+				&& KBASE(ck) == 0 && brimmfeeds(b, ii))
+					for (pn=0; pn<2; pn++)
+						if (brimmcon(ii->arg[pn], &n, fn)
+						&& rtype(ii->arg[1-pn]) != RCon) {
+							char *bn;
+							int64_t imm;
+
+							if (ie64_brimm(cc, pn == 0, n, &bn, &imm))
+								keep = pn;
+							break;
+						}
+				if (keep != 0)
+					fixarg(&ii->arg[0], argcls(ii, 0), ii, fn);
+				if (keep != 1)
+					fixarg(&ii->arg[1], argcls(ii, 1), ii, fn);
 			}
 			for (pn=0; pn<npend; pn++)
 				cmpemit(&pend[pn], pendsign, fn);
