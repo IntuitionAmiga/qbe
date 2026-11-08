@@ -1,0 +1,361 @@
+function l $ee_isdigit(l %.1) {
+@start.67
+	%.2 =l alloc4 1
+	storeb %.1, %.2
+	%.3 =l alloc4 1
+@body.68
+	%.4 =w loadub %.2
+	%.5 =w extub %.4
+	%.6 =w csgew %.5, 48
+	%.7 =w loadub %.2
+	%.8 =w extub %.7
+	%.9 =w cslew %.8, 57
+	%.10 =w and %.6, %.9
+	jnz %.10, @cond_true.69, @cond_false.70
+@cond_true.69
+	jmp @cond_join.71
+@cond_false.70
+@cond_join.71
+	%.11 =w phi @cond_true.69 1, @cond_false.70 0
+	storeb %.11, %.3
+	%.12 =w loadub %.3
+	%.13 =l extub %.12
+	ret %.13
+}
+
+function l $core_state_transition(l %.1, l %.3) {
+@start.72
+	%.2 =l alloc8 8
+	storel %.1, %.2
+	%.4 =l alloc8 8
+	storel %.3, %.4
+	%.5 =l alloc8 8
+	%.8 =l alloc4 1
+	%.9 =l alloc4 4
+@body.73
+	%.6 =l loadl %.2
+	%.7 =l loadl %.6
+	storel %.7, %.5
+	storew 0, %.9
+@for_cond.74
+	%.10 =l loadl %.5
+	%.11 =w loadub %.10
+	%.12 =w extub %.11
+	jnz %.12, @logic_and.78, @for_join.77
+@logic_and.78
+	%.13 =w loadw %.9
+	%.14 =w cnew %.13, 1
+	jnz %.14, @for_body.75, @for_join.77
+@for_body.75
+	%.15 =l loadl %.5
+	%.16 =w loadub %.15
+	storeb %.16, %.8
+	%.17 =w loadub %.8
+	%.18 =w extub %.17
+	%.19 =w ceqw %.18, 44
+	jnz %.19, @if_true.79, @if_false.80
+@if_true.79
+	%.20 =l loadl %.5
+	%.21 =l add %.20, 1
+	storel %.21, %.5
+	jmp @for_join.77
+@if_false.80
+	%.22 =w loadw %.9
+	jmp @switch_cond.81
+@switch_case.83
+	%.23 =w loadub %.8
+	%.24 =l extub %.23
+	%.25 =l call $ee_isdigit(l %.24)
+	%.26 =w extub %.25
+	jnz %.26, @if_true.84, @if_false.85
+@if_true.84
+	storew 4, %.9
+	jmp @if_join.86
+@if_false.85
+	%.27 =w loadub %.8
+	%.28 =w extub %.27
+	%.29 =w ceqw %.28, 43
+	jnz %.29, @if_true.87, @logic_or.89
+@logic_or.89
+	%.30 =w loadub %.8
+	%.31 =w extub %.30
+	%.32 =w ceqw %.31, 45
+	jnz %.32, @if_true.87, @if_false.88
+@if_true.87
+	storew 2, %.9
+	jmp @if_join.90
+@if_false.88
+	%.33 =w loadub %.8
+	%.34 =w extub %.33
+	%.35 =w ceqw %.34, 46
+	jnz %.35, @if_true.91, @if_false.92
+@if_true.91
+	storew 5, %.9
+	jmp @if_join.93
+@if_false.92
+	storew 1, %.9
+	%.36 =l loadl %.4
+	%.37 =l extsw 1
+	%.38 =l mul %.37, 4
+	%.39 =l add %.36, %.38
+	%.40 =w loadw %.39
+	%.41 =w add %.40, 1
+	storew %.41, %.39
+@if_join.93
+@if_join.90
+@if_join.86
+	%.42 =l loadl %.4
+	%.43 =l extsw 0
+	%.44 =l mul %.43, 4
+	%.45 =l add %.42, %.44
+	%.46 =w loadw %.45
+	%.47 =w add %.46, 1
+	storew %.47, %.45
+	jmp @switch_join.82
+@switch_case.94
+	%.48 =w loadub %.8
+	%.49 =l extub %.48
+	%.50 =l call $ee_isdigit(l %.49)
+	%.51 =w extub %.50
+	jnz %.51, @if_true.95, @if_false.96
+@if_true.95
+	storew 4, %.9
+	%.52 =l loadl %.4
+	%.53 =l extsw 2
+	%.54 =l mul %.53, 4
+	%.55 =l add %.52, %.54
+	%.56 =w loadw %.55
+	%.57 =w add %.56, 1
+	storew %.57, %.55
+	jmp @if_join.97
+@if_false.96
+	%.58 =w loadub %.8
+	%.59 =w extub %.58
+	%.60 =w ceqw %.59, 46
+	jnz %.60, @if_true.98, @if_false.99
+@if_true.98
+	storew 5, %.9
+	%.61 =l loadl %.4
+	%.62 =l extsw 2
+	%.63 =l mul %.62, 4
+	%.64 =l add %.61, %.63
+	%.65 =w loadw %.64
+	%.66 =w add %.65, 1
+	storew %.66, %.64
+	jmp @if_join.100
+@if_false.99
+	storew 1, %.9
+	%.67 =l loadl %.4
+	%.68 =l extsw 2
+	%.69 =l mul %.68, 4
+	%.70 =l add %.67, %.69
+	%.71 =w loadw %.70
+	%.72 =w add %.71, 1
+	storew %.72, %.70
+@if_join.100
+@if_join.97
+	jmp @switch_join.82
+@switch_case.101
+	%.73 =w loadub %.8
+	%.74 =w extub %.73
+	%.75 =w ceqw %.74, 46
+	jnz %.75, @if_true.102, @if_false.103
+@if_true.102
+	storew 5, %.9
+	%.76 =l loadl %.4
+	%.77 =l extsw 4
+	%.78 =l mul %.77, 4
+	%.79 =l add %.76, %.78
+	%.80 =w loadw %.79
+	%.81 =w add %.80, 1
+	storew %.81, %.79
+	jmp @if_join.104
+@if_false.103
+	%.82 =w loadub %.8
+	%.83 =l extub %.82
+	%.84 =l call $ee_isdigit(l %.83)
+	%.85 =w extub %.84
+	jnz %.85, @if_false.106, @if_true.105
+@if_true.105
+	storew 1, %.9
+	%.86 =l loadl %.4
+	%.87 =l extsw 4
+	%.88 =l mul %.87, 4
+	%.89 =l add %.86, %.88
+	%.90 =w loadw %.89
+	%.91 =w add %.90, 1
+	storew %.91, %.89
+@if_false.106
+@if_join.104
+	jmp @switch_join.82
+@switch_case.107
+	%.92 =w loadub %.8
+	%.93 =w extub %.92
+	%.94 =w ceqw %.93, 69
+	jnz %.94, @if_true.108, @logic_or.110
+@logic_or.110
+	%.95 =w loadub %.8
+	%.96 =w extub %.95
+	%.97 =w ceqw %.96, 101
+	jnz %.97, @if_true.108, @if_false.109
+@if_true.108
+	storew 3, %.9
+	%.98 =l loadl %.4
+	%.99 =l extsw 5
+	%.100 =l mul %.99, 4
+	%.101 =l add %.98, %.100
+	%.102 =w loadw %.101
+	%.103 =w add %.102, 1
+	storew %.103, %.101
+	jmp @if_join.111
+@if_false.109
+	%.104 =w loadub %.8
+	%.105 =l extub %.104
+	%.106 =l call $ee_isdigit(l %.105)
+	%.107 =w extub %.106
+	jnz %.107, @if_false.113, @if_true.112
+@if_true.112
+	storew 1, %.9
+	%.108 =l loadl %.4
+	%.109 =l extsw 5
+	%.110 =l mul %.109, 4
+	%.111 =l add %.108, %.110
+	%.112 =w loadw %.111
+	%.113 =w add %.112, 1
+	storew %.113, %.111
+@if_false.113
+@if_join.111
+	jmp @switch_join.82
+@switch_case.114
+	%.114 =w loadub %.8
+	%.115 =w extub %.114
+	%.116 =w ceqw %.115, 43
+	jnz %.116, @if_true.115, @logic_or.117
+@logic_or.117
+	%.117 =w loadub %.8
+	%.118 =w extub %.117
+	%.119 =w ceqw %.118, 45
+	jnz %.119, @if_true.115, @if_false.116
+@if_true.115
+	storew 6, %.9
+	%.120 =l loadl %.4
+	%.121 =l extsw 3
+	%.122 =l mul %.121, 4
+	%.123 =l add %.120, %.122
+	%.124 =w loadw %.123
+	%.125 =w add %.124, 1
+	storew %.125, %.123
+	jmp @if_join.118
+@if_false.116
+	storew 1, %.9
+	%.126 =l loadl %.4
+	%.127 =l extsw 3
+	%.128 =l mul %.127, 4
+	%.129 =l add %.126, %.128
+	%.130 =w loadw %.129
+	%.131 =w add %.130, 1
+	storew %.131, %.129
+@if_join.118
+	jmp @switch_join.82
+@switch_case.119
+	%.132 =w loadub %.8
+	%.133 =l extub %.132
+	%.134 =l call $ee_isdigit(l %.133)
+	%.135 =w extub %.134
+	jnz %.135, @if_true.120, @if_false.121
+@if_true.120
+	storew 7, %.9
+	%.136 =l loadl %.4
+	%.137 =l extsw 6
+	%.138 =l mul %.137, 4
+	%.139 =l add %.136, %.138
+	%.140 =w loadw %.139
+	%.141 =w add %.140, 1
+	storew %.141, %.139
+	jmp @if_join.122
+@if_false.121
+	storew 1, %.9
+	%.142 =l loadl %.4
+	%.143 =l extsw 6
+	%.144 =l mul %.143, 4
+	%.145 =l add %.142, %.144
+	%.146 =w loadw %.145
+	%.147 =w add %.146, 1
+	storew %.147, %.145
+@if_join.122
+	jmp @switch_join.82
+@switch_case.123
+	%.148 =w loadub %.8
+	%.149 =l extub %.148
+	%.150 =l call $ee_isdigit(l %.149)
+	%.151 =w extub %.150
+	jnz %.151, @if_false.125, @if_true.124
+@if_true.124
+	storew 1, %.9
+	%.152 =l loadl %.4
+	%.153 =l extsw 1
+	%.154 =l mul %.153, 4
+	%.155 =l add %.152, %.154
+	%.156 =w loadw %.155
+	%.157 =w add %.156, 1
+	storew %.157, %.155
+@if_false.125
+	jmp @switch_join.82
+@switch_default.126
+	jmp @switch_join.82
+@switch_cond.81
+	%.158 =w ceqw %.22, 4
+	jnz %.158, @switch_case.101, @switch_ne.127
+@switch_ne.127
+	%.159 =w cultw %.22, 4
+	jnz %.159, @switch_lt.128, @switch_gt.129
+@switch_lt.128
+	%.160 =w ceqw %.22, 2
+	jnz %.160, @switch_case.94, @switch_ne.130
+@switch_ne.130
+	%.161 =w cultw %.22, 2
+	jnz %.161, @switch_lt.131, @switch_gt.132
+@switch_lt.131
+	%.162 =w ceqw %.22, 0
+	jnz %.162, @switch_case.83, @switch_ne.133
+@switch_ne.133
+	%.163 =w cultw %.22, 0
+	jnz %.163, @switch_lt.134, @switch_gt.135
+@switch_lt.134
+	jmp @switch_default.126
+@switch_gt.135
+	jmp @switch_default.126
+@switch_gt.132
+	jmp @switch_case.114
+@switch_gt.129
+	%.164 =w ceqw %.22, 6
+	jnz %.164, @switch_case.119, @switch_ne.136
+@switch_ne.136
+	%.165 =w cultw %.22, 6
+	jnz %.165, @switch_lt.137, @switch_gt.138
+@switch_lt.137
+	jmp @switch_case.107
+@switch_gt.138
+	%.166 =w ceqw %.22, 7
+	jnz %.166, @switch_case.123, @switch_ne.139
+@switch_ne.139
+	%.167 =w cultw %.22, 7
+	jnz %.167, @switch_lt.140, @switch_gt.141
+@switch_lt.140
+	jmp @switch_default.126
+@switch_gt.141
+	jmp @switch_default.126
+@switch_join.82
+@for_cont.76
+	%.168 =l loadl %.5
+	%.169 =l add %.168, 1
+	storel %.169, %.5
+	jmp @for_cond.74
+@for_join.77
+	%.170 =l loadl %.5
+	%.171 =l loadl %.2
+	storel %.170, %.171
+	%.172 =w loadw %.9
+	%.173 =l extuw %.172
+	ret %.173
+}

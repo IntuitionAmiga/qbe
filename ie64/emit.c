@@ -1491,6 +1491,51 @@ copyfwd(Fn *fn, Blk *b, bits *livein)
 	(void)abort_;
 }
 
+/* `move d, s; op d, d, y`: the operation can read s.  Allocation leaves
+ * such a pair where a phi or a parameter shuffle lands in front of an
+ * operation that overwrites its input. */
+static void
+copyfold(Fn *fn, Blk *b)
+{
+	Ins *c, *j;
+	Ref rd;
+
+	for (c=b->ins; c<&b->ins[b->nins]; c++) {
+		if (c->op != Ocopy || !plainreg(c->to) || !plainreg(c->arg[0])
+		|| req(c->to, c->arg[0]) || KBASE(c->cls) != 0)
+			continue;
+		rd = c->to;
+		for (j=c+1; j<&b->ins[b->nins] && j->op == Onop; j++)
+			;
+		if (j == &b->ins[b->nins] || KBASE(j->cls) != 0)
+			continue;
+		switch (j->op) {
+		case Oadd: case Osub: case Omul: case Oand: case Oor: case Oxor:
+		case Oshl: case Oshr: case Osar:
+			break;
+		default:
+			continue;
+		}
+		/* A narrow copy clears the upper half.  Only the low half of the
+		 * source reaches the result of these narrow operations; a right
+		 * shift or a wide use would read the upper half. */
+		if (c->cls == Kw)
+			switch (j->op) {
+			case Oadd: case Osub: case Omul: case Oand: case Oor:
+			case Oxor: case Oshl:
+				if (j->cls == Kw)
+					break;
+			default:
+				continue;
+			}
+		if (!req(j->to, rd) || !req(j->arg[0], rd) || req(j->arg[1], rd))
+			continue;
+		j->arg[0] = c->arg[0];
+		*c = (Ins){.op = Onop};
+	}
+	(void)fn;
+}
+
 /* Registers an instruction or the end of a block mentions. */
 static bits
 insmention(Ins *i)
@@ -1729,6 +1774,119 @@ hoistloop(Fn *fn, Blk *h, Blk *l, bits *livein)
 	(void)p;
 }
 
+/* A register that the loop loads with one constant, at every place that
+ * loads it, and that no path enters the loop with a value in:
+ * the loads can leave the loop and run once in the preheader.  The
+ * constants GCM hoists to a loop header and uses in later blocks
+ * are of this kind. */
+static void
+hoistsame(Fn *fn, Blk *h, Blk *l, bits *livein)
+{
+	Blk *b, *pre, *other, *x;
+	Ins *i, *ni;
+	bits mention, ok, bad, seen;
+	int64_t val[R28+1], v;
+	int hascall, r, nl;
+	uint npre, n;
+
+	pre = 0;
+	npre = 0;
+	mention = 0;
+	hascall = 0;
+	for (b=fn->start; b; b=b->link) {
+		if (b->id < h->id || b->id > l->id) {
+			if (b->s1 == h || b->s2 == h) {
+				pre = b;
+				npre++;
+			}
+			if (b->s1 && b->s1 != h && b->s1->id >= h->id
+			&& b->s1->id <= l->id)
+				return;
+			if (b->s2 && b->s2 != h && b->s2->id >= h->id
+			&& b->s2->id <= l->id)
+				return;
+			continue;
+		}
+		for (i=b->ins; i<&b->ins[b->nins]; i++) {
+			if (i->op == Onop)
+				continue;
+			if (isie64op(i->op) || i->op == Oswap
+			|| i->op == Osalloc || i->op == Ovastart)
+				return;
+			if (iscallop(i->op))
+				hascall = 1;
+		}
+		if (rtype(b->jmp.arg) == RCall)
+			return;
+	}
+	if (npre != 1 || !pre || (pre->jmp.type != Jjmp && pre->jmp.type != Jjnz))
+		return;
+	other = pre->s1 == h ? pre->s2 : pre->s1;
+	if (pre->jmp.type == Jjnz && other == h)
+		return;
+	/* The registers that the preheader leaves alone and that are dead on
+	 * the other way out of it and on entry to the loop. */
+	mention = 0;
+	for (i=pre->ins; i<&pre->ins[pre->nins]; i++)
+		mention |= insmention(i);
+	if (isreg(pre->jmp.arg))
+		mention |= BIT(pre->jmp.arg.val);
+	if (pre->jmp.type == Jjnz && other)
+		mention |= livein[other->id];
+	mention |= livein[h->id];
+	ok = 0;
+	bad = 0;
+	seen = 0;
+	for (x=h; x && x->id <= l->id; x=x->link)
+		for (i=x->ins; i<&x->ins[x->nins]; i++) {
+			if (i->op == Onop)
+				continue;
+			if (isreg(i->to) && i->to.val >= R1 && i->to.val <= R28) {
+				r = i->to.val;
+				if (constload(fn, i, &v)) {
+					if (seen & BIT(r) && val[r] != v)
+						bad |= BIT(r);
+					val[r] = v;
+					seen |= BIT(r);
+					ok |= BIT(r);
+				} else
+					bad |= BIT(r);
+			}
+		}
+	nl = 0;
+	for (r=R1; r<=R28; r++) {
+		if (!(ok & BIT(r)) || (bad & BIT(r)) || (mention & BIT(r)))
+			continue;
+		if (r == R25)
+			continue;
+		/* A caller-save register does not survive a call. */
+		if (hascall && !(r >= R18 && r <= R24 && (fn->reg & BIT(r))))
+			continue;
+		nl++;
+	}
+	if (!nl)
+		return;
+	ni = vnew(pre->nins + nl, sizeof ni[0], PFn);
+	for (n=0; n<pre->nins; n++)
+		ni[n] = pre->ins[n];
+	for (r=R1; r<=R28; r++) {
+		if (!(ok & BIT(r)) || (bad & BIT(r)) || (mention & BIT(r)))
+			continue;
+		if (r == R25)
+			continue;
+		if (hascall && !(r >= R18 && r <= R24 && (fn->reg & BIT(r))))
+			continue;
+		ni[n++] = (Ins){.op = Ocopy, .cls = Kl, .to = TMP(r),
+			.arg = {getcon(val[r], fn), R}};
+		for (x=h; x && x->id <= l->id; x=x->link)
+			for (i=x->ins; i<&x->ins[x->nins]; i++)
+				if (i->op != Onop && req(i->to, TMP(r)))
+					*i = (Ins){.op = Onop};
+	}
+	pre->ins = ni;
+	pre->nins = n;
+}
+
 static void
 hoistconsts(Fn *fn)
 {
@@ -1761,11 +1919,32 @@ hoistconsts(Fn *fn)
 				s = hd[i]; hd[i] = hd[j]; hd[j] = s;
 				t = lt[i]; lt[i] = lt[j]; lt[j] = t;
 			}
+	/* A rotated loop copies its test to the bottom, and that copy jumps
+	 * into the middle of the loop.  Such a block belongs to the loop. */
+	for (i=0; i<n; i++)
+		for (;;) {
+			for (b=fn->start; b; b=b->link) {
+				if (b->id <= lt[i]->id)
+					continue;
+				s = b->s1 && b->s1->id > hd[i]->id
+				&& b->s1->id <= lt[i]->id ? b->s1 : 0;
+				if (!s)
+					s = b->s2 && b->s2->id > hd[i]->id
+					&& b->s2->id <= lt[i]->id ? b->s2 : 0;
+				if (s)
+					break;
+			}
+			if (!b)
+				break;
+			lt[i] = b;
+		}
 	/* Overlapping loops may take a second round. */
 	for (k=0; k<2; k++)
 		for (i=0; i<n; i++) {
 			livein = fillreglive(fn);
 			hoistloop(fn, hd[i], lt[i], livein);
+			livein = fillreglive(fn);
+			hoistsame(fn, hd[i], lt[i], livein);
 		}
 }
 
@@ -1820,6 +1999,8 @@ ie64_emitfn(Fn *fn, FILE *f)
 	fused = alloc(nb * sizeof fused[0]);
 	for (b=fn->start; b; b=b->link)
 		copyfwd(fn, b, livein);
+	for (b=fn->start; b; b=b->link)
+		copyfold(fn, b);
 	hoistconsts(fn);
 	livein = fillreglive(fn);
 	for (b=fn->start; b; b=b->link) {
