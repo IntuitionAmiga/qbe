@@ -60,6 +60,7 @@ struct Target {
 	int (*memargs)(int);
 	void (*abi0)(Fn *);
 	void (*abi1)(Fn *);
+	int (*preopt)(Fn *); /* optional, before GCM */
 	void (*isel)(Fn *);
 	void (*emitfn)(Fn *, FILE *);
 	/* Optional target-specific data emitter.  Targets that leave this unset use

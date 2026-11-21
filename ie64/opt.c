@@ -172,3 +172,156 @@ ie64_rangecmp(Fn *fn)
 				.arg = {t, getcon((int64_t)range, fn)}};
 		}
 }
+
+/* Replace every use of a temporary that map names by its image. */
+static void
+substitute(Fn *fn, Ref *map, Ref *jmap)
+{
+	Blk *b;
+	Ins *i;
+	Phi *p;
+	Ref r;
+	uint n;
+
+	for (b=fn->start; b; b=b->link) {
+		for (p=b->phi; p; p=p->link)
+			for (n=0; n<p->narg; n++)
+				if (rtype(p->arg[n]) == RTmp && p->arg[n].val >= Tmp0
+				&& (r = map[p->arg[n].val]).val != 0)
+					p->arg[n] = r;
+		for (i=b->ins; i<&b->ins[b->nins]; i++)
+			for (n=0; n<2; n++)
+				if (rtype(i->arg[n]) == RTmp && i->arg[n].val >= Tmp0
+				&& (r = map[i->arg[n].val]).val != 0)
+					i->arg[n] = r;
+		if (rtype(b->jmp.arg) == RTmp && b->jmp.arg.val >= Tmp0) {
+			if ((r = map[b->jmp.arg.val]).val != 0)
+				b->jmp.arg = r;
+			else if (b->jmp.type == Jjnz && jmap
+			&& (r = jmap[b->jmp.arg.val]).val != 0)
+				b->jmp.arg = r;
+		}
+	}
+}
+
+/*
+ * `r = c ? 1 : 0` on a comparison c is the comparison.  Front ends write it
+ * as a conditional jump to two empty blocks and a phi of 1 and 0.  The
+ * jump goes, the users of the phi read the comparison, and GCM can copy it
+ * to the jumps that test it, where it fuses.
+ */
+static int
+boolphi(Fn *fn, Ref *map)
+{
+	Blk *j, *a, *z, *d;
+	Phi *p;
+	Tmp *t;
+	Con *c0, *c1;
+	int ck, cc, ia, any;
+
+	any = 0;
+	for (j=fn->start; j; j=j->link) {
+		p = j->phi;
+		if (!p || p->link || p->cls != Kw || p->narg != 2 || j->npred != 2)
+			continue;
+		if (rtype(p->arg[0]) != RCon || rtype(p->arg[1]) != RCon)
+			continue;
+		c0 = &fn->con[p->arg[0].val];
+		c1 = &fn->con[p->arg[1].val];
+		if (c0->type != CBits || c1->type != CBits || c0->flt || c1->flt)
+			continue;
+		if (c0->bits.i == 1 && c1->bits.i == 0)
+			ia = 0;
+		else if (c0->bits.i == 0 && c1->bits.i == 1)
+			ia = 1;
+		else
+			continue;
+		a = p->blk[ia];
+		z = p->blk[1-ia];
+		if (a == z || a->nins || z->nins || a->npred != 1 || z->npred != 1
+		|| a->pred[0] != z->pred[0])
+			continue;
+		d = a->pred[0];
+		if (d->jmp.type != Jjnz || d->s1 != a || d->s2 != z
+		|| rtype(d->jmp.arg) != RTmp || d->jmp.arg.val < Tmp0)
+			continue;
+		t = &fn->tmp[d->jmp.arg.val];
+		if (t->ndef != 1 || !t->def || t->def->cls != Kw
+		|| !iscmp(t->def->op, &ck, &cc))
+			continue;
+		map[p->to.val] = d->jmp.arg;
+		j->phi = 0;
+		d->jmp.type = Jjmp;
+		d->jmp.arg = R;
+		d->s1 = j;
+		d->s2 = 0;
+		any = 1;
+	}
+	return any;
+}
+
+/*
+ * A comparison builds 0 or 1, so the zero- or sign-extension of its
+ * result from 8 or 16 bits changes nothing.  Front ends emit one for
+ * a comparison stored in a small integer type.  Its users then read the
+ * comparison itself.
+ */
+static int
+cmpext(Fn *fn, Ref *map, Ref *jmap)
+{
+	Blk *b;
+	Ins *i, *d;
+	Tmp *t;
+	int ck, cc, any;
+
+	any = 0;
+	for (b=fn->start; b; b=b->link)
+		for (i=b->ins; i<&b->ins[b->nins]; i++) {
+			if ((i->cls != Kw && i->cls != Kl) || rtype(i->arg[0]) != RTmp
+			|| rtype(i->to) != RTmp || i->to.val < Tmp0
+			|| i->arg[0].val < Tmp0)
+				continue;
+			if (i->op != Oextub && i->op != Oextuh && i->op != Oextuw
+			&& i->op != Oextsb && i->op != Oextsh && i->op != Oextsw)
+				continue;
+			if (i->cls == Kw && (i->op == Oextuw || i->op == Oextsw))
+				continue;
+			t = &fn->tmp[i->arg[0].val];
+			d = t->def;
+			if (t->ndef != 1 || !d || d->cls != Kw
+			|| !iscmp(d->op, &ck, &cc))
+				continue;
+			/* A 64-bit result is read as a condition only. */
+			if (i->cls == Kw)
+				map[i->to.val] = i->arg[0];
+			else
+				jmap[i->to.val] = i->arg[0];
+			any = 1;
+		}
+	return any;
+}
+
+/* Runs before GCM, on SSA form with up to date uses.  Returns whether the
+ * control flow changed. */
+int
+ie64_preopt(Fn *fn)
+{
+	Ref *map, *jmap;
+	int cfg;
+
+	ie64_rangecmp(fn);
+	/* The phis go first: the extension of one reads a comparison. */
+	map = alloc(fn->ntmp * sizeof map[0]);
+	jmap = alloc(fn->ntmp * sizeof jmap[0]);
+	cfg = boolphi(fn, map);
+	if (cfg) {
+		substitute(fn, map, 0);
+		fillcfg(fn);
+		filluse(fn);
+		filldom(fn);
+		memset(map, 0, fn->ntmp * sizeof map[0]);
+	}
+	if (cmpext(fn, map, jmap))
+		substitute(fn, map, jmap);
+	return cfg;
+}

@@ -121,6 +121,10 @@ funcdo(Fn *fn)
 	simplcfg(fn);
 	filluse(fn);
 	filldom(fn);
+	if (T.preopt && T.sinkfuse) {
+		T.preopt(fn);
+		filluse(fn);
+	}
 	gcm(fn);
 	filluse(fn);
 	ssacheck(fn);

@@ -1,0 +1,115 @@
+# A comparison stored as 1 or 0 and then tested in several places is the comparison itself: it is copied to each jump and fuses with it.
+export function w $phi(w %c, w %s) {
+@start
+	%t =w cugtw %c, 9
+	jnz %t, @one, @zero
+@one
+	jmp @join
+@zero
+	jmp @join
+@join
+	%r =w phi @one 1, @zero 0
+	jnz %s, @a, @b
+@a
+	jnz %r, @x, @y
+@b
+	jnz %r, @y, @x
+@x
+	ret 1
+@y
+	ret 2
+}
+
+# The extension of a comparison to eight bits, as for a value of type unsigned char, changes nothing.
+export function w $ext(w %c, w %s) {
+@start
+	%t =w ceqw %c, 46
+	%r =w extub %t
+	jnz %s, @a, @b
+@a
+	jnz %r, @x, @y
+@b
+	jnz %r, @y, @x
+@x
+	ret 1
+@y
+	ret 2
+}
+
+# The same, widened to 64 bits and used as a condition.
+export function w $ext64(w %c, w %s) {
+@start
+	%t =w cnew %c, 46
+	%r =l extub %t
+	jnz %s, @a, @b
+@a
+	jnz %r, @x, @y
+@b
+	jnz %r, @y, @x
+@x
+	ret 1
+@y
+	ret 2
+}
+
+# The result is also used as a value, so the 64-bit extension stays and only the jumps read the comparison.
+export function l $ext64value(w %c, w %s) {
+@start
+	%t =w cnew %c, 46
+	%r =l extub %t
+	jnz %s, @a, @b
+@a
+	jnz %r, @x, @y
+@b
+	ret %r
+@x
+	ret 1
+@y
+	ret 2
+}
+
+# The phi of 0 and 1 is in the other order, which is not the comparison: it stays.
+export function w $inverted(w %c, w %s) {
+@start
+	%t =w cugtw %c, 9
+	jnz %t, @one, @zero
+@one
+	jmp @join
+@zero
+	jmp @join
+@join
+	%r =w phi @one 0, @zero 1
+	jnz %s, @a, @b
+@a
+	jnz %r, @x, @y
+@b
+	jnz %r, @y, @x
+@x
+	ret 1
+@y
+	ret 2
+}
+
+# A range test through the phi, as in a character class: one subtraction and one compare at each jump.
+export function w $range(w %c, w %s) {
+@start
+	%l =w csgew %c, 48
+	%h =w cslew %c, 57
+	%b =w and %l, %h
+	jnz %b, @one, @zero
+@one
+	jmp @join
+@zero
+	jmp @join
+@join
+	%r =w phi @one 1, @zero 0
+	jnz %s, @a, @b2
+@a
+	jnz %r, @x, @y
+@b2
+	jnz %r, @y, @x
+@x
+	ret 1
+@y
+	ret 2
+}

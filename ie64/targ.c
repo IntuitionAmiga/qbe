@@ -42,6 +42,7 @@ Target T_ie64 = {
 	.memargs = ie64_memargs,
 	.abi0 = ie64_extsb,
 	.abi1 = ie64_abi,
+	.preopt = ie64_preopt,
 	.isel = ie64_isel,
 	.emitfn = ie64_emitfn,
 	.emitdat = ie64_emitdat,

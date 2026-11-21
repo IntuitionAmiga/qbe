@@ -37,6 +37,7 @@ void ie64_isel(Fn *);
 void ie64_extfacts(Fn *);
 void ie64_canon(Fn *);
 void ie64_rangecmp(Fn *);
+int ie64_preopt(Fn *);
 void ie64_dupjumps(Fn *);
 void ie64_mergeblocks(Fn *);
 int ie64_uwidth(Fn *, Ref, int);

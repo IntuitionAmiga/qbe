@@ -58,10 +58,11 @@ do
 	done
 done
 
-# Copying shared compares and addresses to their uses.  The .s golden is
+# Copying shared compares and addresses to their uses, and reading a stored
+# comparison as the comparison.  The .s golden is
 # the output with it, as above; the .off.s golden is the output with
 # -fno-sink-fuse and is the output of the compiler before the change.
-for in in test/ie64/sink-shared-*.ssa
+for in in test/ie64/sink-shared-*.ssa test/ie64/bool-compare.ssa
 do
 	gold=${in%.ssa}.off.s
 	printf '%-45s' "$(basename "$in") (-fno-sink-fuse)..."
