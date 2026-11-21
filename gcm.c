@@ -375,6 +375,59 @@ cheap(Ins *i)
 	}
 }
 
+/* A comparison whose only uses are conditional jumps.  Copied to each
+ * jump, it fuses with it on a target that has a compare-and-branch. */
+static int
+sharedcmp(Fn *fn, Tmp *t)
+{
+	uint n;
+	int x;
+
+	if (!iscmp(t->def->op, &x, &x))
+		return 0;
+	for (n=0; n<t->nuse; n++) {
+		if (t->use[n].type != UJmp)
+			return 0;
+		if (fn->rpo[t->use[n].bid]->jmp.type != Jjnz)
+			return 0;
+	}
+	return 1;
+}
+
+/* An add or sub of a constant that fits a displacement to a pointer whose
+ * only uses are the address operands of loads and stores.  Copied to each
+ * use, it folds into the memory operand, so the copy costs nothing even in
+ * a deeper loop than the definition.
+ * Sinking rewrites the instructions that Use.u.ins points to, so the
+ * operand of a load or store is not compared with t here; only a store
+ * of t as a value is, because sinking never touches that operand. */
+static int
+sharedaddr(Fn *fn, Tmp *t)
+{
+	uint n;
+	Ins *i;
+	Con *c;
+
+	if ((t->def->op != Oadd && t->def->op != Osub) || t->def->cls != Kl
+	|| rtype(t->def->arg[0]) != RTmp || rtype(t->def->arg[1]) != RCon)
+		return 0;
+	c = &fn->con[t->def->arg[1].val];
+	if (c->type != CBits || c->flt
+	|| c->bits.i < -INT32_MAX || c->bits.i > INT32_MAX)
+		return 0;
+	for (n=0; n<t->nuse; n++) {
+		if (t->use[n].type != UIns)
+			return 0;
+		i = t->use[n].u.ins;
+		if (isstore(i->op)) {
+			if (req(i->arg[0], TMP(t - fn->tmp)))
+				return 0;
+		} else if (!isload(i->op))
+			return 0;
+	}
+	return 1;
+}
+
 static void
 sinkref(Fn *fn, Blk *b, Ref *pr)
 {
@@ -391,8 +444,10 @@ sinkref(Fn *fn, Blk *b, Ref *pr)
 	|| !cheap(t->def))
 		return;
 	/* A value with other uses stays where it is: copying it costs an
-	 * instruction on a target with registers to spare. */
-	if (T.nosinkshared && t->nuse > 1)
+	 * instruction on a target with registers to spare, unless the copy
+	 * fuses into its user. */
+	if (T.nosinkshared && t->nuse > 1
+	&& !(T.sinkfuse && (sharedcmp(fn, t) || sharedaddr(fn, t))))
 		return;
 
 	/* sink t->def to b */

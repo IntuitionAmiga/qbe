@@ -45,6 +45,7 @@ struct Target {
 	char apple;
 	char windows;
 	char nosinkshared; /* gcm: do not copy a shared value to its use */
+	char sinkfuse;     /* gcm: but copy a compare or address that fuses */
 	int gpr0;   /* first general purpose reg */
 	int ngpr;
 	int fpr0;   /* first floating point reg */

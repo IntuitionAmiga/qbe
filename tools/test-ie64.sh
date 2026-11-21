@@ -58,6 +58,24 @@ do
 	done
 done
 
+# Copying shared compares and addresses to their uses.  The .s golden is
+# the output with it, as above; the .off.s golden is the output with
+# -fno-sink-fuse and is the output of the compiler before the change.
+for in in test/ie64/sink-shared-*.ssa
+do
+	gold=${in%.ssa}.off.s
+	printf '%-45s' "$(basename "$in") (-fno-sink-fuse)..."
+	"$bin" -t ie64 -fno-inline -fno-sink-fuse -o "$tmp" "$in"
+	cat "$gold" > "$expected"
+	if diff -u "$expected" "$tmp"
+	then
+		echo "[ok]"
+	else
+		echo "[failed]"
+		exit 1
+	fi
+done
+
 printf '%-45s' '-mbranch-imm needs the ie64 target...'
 if "$bin" -t amd64_sysv -mbranch-imm -o "$tmp" test/ie64/branch-eq.ssa 2>/dev/null
 then
@@ -75,8 +93,10 @@ else
 	exit 1
 fi
 
+# Copying shared compares to their jumps removes most spilled conditions,
+# so this reduced input is compiled without it.
 printf '%-45s' 'spilled jnz condition...'
-if "$bin" -t ie64 -o "$tmp" test/ie64/jnz-spilled-cond.ssa.compile && grep -F 'load.l r30' "$tmp" >/dev/null
+if "$bin" -t ie64 -fno-sink-fuse -o "$tmp" test/ie64/jnz-spilled-cond.ssa.compile && grep -F 'load.l r30' "$tmp" >/dev/null
 then
 	echo "[ok]"
 else

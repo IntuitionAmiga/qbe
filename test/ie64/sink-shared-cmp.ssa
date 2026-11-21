@@ -1,0 +1,30 @@
+# A comparison used only by conditional jumps in several blocks is copied to each jump, where it fuses into a compare-and-branch instead of being built as a 0 or 1 value.
+export function w $f(w %c, w %s) {
+@start
+	%k =w ceqw %c, 46
+	jnz %s, @a, @b
+@a
+	jnz %k, @x, @y
+@b
+	jnz %k, @y, @x
+@x
+	ret 1
+@y
+	ret 2
+}
+
+# A comparison that a block also returns or stores is not copied: it is still built as a value.
+export function w $g(w %c, w %s, l %p) {
+@start
+	%k =w ceqw %c, 46
+	jnz %s, @a, @b
+@a
+	jnz %k, @x, @y
+@b
+	storew %k, %p
+	jnz %k, @y, @x
+@x
+	ret 1
+@y
+	ret 2
+}

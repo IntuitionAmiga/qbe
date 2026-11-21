@@ -165,7 +165,7 @@ funcdo(Fn *fn)
  * parsed.  Only the IE64 target does so, at -O2 and above. */
 static Fn **fnq;
 static int nfnq, capfnq;
-static int inlining, noinline;
+static int inlining, noinline, nosinkfuse;
 extern int ie64_branch_imm;
 
 static void flushfuncs(void);
@@ -235,6 +235,10 @@ main(int ac, char *av[])
 				noinline = 1;
 				break;
 			}
+			if (strcmp(optarg, "no-sink-fuse") == 0) {
+				nosinkfuse = 1;
+				break;
+			}
 			if (strncmp(optarg, "ie64-unit-prefix=",
 			    sizeof "ie64-unit-prefix=" - 1) != 0) {
 				fprintf(stderr, "invalid option '-f%s'\n", optarg);
@@ -297,6 +301,7 @@ main(int ac, char *av[])
 			fprintf(hf, "\n");
 			fprintf(hf, "\t%-11s dump debug information\n", "-d <flags>");
 			fprintf(hf, "\t%-11s do not inline leaf functions (ie64, -O2 and up)\n", "-fno-inline");
+			fprintf(hf, "\t%-11s do not copy shared compares and addresses to their uses (ie64)\n", "-fno-sink-fuse");
 			fprintf(hf, "\t%-11s compare-and-branch with an immediate (ie64, needs engine support)\n", "-mbranch-imm");
 			exit(c != 'h');
 		}
@@ -304,6 +309,8 @@ main(int ac, char *av[])
 		fprintf(stderr, "-mbranch-imm needs the ie64 target\n");
 		exit(1);
 	}
+	if (nosinkfuse)
+		T.sinkfuse = 0;
 	inlining = strcmp(T.name, "ie64") == 0 && optlevel >= 2 && !noinline && !dbg;
 	do {
 		f = av[optind];

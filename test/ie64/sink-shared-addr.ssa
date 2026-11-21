@@ -1,0 +1,60 @@
+# A pointer plus a constant that only loads and stores use as an address is copied to each use, where it folds into the memory operand.
+export function w $f(l %p, w %s) {
+@start
+	%q =l add %p, 16
+	jnz %s, @a, @b
+@a
+	%v =w loadw %q
+	ret %v
+@b
+	storew 7, %q
+	%u =w loadw %q
+	ret %u
+}
+
+# The same pointer in a loop: the copy folds in every iteration at no cost, and the loop keeps only the base.
+export function w $loop(l %p, w %n) {
+@start
+	%q =l add %p, 24
+	jmp @head
+@head
+	%i =w phi @start 0, @body %i1
+	%t =w phi @start 0, @body %t1
+	%c =w csltw %i, %n
+	jnz %c, @body, @done
+@body
+	%v =w loadw %q
+	%t1 =w add %t, %v
+	storew %t1, %q
+	%i1 =w add %i, 1
+	jmp @head
+@done
+	ret %t
+}
+
+# A pointer that is also stored as a value stays where it is.
+export function w $value(l %p, l %r, w %s) {
+@start
+	%q =l add %p, 8
+	jnz %s, @a, @b
+@a
+	storel %q, %r
+	ret 0
+@b
+	%v =w loadw %q
+	ret %v
+}
+
+# A constant that does not fit a displacement is not folded, so the add stays where it is.
+export function w $big(l %p, w %s) {
+@start
+	%q =l add %p, 4294967296
+	jnz %s, @a, @b
+@a
+	%v =w loadw %q
+	ret %v
+@b
+	storew 7, %q
+	%u =w loadw %q
+	ret %u
+}
