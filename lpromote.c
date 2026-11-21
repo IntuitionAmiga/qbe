@@ -131,9 +131,10 @@ loopok(Fn *fn, Blk *h, Blk *b, Loc a, int sz, int k)
 				if (x != b)
 					return 0;
 				if (isload(i->op)) {
-					if (!(i->op == Oload && i->cls == k)
-					&& !(k == Kw && (i->op == Oloadsw
-					|| i->op == Oloaduw)))
+					if (i->cls != k)
+						return 0;
+					if (i->op != Oload && !(k == Kw
+					&& (i->op == Oloadsw || i->op == Oloaduw)))
 						return 0;
 					nld++;
 				} else {
