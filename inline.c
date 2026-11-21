@@ -274,6 +274,7 @@ inlinecall(Fn *fn, Cand *c, Blk *b, uint k, uint a0, Ins **hoist, uint *nhoist, 
 				h = (*nhoist)++;
 				(*hoist)[h] = *i;
 				(*hoist)[h].to = remap(&m, i->to);
+				(*hoist)[h].arg[0] = remap(&m, i->arg[0]);
 				continue;
 			}
 			*o = *i;

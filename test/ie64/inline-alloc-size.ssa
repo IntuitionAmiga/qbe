@@ -1,0 +1,24 @@
+# The size of a stack object in an inlined function is a constant of the callee's table.  The inliner remaps it to the caller's table, so the caller's frame holds the whole array (424 bytes here: 24 + 400).
+function w $callee(w %x) {
+@start
+	%p =l alloc4 400
+	%i =l extsw %x
+	%o =l mul %i, 4
+	%e =l add %p, %o
+	storew %x, %e
+	%v =w loadw %e
+	ret %v
+}
+export function w $caller(w %a) {
+@start
+	%q =l alloc8 24
+	%i =l extsw %a
+	%o =l mul %i, 8
+	%e =l add %q, %o
+	storel 0, %e
+	storew 77, %e
+	%r =w call $callee(w %a)
+	%s =w loadw %e
+	%t =w add %r, %s
+	ret %t
+}
