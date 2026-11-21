@@ -13,7 +13,7 @@ for in in test/ie64/*.ssa
 do
 	# brimm-*.ssa run twice below: with and without -mbranch-imm.
 	case "$(basename "$in")" in
-	brimm-*) continue ;;
+	brimm-*|lpromote-*) continue ;;
 	esac
 	gold=${in%.ssa}.s
 	printf '%-45s' "$(basename "$in")..."
@@ -75,6 +75,29 @@ do
 		echo "[failed]"
 		exit 1
 	fi
+done
+
+# Loop promotion of a memory accumulator.  The .s golden is the output
+# with -fstrict-aliasing; the .off.s golden is the output without it.
+for in in test/ie64/lpromote-*.ssa
+do
+	for mode in on off
+	do
+		case $mode in
+		on) flag=-fstrict-aliasing; gold=${in%.ssa}.s ;;
+		off) flag=; gold=${in%.ssa}.off.s ;;
+		esac
+		printf '%-45s' "$(basename "$in") ($mode)..."
+		"$bin" -t ie64 -fno-inline $flag -o "$tmp" "$in"
+		cat "$gold" > "$expected"
+		if diff -u "$expected" "$tmp"
+		then
+			echo "[ok]"
+		else
+			echo "[failed]"
+			exit 1
+		fi
+	done
 done
 
 printf '%-45s' '-mbranch-imm needs the ie64 target...'

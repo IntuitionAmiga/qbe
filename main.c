@@ -135,6 +135,8 @@ funcdo(Fn *fn)
 		filldom(fn);
 		ssacheck(fn);
 	}
+	if (strictalias && optlevel >= 2)
+		lpromote(fn);
 	T.abi1(fn);
 	simpl(fn);
 	fillcfg(fn);
@@ -239,6 +241,10 @@ main(int ac, char *av[])
 				noinline = 1;
 				break;
 			}
+			if (strcmp(optarg, "strict-aliasing") == 0) {
+				strictalias = 1;
+				break;
+			}
 			if (strcmp(optarg, "no-sink-fuse") == 0) {
 				nosinkfuse = 1;
 				break;
@@ -305,6 +311,7 @@ main(int ac, char *av[])
 			fprintf(hf, "\n");
 			fprintf(hf, "\t%-11s dump debug information\n", "-d <flags>");
 			fprintf(hf, "\t%-11s do not inline leaf functions (ie64, -O2 and up)\n", "-fno-inline");
+			fprintf(hf, "\t%-11s accesses of different widths do not overlap; keeps loop accumulators in registers\n", "-fstrict-aliasing");
 			fprintf(hf, "\t%-11s do not copy shared compares and addresses to their uses (ie64)\n", "-fno-sink-fuse");
 			fprintf(hf, "\t%-11s compare-and-branch with an immediate (ie64, needs engine support)\n", "-mbranch-imm");
 			exit(c != 'h');

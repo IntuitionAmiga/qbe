@@ -1,0 +1,88 @@
+# Compiled with -fstrict-aliasing.  A location that a two-block loop loads, changes and stores on every iteration lives in a register: the stores leave the loop and one follows it.
+# The matrix kernel: the block before the loop stores the start value, the loads of the operands are 16 bits wide.
+export function $acc(l %c, l %a, l %b, w %n) {
+@start
+	jmp @head0
+@head0
+	%j =w phi @start 0, @tail %j1
+	%cj =w cultw %j, %n
+	jnz %cj, @pre, @done
+@pre
+	%o =l extuw %j
+	%o4 =l mul %o, 4
+	%p =l add %c, %o4
+	storew 0, %p
+	jmp @head
+@head
+	%k =w phi @pre 0, @body %k1
+	%ck =w cultw %k, %n
+	jnz %ck, @body, @tail
+@body
+	%ko =l extuw %k
+	%ko2 =l mul %ko, 2
+	%pa =l add %a, %ko2
+	%pb =l add %b, %ko2
+	%x =w loadsh %pa
+	%y =w loadsh %pb
+	%m =w mul %x, %y
+	%old =w loadsw %p
+	%new =w add %old, %m
+	storew %new, %p
+	%k1 =w add %k, 1
+	jmp @head
+@tail
+	%j1 =w add %j, 1
+	jmp @head0
+@done
+	ret
+}
+
+# A 64-bit accumulator that the loop reads and writes through a symbol: no access before the loop is needed.
+export function w $global(l %a, w %n) {
+@start
+	jmp @head
+@head
+	%k =w phi @start 0, @body %k1
+	%ck =w cultw %k, %n
+	jnz %ck, @body, @done
+@body
+	%ko =l extuw %k
+	%ko2 =l mul %ko, 2
+	%pa =l add %a, %ko2
+	%x =w loadsh %pa
+	%xl =l extsw %x
+	%old =l loadl $total
+	%new =l add %old, %xl
+	storel %new, $total
+	%k1 =w add %k, 1
+	jmp @head
+@done
+	ret 0
+}
+
+# The exit block has another predecessor, so the store after the loop goes into a block of its own on the exit edge.
+export function w $exitjoin(l %c, l %a, w %n, w %s) {
+@start
+	%p =l add %c, 8
+	jnz %s, @pre, @join
+@pre
+	storew 1, %p
+	jmp @head
+@head
+	%k =w phi @pre 0, @body %k1
+	%ck =w cultw %k, %n
+	jnz %ck, @body, @join
+@body
+	%ko =l extuw %k
+	%ko2 =l mul %ko, 2
+	%pa =l add %a, %ko2
+	%x =w loadsh %pa
+	%old =w loadsw %p
+	%new =w add %old, %x
+	storew %new, %p
+	%k1 =w add %k, 1
+	jmp @head
+@join
+	%r =w loadsw %p
+	ret %r
+}

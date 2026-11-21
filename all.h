@@ -617,6 +617,8 @@ void gvn(Fn *);
 /* gcm.c */
 int pinned(Ins *);
 void gcm(Fn *);
+void lpromote(Fn *);
+extern int strictalias;
 
 /* ifopt.c */
 void ifconvert(Fn *fn);

@@ -1,0 +1,110 @@
+# Compiled with -fstrict-aliasing.  Each loop below stays as it is.
+# Another access of the same width may overlap the location.
+export function $samewidth(l %c, l %a, w %n) {
+@start
+	storew 0, %c
+	jmp @head
+@head
+	%k =w phi @start 0, @body %k1
+	%ck =w cultw %k, %n
+	jnz %ck, @body, @done
+@body
+	%ko =l extuw %k
+	%ko4 =l mul %ko, 4
+	%pa =l add %a, %ko4
+	%x =w loadsw %pa
+	%old =w loadsw %c
+	%new =w add %old, %x
+	storew %new, %c
+	%k1 =w add %k, 1
+	jmp @head
+@done
+	ret
+}
+
+# A byte access may overlap anything.
+export function $byte(l %c, l %a, w %n) {
+@start
+	storew 0, %c
+	jmp @head
+@head
+	%k =w phi @start 0, @body %k1
+	%ck =w cultw %k, %n
+	jnz %ck, @body, @done
+@body
+	%ko =l extuw %k
+	%pa =l add %a, %ko
+	%x =w loadub %pa
+	%old =w loadsw %c
+	%new =w add %old, %x
+	storew %new, %c
+	%k1 =w add %k, 1
+	jmp @head
+@done
+	ret
+}
+
+# A call may read and write the location.
+export function $call(l %c, w %n) {
+@start
+	storew 0, %c
+	jmp @head
+@head
+	%k =w phi @start 0, @body %k1
+	%ck =w cultw %k, %n
+	jnz %ck, @body, @done
+@body
+	%x =w call $f(w %k)
+	%old =w loadsw %c
+	%new =w add %old, %x
+	storew %new, %c
+	%k1 =w add %k, 1
+	jmp @head
+@done
+	ret
+}
+
+# Nothing accesses the address before the loop, which may run no iteration: it may not be valid.
+export function $unproven(l %c, l %a, w %n) {
+@start
+	jmp @head
+@head
+	%k =w phi @start 0, @body %k1
+	%ck =w cultw %k, %n
+	jnz %ck, @body, @done
+@body
+	%ko =l extuw %k
+	%ko2 =l mul %ko, 2
+	%pa =l add %a, %ko2
+	%x =w loadsh %pa
+	%old =w loadsw %c
+	%new =w add %old, %x
+	storew %new, %c
+	%k1 =w add %k, 1
+	jmp @head
+@done
+	ret
+}
+
+# A volatile access is observable.
+export function $volatile(l %c, l %a, w %n) {
+@start
+	storew 0, %c
+	jmp @head
+@head
+	%k =w phi @start 0, @body %k1
+	%ck =w cultw %k, %n
+	jnz %ck, @body, @done
+@body
+	%ko =l extuw %k
+	%ko2 =l mul %ko, 2
+	%pa =l add %a, %ko2
+	%x =w loadsh %pa
+	%old =w loadvsw %c
+	%new =w add %old, %x
+	storevw %new, %c
+	%k1 =w add %k, 1
+	jmp @head
+@done
+	ret
+}
