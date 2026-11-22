@@ -1,0 +1,85 @@
+# An offset made of addresses, such as the difference of two addresses, does not
+# make an address of the body's own: a store through it may reach the caller's
+# object, and a result made with it may name the argument.  Both copies stay.
+type :one = { w }
+function w $f(:one %a, l %q) {
+@start
+	%s =l alloc4 4
+	%d =l sub %a, %s
+	%t =l add %q, %d
+	storew 7, %t
+	%x =w loadw %a
+	ret %x
+}
+function :one $g(:one %a) {
+@start
+	%s =l alloc4 4
+	storew 1, %s
+	%d =l sub %a, %s
+	%t =l add %s, %d
+	ret %t
+}
+export function w $h(l %q) {
+@start
+	%v =l alloc4 4
+	storew 5, %v
+	%r =w call $f(:one %v, l %v)
+	%u =:one call $g(:one %v)
+	storew 9, %v
+	%y =w loadw %u
+	%z =w add %r, %y
+	ret %z
+}
+
+# A 64-bit value reloaded from memory may be an address: the offset here is
+# the difference of two addresses that went through a variable.  The store
+# through it reaches the argument, so the copy stays.
+type :box = { l }
+
+function l $read(:box %a, l %p) {
+@start
+	%local =l alloc8 8
+	%scratch =l alloc8 8
+	%delta =l sub %p, %local
+	storel %delta, %scratch
+	%off =l loadl %scratch
+	%dst =l add %local, %off
+	storel 9, %dst
+	%r =l loadl %a
+	ret %r
+}
+
+export function l $reload() {
+@start
+	%x =l alloc8 8
+@body
+	storel 5, %x
+	%r =l call $read(:box %x, l %x)
+	ret %r
+}
+
+# The same through a floating-point class: a double loaded from memory can
+# hold the bits of an address.
+type :one = { w }
+
+function w $readd(:one %a, l %q) {
+@start
+	%s =l alloc8 8
+	%delta =l sub %q, %s
+	storel %delta, %s
+	%bits =d loadd %s
+	%off =l cast %bits
+	%dst =l add %s, %off
+	storew 9, %dst
+	%r =w loadw %a
+	ret %r
+}
+
+export function w $reloadd() {
+@start
+	%x =l alloc4 4
+@body
+	storew 5, %x
+	%r =w call $readd(:one %x, l %x)
+	ret %r
+}

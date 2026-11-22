@@ -1,0 +1,91 @@
+# The copy of an aggregate argument stays unless the caller's variable can
+# be read in place: the argument is a stack variable of the caller, the
+# body reads the parameter only through loads, and every write of the body
+# goes to memory of its own.
+type :v4 = { s 4 }
+
+# Reads its parameter.
+function s $sum(:v4 %a) {
+@start
+	%a1 =l add %a, 4
+	%x =s loads %a
+	%y =s loads %a1
+	%r =s add %x, %y
+	ret %r
+}
+
+# Writes its first parameter and reads both.
+function s $mix(:v4 %a, :v4 %b) {
+@start
+	stores s_1, %a
+	%x =s loads %a
+	%y =s loads %b
+	%r =s add %x, %y
+	ret %r
+}
+
+# Writes through another pointer, then reads its parameter.
+function s $thru(:v4 %a, l %p) {
+@start
+	stores s_5, %p
+	%x =s loads %a
+	ret %x
+}
+
+# Compares the address of its parameter.
+function w $addr(:v4 %a, l %p) {
+@start
+	%r =w ceql %a, %p
+	ret %r
+}
+
+# The caller's variables are filled by a function that the compiler cannot
+# see, so that nothing is folded.  It returns a pointer that may alias them.
+# The argument is a stack variable: no copy.
+export function s $local() {
+@start
+	%v =l alloc4 16
+@body
+	%q =l call $fill(l %v)
+	%r =s call $sum(:v4 %v)
+	ret %r
+}
+
+# The argument is read through a pointer, f(*p): the copy stays.
+export function s $viaptr(l %p) {
+@start
+	%r =s call $sum(:v4 %p)
+	ret %r
+}
+
+# The body writes its first parameter: that copy stays, the second goes.
+export function s $mixed() {
+@start
+	%v =l alloc4 16
+	%w =l alloc4 16
+@body
+	%q =l call $fill(l %v)
+	%q2 =l call $fill(l %w)
+	%r =s call $mix(:v4 %v, :v4 %w)
+	ret %r
+}
+
+# The body writes through a second pointer: the copy stays.
+export function s $through() {
+@start
+	%v =l alloc4 16
+@body
+	%q =l call $fill(l %v)
+	%r =s call $thru(:v4 %v, l %q)
+	ret %r
+}
+
+# The address of the parameter differs from that of the argument.
+export function w $compare() {
+@start
+	%v =l alloc4 16
+@body
+	%q =l call $fill(l %v)
+	%r =w call $addr(:v4 %v, l %v)
+	ret %r
+}

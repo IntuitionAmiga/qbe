@@ -1,0 +1,112 @@
+# An aggregate result is the callee's own variable, or a copy of the value.
+type :v4 = { s 4 }
+
+data $gv = { s s_1, s s_2, s s_3, s s_4 }
+
+# Returns a variable of its own.
+function :v4 $mk(s %x) {
+@start
+	%r =l alloc4 16
+	stores %x, %r
+	%r1 =l add %r, 4
+	stores %x, %r1
+	%r2 =l add %r, 8
+	stores %x, %r2
+	%r3 =l add %r, 12
+	stores %x, %r3
+	ret %r
+}
+
+# Returns a global object: the caller gets a copy.
+function :v4 $glob() {
+@start
+	ret $gv
+}
+
+# Returns its parameter.
+function :v4 $id(:v4 %a) {
+@start
+	ret %a
+}
+
+# Reverses its parameter.
+function :v4 $rev(:v4 %a) {
+@start
+	%r =l alloc4 16
+	%a1 =l add %a, 4
+	%a2 =l add %a, 8
+	%a3 =l add %a, 12
+	%x0 =s loads %a
+	%x1 =s loads %a1
+	%x2 =s loads %a2
+	%x3 =s loads %a3
+	%r1 =l add %r, 4
+	%r2 =l add %r, 8
+	%r3 =l add %r, 12
+	stores %x3, %r
+	stores %x2, %r1
+	stores %x1, %r2
+	stores %x0, %r3
+	ret %r
+}
+
+# s = mk(x).e[2]
+export function s $own(s %x) {
+@start
+	%v =:v4 call $mk(s %x)
+	%v2 =l add %v, 8
+	%r =s loads %v2
+	ret %r
+}
+
+export function s $global() {
+@start
+	%v =:v4 call $glob()
+	%v2 =l add %v, 8
+	%r =s loads %v2
+	ret %r
+}
+
+export function s $ident(l %p) {
+@start
+	%v =:v4 call $id(:v4 %p)
+	%v2 =l add %v, 8
+	%r =s loads %v2
+	ret %r
+}
+
+# v = rev(v): the result is read after the argument.
+export function $inplace(l %p) {
+@start
+	%v =l alloc4 16
+@body
+	%w0 =w loadw %p
+	storew %w0, %v
+	%p1 =l add %p, 4
+	%v1 =l add %v, 4
+	%w1 =w loadw %p1
+	storew %w1, %v1
+	%p2 =l add %p, 8
+	%v2 =l add %v, 8
+	%w2 =w loadw %p2
+	storew %w2, %v2
+	%p3 =l add %p, 12
+	%v3 =l add %v, 12
+	%w3 =w loadw %p3
+	storew %w3, %v3
+	%t =:v4 call $rev(:v4 %v)
+	%u0 =w loadw %t
+	storew %u0, %v
+	%t1 =l add %t, 4
+	%u1 =w loadw %t1
+	storew %u1, %v1
+	%t2 =l add %t, 8
+	%u2 =w loadw %t2
+	storew %u2, %v2
+	%t3 =l add %t, 12
+	%u3 =w loadw %t3
+	storew %u3, %v3
+	%x =w loadw %v
+	storew %x, %p
+	ret
+}

@@ -1,0 +1,29 @@
+# The result of a call that a loop passes to the next iteration.  The callee's
+# variable is one slot of the caller, and the next call would overwrite the
+# result it reads: the result is copied to a slot of its own.
+type :box = { l }
+
+function :box $step(l %p, l %x) {
+@start
+	%local =l alloc8 8
+	storel %x, %local
+	%old =l loadl %p
+	%n =l add %old, %x
+	storel %n, %local
+	ret %local
+}
+
+export function l $loop(l %c0) {
+@start
+	jmp @L
+@L
+	%p =l phi @start %c0, @L %res
+	%i =l phi @start 1, @L %i2
+	%res =:box call $step(l %p, l %i)
+	%i2 =l add %i, 1
+	%c =w csltl %i2, 3
+	jnz %c, @L, @E
+@E
+	%v =l loadl %res
+	ret %v
+}

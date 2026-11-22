@@ -1,0 +1,35 @@
+# Functions with an atomic, a system or a control register operation stay
+# calls.
+function l $swap(l %p, l %v) {
+@start
+	%r =l ie64xchg %p, %v
+	ret %r
+}
+
+function l $control() {
+@start
+	%r =l ie64mfcr 6
+	ret %r
+}
+
+function $round() {
+@start
+	ie64fmovcc 2
+	ret
+}
+
+function $mask() {
+@start
+	ie64sei
+	ret
+}
+
+export function l $user(l %p) {
+@start
+	%a =l call $swap(l %p, l 1)
+	%b =l call $control()
+	call $round()
+	call $mask()
+	%r =l add %a, %b
+	ret %r
+}

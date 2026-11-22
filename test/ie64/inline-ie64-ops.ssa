@@ -1,0 +1,30 @@
+# A function of an FP builtin that only computes is inlined.  The moves of
+# the FPSR stay calls: the flags that they read and write are set by plain
+# IL operations, which the passes may merge or move once nothing separates
+# them.
+function $clear() {
+@start
+	ie64fmovsc 0
+	ret
+}
+
+function s $root(s %x) {
+@start
+	%r =s ie64fsqrt %x
+	ret %r
+}
+
+function l $status() {
+@start
+	%s =l ie64fmovsr
+	ret %s
+}
+
+export function l $flags(s %x, l %out) {
+@start
+	call $clear()
+	%r =s call $root(s %x)
+	stores %r, %out
+	%s =l call $status()
+	ret %s
+}

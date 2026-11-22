@@ -1,0 +1,72 @@
+# An element-wise add of two local vectors, the stand-in for shz_vec4_add.
+# The call goes, and so do the copies of both arguments: the body reads
+# them and writes only its own result.
+type :v4 = { s 4 }
+
+function :v4 $vadd(:v4 %a, :v4 %b) {
+@start
+	%r =l alloc4 16
+	%a1 =l add %a, 4
+	%a2 =l add %a, 8
+	%a3 =l add %a, 12
+	%b1 =l add %b, 4
+	%b2 =l add %b, 8
+	%b3 =l add %b, 12
+	%x0 =s loads %a
+	%y0 =s loads %b
+	%s0 =s add %x0, %y0
+	stores %s0, %r
+	%x1 =s loads %a1
+	%y1 =s loads %b1
+	%s1 =s add %x1, %y1
+	%r1 =l add %r, 4
+	stores %s1, %r1
+	%x2 =s loads %a2
+	%y2 =s loads %b2
+	%s2 =s add %x2, %y2
+	%r2 =l add %r, 8
+	stores %s2, %r2
+	%x3 =s loads %a3
+	%y3 =s loads %b3
+	%s3 =s add %x3, %y3
+	%r3 =l add %r, 12
+	stores %s3, %r3
+	ret %r
+}
+
+export function $caller(l %out, s %x) {
+@start
+	%p =l alloc4 16
+	%q =l alloc4 16
+@body
+	stores %x, %p
+	%p1 =l add %p, 4
+	stores %x, %p1
+	%p2 =l add %p, 8
+	stores %x, %p2
+	%p3 =l add %p, 12
+	stores %x, %p3
+	stores s_1, %q
+	%q1 =l add %q, 4
+	stores s_2, %q1
+	%q2 =l add %q, 8
+	stores s_3, %q2
+	%q3 =l add %q, 12
+	stores s_4, %q3
+	%v =:v4 call $vadd(:v4 %p, :v4 %q)
+	%w0 =w loadw %v
+	storew %w0, %out
+	%v1 =l add %v, 4
+	%o1 =l add %out, 4
+	%w1 =w loadw %v1
+	storew %w1, %o1
+	%v2 =l add %v, 8
+	%o2 =l add %out, 8
+	%w2 =w loadw %v2
+	storew %w2, %o2
+	%v3 =l add %v, 12
+	%o3 =l add %out, 12
+	%w3 =w loadw %v3
+	storew %w3, %o3
+	ret
+}
