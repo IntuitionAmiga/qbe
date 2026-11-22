@@ -346,6 +346,12 @@ memeff(Ins *i, MemEff *e)
 		e->barrier = 1;
 		meffspan(e, 0, MEread | MEwrite, 8);
 		return 1;
+	case Oie64vaarg:
+		/* An aggregate va_arg (see ie64/abi.c) reads the cursor
+		 * word of the va_list at arg[0] and writes it back
+		 * advanced.  It touches nothing else that others see. */
+		meffspan(e, 0, MEread | MEwrite, 8);
+		return 1;
 	}
 	return 0;
 }

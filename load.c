@@ -153,9 +153,10 @@ load(Slice sl, bits msk, Loc *l)
 		case AEsc:
 		case AUnk:
 			r = TMP(a->base);
-			if (!a->offset)
+			/* a rebased slice carries its offset in sl.off */
+			if (!a->offset && !sl.off)
 				break;
-			r1 = getcon(a->offset, curf);
+			r1 = getcon(a->offset + sl.off, curf);
 			r = iins(Kl, Oadd, r, r1, l);
 			break;
 		case ACon:

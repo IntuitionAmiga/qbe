@@ -1,0 +1,22 @@
+# An aggregate va_arg reads the cursor word of the va_list and writes it back
+# advanced, and nothing else: a load of the cursor after it is a new load, a
+# load of the word beside the cursor is not.  The second case is the effect
+# alone, with no barrier to hide a span that is too wide.
+export
+function l $cursor(l %tag, ...) {
+@start
+	%ap =l alloc16 16
+	vastart %ap
+	%side =l add %ap, 8
+	storel 77, %side
+	%a =l loadl %ap
+	%x =l loadl %side
+	%v =l ie64vaarg %ap, 4104
+	%b =l loadl %ap
+	%y =l loadl %side
+	%d =l sub %b, %a
+	%e =l add %d, %x
+	%f =l add %e, %y
+	%g =l add %f, %v
+	ret %g
+}
