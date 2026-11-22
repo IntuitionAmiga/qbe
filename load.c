@@ -261,6 +261,13 @@ def(Slice sl, bits msk, Blk *b, Ins *i, Loc *il)
 		if (killsl(i->to, sl)
 		|| (iscallop(i->op) && escapes(sl.ref, curf)))
 			goto Load;
+		if (isie64op(i->op)) {
+			/* A private operation that writes the bytes (or is
+			 * a barrier) ends the search: see memeff(). */
+			if (memtouch(i, MEwrite, sl.ref, sl.off, sl.sz, curf))
+				goto Load;
+			continue;
+		}
 		ld = isload(i->op);
 		if (ld) {
 			sz = loadsz(i);

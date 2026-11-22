@@ -1,0 +1,161 @@
+# An atomic operation reads and writes the word it addresses and is a full
+# barrier for memory that is not a private stack slot, so a load after it
+# must not reuse a load or a store before it.
+
+# A load before and after, with distinct old and new values.
+export
+function l $xchg_reload(l %p, l %v) {
+@start
+	%a =l loadl %p
+	%o =l ie64xchg %p, %v
+	%b =l loadl %p
+	%s =l add %a, %b
+	%t =l add %s, %o
+	ret %t
+}
+
+# A store before the operation must not feed the load after it.
+export
+function l $xchg_store(l %p, l %v) {
+@start
+	storel 3, %p
+	%o =l ie64xchg %p, %v
+	%b =l loadl %p
+	%t =l add %b, %o
+	ret %t
+}
+
+# A different pointer may name the same word.
+export
+function l $xchg_other(l %p, l %q, l %v) {
+@start
+	%a =l loadl %q
+	%o =l ie64xchg %p, %v
+	%b =l loadl %q
+	%s =l add %a, %b
+	%t =l add %s, %o
+	ret %t
+}
+
+# Another word of memory that is visible to others is ordered too: a lock
+# word and the data it guards.
+export
+function l $acquire(l %lock, l %data) {
+@start
+	%a =l loadl %data
+	%o =l ie64xchg %lock, 1
+	%b =l loadl %data
+	%s =l add %a, %b
+	%t =l add %s, %o
+	ret %t
+}
+
+# The operation in both arms of a branch, the load after the join.
+export
+function l $join(l %p, l %c, l %v) {
+@start
+	%a =l loadl %p
+	jnz %c, @yes, @no
+@yes
+	%x =l ie64faa %p, %v
+	jmp @end
+@no
+	%y =l ie64fxor %p, %v
+	jmp @end
+@end
+	%r =l phi @yes %x, @no %y
+	%b =l loadl %p
+	%s =l add %a, %b
+	%t =l add %s, %r
+	ret %t
+}
+
+# A load in a loop whose body has the operation.
+export
+function l $loop(l %p, l %n) {
+@start
+	jmp @head
+@head
+	%i =l phi @start 0, @body %i1
+	%s =l phi @start 0, @body %s1
+	%c =w csltl %i, %n
+	jnz %c, @body, @done
+@body
+	%a =l loadl %p
+	%o =l ie64faa %p, 1
+	%s0 =l add %s, %a
+	%s1 =l add %s0, %o
+	%i1 =l add %i, 1
+	jmp @head
+@done
+	ret %s
+}
+
+# The result of the operation is unused; the operation stays.
+export
+function l $unused(l %p, l %v) {
+@start
+	%a =l loadl %p
+	%o =l ie64fand %p, %v
+	%b =l loadl %p
+	%t =l add %a, %b
+	ret %t
+}
+
+export
+function l $or_reload(l %p, l %v) {
+@start
+	%a =l loadl %p
+	%o =l ie64for %p, %v
+	%b =l loadl %p
+	%t =l add %a, %b
+	%u =l add %t, %o
+	ret %u
+}
+
+export
+function l $cas_reload(l %p, l %e, l %v) {
+@start
+	%a =l loadl %p
+	ie64casd %e
+	%o =l ie64cas %p, %v
+	%b =l loadl %p
+	%t =l add %a, %b
+	%u =l add %t, %o
+	ret %u
+}
+
+# A private stack slot cannot be named by another agent: the atomic does
+# not touch it, so the value stored before is still the value after.  The
+# mixed widths keep slot promotion from turning it into a register.
+export
+function l $private(l %p, l %v) {
+@start
+	%s =l alloc8 8
+	storel %v, %s
+	%o =l ie64xchg %p, 1
+	%b =w loadw %s
+	%c =l extuw %b
+	%t =l add %c, %o
+	ret %t
+}
+
+# The operation is a barrier for all memory that others may see, also for
+# memory that it does not name: a global, and the lock word in an object
+# whose address was passed to a function.  The operation cannot name the
+# global, so only the barrier makes the load after it a new load.
+data $word = { l 7 }
+
+export
+function l $barrier(l %v) {
+@start
+	%lock =l alloc8 8
+	storel 0, %lock
+	call $publish(l %lock)
+	%a =l loadl $word
+	%o =l ie64xchg %lock, %v
+	%b =l loadl $word
+	%s =l add %a, %b
+	%t =l add %s, %o
+	ret %t
+}

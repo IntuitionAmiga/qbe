@@ -23,6 +23,7 @@ typedef struct Use Use;
 typedef struct Sym Sym;
 typedef struct Num Num;
 typedef struct Alias Alias;
+typedef struct MemEff MemEff;
 typedef struct Tmp Tmp;
 typedef struct Con Con;
 typedef struct Addr Mem;
@@ -325,6 +326,46 @@ enum {
 	MustAlias
 };
 
+/* Memory effects of an operation that is not a load, a store, a blit or
+ * a call: a list of spans, and an optional barrier.  memeff() describes
+ * the private operations (the IE64 atomics, and any new operation that
+ * touches memory) in util.c, and memtouch() in alias.c answers the
+ * questions of the passes that forward, move or delete memory accesses
+ * (loadopt() today).  A new operation gets its effects in one place.
+ *
+ * A span is sz bytes at the address in arg[arg]; rw says whether the
+ * operation reads them (MEread), writes them (MEwrite) or both.  A span
+ * is exact for the accessed bytes, no wider than needed.
+ *
+ * A barrier makes the operation behave as a call does for the memory it
+ * does not name: every access to memory that is not a private stack slot
+ * (see escapes()) is ordered against it, so no pass may carry a value of
+ * that memory across it, or move or delete an access across it.  An
+ * atomic is a full barrier, because another agent can use it to publish
+ * the other words that it wrote.  An operation that names all that it
+ * touches (a FIPR or FTRV that reads and writes only its operands) has
+ * spans and no barrier.
+ *
+ * Operands that a span names must stay operands that make a stack slot
+ * escape: fillalias() does that for every operand of an operation that
+ * is not a load or a store, so slot promotion and slot coalescing leave
+ * such a slot alone. */
+enum {
+	MEread = 1,
+	MEwrite = 2,
+	NMemSpan = 4,
+};
+
+struct MemEff {
+	uint barrier:1;
+	int n;
+	struct {
+		int arg;  /* 0 or 1 */
+		int rw;
+		int sz;   /* in bytes, > 0 */
+	} span[NMemSpan];
+};
+
 struct Alias {
 	enum {
 		ABot = 0,
@@ -588,6 +629,10 @@ void fillalias(Fn *);
 void getalias(Alias *, Ref, Fn *);
 int alias(Ref, int, int, Ref, int, int *, Fn *);
 int escapes(Ref, Fn *);
+int memtouch(Ins *, int, Ref, int, int, Fn *);
+
+/* util.c: memory effects of private operations, see MemEff */
+int memeff(Ins *, MemEff *);
 
 /* load.c */
 int loadsz(Ins *);

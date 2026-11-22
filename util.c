@@ -316,6 +316,40 @@ argcls(Ins *i, int n)
 	return optab[i->op].argcls[n][i->cls];
 }
 
+static void
+meffspan(MemEff *e, int arg, int rw, int sz)
+{
+	assert(e->n < NMemSpan);
+	e->span[e->n].arg = arg;
+	e->span[e->n].rw = rw;
+	e->span[e->n].sz = sz;
+	e->n++;
+}
+
+/* Describes the memory effects of an operation that has some besides
+ * a plain load, store, blit or call (see MemEff in all.h).  Returns 0,
+ * with an empty description, when the operation touches no memory. */
+int
+memeff(Ins *i, MemEff *e)
+{
+	*e = (MemEff){0};
+	switch (i->op) {
+	case Oie64xchg:
+	case Oie64faa:
+	case Oie64fand:
+	case Oie64for:
+	case Oie64fxor:
+	case Oie64cas:
+		/* An atomic reads and writes the 8 bytes at its address
+		 * and is a full barrier.  Oie64casd only loads the expected
+		 * value into a register for the Oie64cas that follows it. */
+		e->barrier = 1;
+		meffspan(e, 0, MEread | MEwrite, 8);
+		return 1;
+	}
+	return 0;
+}
+
 void
 emit(int op, int k, Ref to, Ref arg0, Ref arg1)
 {

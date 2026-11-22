@@ -94,6 +94,30 @@ escapes(Ref r, Fn *fn)
 	return !astack(a->type) || a->slot->type == AEsc;
 }
 
+/* May the operation i, whose effects memeff() describes, read (rw has
+ * MEread) or write (rw has MEwrite) any of the sz bytes at r+off?  An
+ * operation with no described effects touches nothing.  Memory that
+ * escapes is touched by a barrier whatever its address. */
+int
+memtouch(Ins *i, int rw, Ref r, int off, int sz, Fn *fn)
+{
+	MemEff e;
+	int n, delta;
+
+	if (!memeff(i, &e))
+		return 0;
+	if (e.barrier && escapes(r, fn))
+		return 1;
+	for (n=0; n<e.n; n++) {
+		if (!(e.span[n].rw & rw))
+			continue;
+		if (alias(r, off, sz, i->arg[e.span[n].arg],
+		    e.span[n].sz, &delta, fn) != NoAlias)
+			return 1;
+	}
+	return 0;
+}
+
 static void
 esc(Ref r, Fn *fn)
 {
