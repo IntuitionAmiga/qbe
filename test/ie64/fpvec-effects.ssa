@@ -1,0 +1,155 @@
+# FIPR and FTRV: one instruction each on the operand address registers, and
+# the memory effects the optimiser must honour.
+
+# Exactly one instruction, no moves.
+export function s $dot(l %a, l %b) {
+@start
+	%r =s ie64fipr %a, %b
+	ret %r
+}
+
+export function $transform(l %m, l %v) {
+@start
+	ie64ftrv %m, %v
+	ret
+}
+
+# A load after FTRV is a new load: it may not reuse the value loaded before.
+export function s $reload(l %m, l %v) {
+@start
+	%a =s loads %v
+	ie64ftrv %m, %v
+	%b =s loads %v
+	%c =s add %a, %b
+	ret %c
+}
+
+# Same, with an offset into the vector and a store before FTRV.
+export function s $reload_store(l %m, l %v) {
+@start
+	%p =l add %v, 8
+	stores s_2, %p
+	ie64ftrv %m, %v
+	%b =s loads %p
+	ret %b
+}
+
+# FTRV writes a global through an unknown pointer: a load of the global
+# before and after FTRV are two loads.
+export function s $reload_global(l %m) {
+@start
+	%a =s loads $gvec
+	ie64ftrv %m, $gvec
+	%b =s loads $gvec
+	%c =s add %a, %b
+	ret %c
+}
+
+# A local vector: the stores before FTRV stay (FTRV reads them), and the load
+# after it is a load.
+export function s $local_vec(l %m) {
+@start
+	%v =l alloc16 16
+	%p1 =l add %v, 4
+	%p2 =l add %v, 8
+	%p3 =l add %v, 12
+	stores s_1, %v
+	stores s_2, %p1
+	stores s_3, %p2
+	stores s_4, %p3
+	ie64ftrv %m, %v
+	%r =s loads %p2
+	ret %r
+}
+
+# FIPR sees stores made just before it, even when the result is unused.
+export function $dot_unused(l %a, l %b) {
+@start
+	stores s_1, %a
+	%r =s ie64fipr %a, %b
+	ret
+}
+
+# FIPR may not be removed when only its FPSR effect is used.
+export function w $dot_flags(l %a) {
+@start
+	%r =s ie64fipr %a, %a
+	%f =w ie64fmovsr
+	ret %f
+}
+
+# A load before FIPR is not disturbed: FIPR does not write.
+export function s $read_only(l %a, l %b) {
+@start
+	%x =s loads %a
+	%r =s ie64fipr %a, %b
+	%y =s loads %a
+	%c =s add %x, %y
+	%d =s add %c, %r
+	ret %d
+}
+
+# The spans are exact and there is no barrier.  FTRV writes the 16 bytes at
+# its vector: a load of the word just after them is still forwarded across it.
+export function s $beyond_vector(l %m, l %v) {
+@start
+	%p =l add %v, 16
+	%a =s loads %p
+	ie64ftrv %m, %v
+	%b =s loads %p
+	%c =s add %a, %b
+	ret %c
+}
+
+# ... and the last word of the vector is not.
+export function s $last_word(l %m, l %v) {
+@start
+	%p =l add %v, 12
+	%a =s loads %p
+	ie64ftrv %m, %v
+	%b =s loads %p
+	%c =s add %a, %b
+	ret %c
+}
+
+# FTRV reads the matrix but writes only the vector, and the two are different
+# locals: the matrix word is forwarded from its store across FTRV, the vector
+# word is loaded again.  (Two unknown pointers could overlap, so the matrix
+# would be reloaded then.)
+export function s $matrix_read() {
+@start
+	%m =l alloc16 64
+	%v =l alloc16 16
+	stores s_1, %m
+	stores s_2, %v
+	ie64ftrv %m, %v
+	%a =s loads %m
+	%b =s loads %v
+	%c =s add %a, %b
+	ret %c
+}
+
+# A local that is not an operand of FTRV is not touched by it, and the load
+# of an unrelated global needs no barrier: only the operand's word reloads.
+export function s $untouched_local(l %m, l %v) {
+@start
+	%t =l alloc4 4
+	stores s_5, %t
+	ie64ftrv %m, %v
+	%r =s loads %t
+	ret %r
+}
+
+# FIPR reads 16 bytes at each operand and writes nothing: a store to either
+# operand before it stays, and loads of both operands are forwarded across it.
+export function s $dot_forward(l %a, l %b) {
+@start
+	%x =s loads %a
+	%y =s loads %b
+	%r =s ie64fipr %a, %b
+	%s =s loads %b
+	%t =s add %y, %s
+	%u =s add %t, %x
+	%w =s add %u, %r
+	ret %w
+}
