@@ -320,7 +320,12 @@ then
 		fpvec=1
 	else
 		fpvec=
-		echo "assembler has no fipr/ftrv: skipping fpvec-*.s" >&2
+		if [ -n "${IE64_REQUIRE_FPVEC:-}" ]
+		then
+			echo "assembler rejects fipr/ftrv and IE64_REQUIRE_FPVEC is set" >&2
+			exit 1
+		fi
+		echo "assembler has no fipr/ftrv: skipping fpvec-*.s (set IE64_REQUIRE_FPVEC=1 to fail)" >&2
 	fi
 	for gold in test/ie64/*.s
 	do
