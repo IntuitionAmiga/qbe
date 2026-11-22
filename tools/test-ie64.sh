@@ -13,7 +13,7 @@ for in in test/ie64/*.ssa
 do
 	# brimm-*.ssa run twice below: with and without -mbranch-imm.
 	case "$(basename "$in")" in
-	brimm-*|lpromote-*) continue ;;
+	brimm-*|lpromote-*|profile-*) continue ;;
 	esac
 	gold=${in%.ssa}.s
 	printf '%-45s' "$(basename "$in")..."
@@ -99,6 +99,110 @@ do
 		fi
 	done
 done
+
+# Block layout by a profile.  The .s golden is the output with the .prof
+# file beside the input; the .off.s golden is the output without it and must
+# stay the output of the compiler before the option existed.  A profile for
+# another function leaves the output as it is.
+for in in test/ie64/profile-*.ssa
+do
+	prof=${in%.ssa}.prof
+	printf '%-45s' "$(basename "$in") (profile)..."
+	"$bin" -t ie64 -fno-inline -fprofile-use="$prof" -o "$tmp" "$in"
+	cat "${in%.ssa}.s" > "$expected"
+	if diff -u "$expected" "$tmp"
+	then
+		echo "[ok]"
+	else
+		echo "[failed]"
+		exit 1
+	fi
+	printf '%-45s' "$(basename "$in") (no profile)..."
+	"$bin" -t ie64 -fno-inline -o "$tmp" "$in"
+	cat "${in%.ssa}.off.s" > "$expected"
+	if diff -u "$expected" "$tmp"
+	then
+		echo "[ok]"
+	else
+		echo "[failed]"
+		exit 1
+	fi
+	printf '%-45s' "$(basename "$in") (profile of another function)..."
+	printf 'B other 2 997 -1 0\nB other -1 1000 997 2\n' > "$expected"
+	"$bin" -t ie64 -fno-inline -fprofile-use="$expected" -o "$tmp" "$in"
+	if diff -u "${in%.ssa}.off.s" "$tmp"
+	then
+		echo "[ok]"
+	else
+		echo "[failed]"
+		exit 1
+	fi
+	# The same label twice for one function name: the profile cannot say
+	# which function it describes, so it is ignored.
+	printf 'B pick -1 1000 997 2\nB pick 2 997 -1 0\nB pick 2 3 -1 0\n' > "$expected"
+	printf '%-45s' "$(basename "$in") (ambiguous profile)..."
+	"$bin" -t ie64 -fno-inline -fprofile-use="$expected" -o "$tmp" "$in"
+	if diff -u "${in%.ssa}.off.s" "$tmp"
+	then
+		echo "[ok]"
+	else
+		echo "[failed]"
+		exit 1
+	fi
+done
+
+printf '%-45s' 'missing profile file...'
+if "$bin" -t ie64 -fprofile-use=/nonexistent/profile -o "$tmp" test/ie64/branch-eq.ssa 2>/dev/null
+then
+	echo "[failed]"
+	exit 1
+fi
+echo "[ok]"
+
+printf '%-45s' 'huge profile counts...'
+printf 'B pick -1 9223372036854775807 9223372036854775807 2\nB pick 1 9223372036854775807 -1 0\nB pick 2 9223372036854775807 -1 0\nB pick 3 9223372036854775807 -1 0\n' > "$expected"
+if "$bin" -t ie64 -fno-inline -fprofile-use="$expected" -o "$tmp" test/ie64/profile-hot-successor.ssa
+then
+	echo "[ok]"
+else
+	echo "[failed]"
+	exit 1
+fi
+
+printf '%-45s' 'profile count beyond 64 bits...'
+printf 'B pick -1 99999999999999999999 5 2\n' > "$expected"
+if "$bin" -t ie64 -fno-inline -fprofile-use="$expected" -o "$tmp" test/ie64/profile-hot-successor.ssa
+then
+	echo "[ok]"
+else
+	echo "[failed]"
+	exit 1
+fi
+
+printf '%-45s' 'profile that is a directory...'
+if "$bin" -t ie64 -fprofile-use=. -o "$tmp" test/ie64/profile-hot-successor.ssa 2>/dev/null
+then
+	echo "[failed]"
+	exit 1
+fi
+echo "[ok]"
+
+printf '%-45s' 'malformed profile line...'
+printf 'B pick two\n' > "$expected"
+if "$bin" -t ie64 -fprofile-use="$expected" -o "$tmp" test/ie64/branch-eq.ssa 2>/dev/null
+then
+	echo "[failed]"
+	exit 1
+fi
+echo "[ok]"
+
+printf '%-45s' '-fprofile-use needs the ie64 target...'
+if "$bin" -t amd64_sysv -fprofile-use=test/ie64/profile-hot-successor.prof -o "$tmp" test/ie64/branch-eq.ssa 2>/dev/null
+then
+	echo "[failed]"
+	exit 1
+fi
+echo "[ok]"
 
 printf '%-45s' '-mbranch-imm needs the ie64 target...'
 if "$bin" -t amd64_sysv -mbranch-imm -o "$tmp" test/ie64/branch-eq.ssa 2>/dev/null

@@ -2060,6 +2060,7 @@ ie64_emitfn(Fn *fn, FILE *f)
 		}
 		fused[b->id] = cmp;
 	}
+	ie64_layout(fn, id0);
 	for (first=1, b=fn->start; b; b=b->link) {
 		foff = foffs[b->id];
 		cmp = fused[b->id];
@@ -2149,6 +2150,15 @@ ie64_emitfn(Fn *fn, FILE *f)
 					fputs(", r0, ", f);
 					emitlbl(id0+b->s2->id, f);
 					fputc('\n', f);
+				} else if (ie64_layout_swap(b)) {
+					fputs("\tbeq ", f);
+					emitreg(b->jmp.arg, f);
+					fputs(", r0, ", f);
+					emitlbl(id0+b->s2->id, f);
+					fputc('\n', f);
+					fputs("\tbra ", f);
+					emitlbl(id0+b->s1->id, f);
+					fputc('\n', f);
 				} else {
 					fputs("\tbne ", f);
 					emitreg(b->jmp.arg, f);
@@ -2163,7 +2173,10 @@ ie64_emitfn(Fn *fn, FILE *f)
 				emitbranch(cc, 0, cmp->arg[0], cmp->arg[1], b->s1, id0, fn, f);
 			else if (b->link == b->s1)
 				emitbranch(cc, 1, cmp->arg[0], cmp->arg[1], b->s2, id0, fn, f);
-			else {
+			else if (ie64_layout_swap(b)) {
+				emitbranch(cc, 1, cmp->arg[0], cmp->arg[1], b->s2, id0, fn, f);
+				fputs("\tbra ", f), emitlbl(id0+b->s1->id, f), fputc('\n', f);
+			} else {
 				emitbranch(cc, 0, cmp->arg[0], cmp->arg[1], b->s1, id0, fn, f);
 				fputs("\tbra ", f), emitlbl(id0+b->s2->id, f), fputc('\n', f);
 			}

@@ -173,6 +173,8 @@ static Fn **fnq;
 static int nfnq, capfnq;
 static int inlining, noinline, nosinkfuse;
 extern int ie64_branch_imm;
+extern void ie64_profileload(char *);
+static char *profpath;
 
 static void flushfuncs(void);
 
@@ -249,6 +251,10 @@ main(int ac, char *av[])
 				nosinkfuse = 1;
 				break;
 			}
+			if (strncmp(optarg, "profile-use=", sizeof "profile-use=" - 1) == 0) {
+				profpath = optarg + sizeof "profile-use=" - 1;
+				break;
+			}
 			if (strncmp(optarg, "ie64-unit-prefix=",
 			    sizeof "ie64-unit-prefix=" - 1) != 0) {
 				fprintf(stderr, "invalid option '-f%s'\n", optarg);
@@ -313,12 +319,20 @@ main(int ac, char *av[])
 			fprintf(hf, "\t%-11s do not inline leaf functions (ie64, -O2 and up)\n", "-fno-inline");
 			fprintf(hf, "\t%-11s accesses of different widths do not overlap; keeps loop accumulators in registers\n", "-fstrict-aliasing");
 			fprintf(hf, "\t%-11s do not copy shared compares and addresses to their uses (ie64)\n", "-fno-sink-fuse");
+			fprintf(hf, "\t%-11s lay out blocks by an execution profile (ie64)\n", "-fprofile-use=FILE");
 			fprintf(hf, "\t%-11s compare-and-branch with an immediate (ie64, needs engine support)\n", "-mbranch-imm");
 			exit(c != 'h');
 		}
 	if (ie64_branch_imm && strcmp(T.name, "ie64") != 0) {
 		fprintf(stderr, "-mbranch-imm needs the ie64 target\n");
 		exit(1);
+	}
+	if (profpath) {
+		if (strcmp(T.name, "ie64") != 0) {
+			fprintf(stderr, "-fprofile-use needs the ie64 target\n");
+			exit(1);
+		}
+		ie64_profileload(profpath);
 	}
 	if (nosinkfuse)
 		T.sinkfuse = 0;

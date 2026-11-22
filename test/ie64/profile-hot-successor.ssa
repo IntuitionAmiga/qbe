@@ -1,0 +1,18 @@
+# $pick is laid out by the compiler without a profile. With
+# profile-hot-successor.prof the branch is almost always taken, so the
+# likely block must follow it and the branch is inverted.
+export function w $pick(w %a, w %b) {
+@start
+	%c =w csltw %a, %b
+	jnz %c, @cold, @hot
+@cold
+	%x =w add %a, 100
+	%y =w mul %x, 3
+	jmp @end
+@hot
+	%z =w sub %a, %b
+	jmp @end
+@end
+	%r =w phi @cold %y, @hot %z
+	ret %r
+}

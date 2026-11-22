@@ -1,0 +1,22 @@
+# The loop block of $run is entered rarely but its back edge is taken 99
+# times in 100. With profile-hot-loop.prof the common path through @other
+# and @done is laid out in a row and the loop is left at the end, where no
+# successor follows it. A bra is cheaper than a taken conditional branch, so
+# the loop reaches itself by a bra and leaves by an inverted branch.
+export function w $run(w %k, w %n) {
+@start
+	jnz %k, @other, @pre
+@pre
+	jmp @loop
+@loop
+	%i =w phi @pre 0, @loop %i1
+	%i1 =w add %i, 1
+	%c =w csltw %i1, %n
+	jnz %c, @loop, @done
+@other
+	%x =w mul %n, 7
+	jmp @done
+@done
+	%r =w phi @loop %i1, @other %x
+	ret %r
+}
