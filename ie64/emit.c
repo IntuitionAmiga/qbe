@@ -567,6 +567,17 @@ emitins(Ins *i, Fn *fn, FILE *f)
 			emitreg(i->arg[1], f); fputc('\n', f);
 			return;
 		}
+		if (i->op == Oie64fipr) {
+			fputs("\tfipr ", f); emitreg(i->to, f);
+			fputs(", (", f); emitreg(i->arg[0], f);
+			fputs("), (", f); emitreg(i->arg[1], f); fputs(")\n", f);
+			return;
+		}
+		if (i->op == Oie64ftrv) {
+			fputs("\tftrv (", f); emitreg(i->arg[0], f);
+			fputs("), (", f); emitreg(i->arg[1], f); fputs(")\n", f);
+			return;
+		}
 		if (i->op == Oie64casd) {
 			fputs("\tmove.q r29, ", f); emitreg(i->arg[0], f); fputc('\n', f);
 			return;

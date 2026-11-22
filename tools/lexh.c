@@ -37,6 +37,7 @@ char *tok[] = {
 	"ie64dsin", "ie64dcos", "ie64dtan", "ie64datan", "ie64dlog",
 	"ie64dexp", "ie64dpow", "ie64dsqrt", "ie64xchg", "ie64faa", "ie64fand",
 	"ie64for", "ie64fxor", "ie64casd", "ie64cas",
+	"ie64fipr", "ie64ftrv", "ie64vaarg",
 
 	"call", "phi", "jmp", "jnz", "ret", "hlt", "export",
 	"function", "type", "data", "section", "align", "dbgfile",

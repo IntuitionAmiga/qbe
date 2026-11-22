@@ -174,6 +174,14 @@ O(ie64for,      T(e,l,e,e, e,l,e,e), F(0,0,0,0,0,0,0,0,0,1)) X(0,0,1) V(0)
 O(ie64fxor,     T(e,l,e,e, e,l,e,e), F(0,0,0,0,0,0,0,0,0,1)) X(0,0,1) V(0)
 O(ie64casd,     T(l,e,e,e, x,e,e,e), F(0,0,0,0,0,0,0,0,0,1)) X(0,0,1) V(0)
 O(ie64cas,      T(e,l,e,e, e,l,e,e), F(0,0,0,0,0,0,0,0,0,1)) X(0,0,1) V(0)
+/* Single-precision vector operations.  Both read and write memory through
+ * their address operands: see memeff() in util.c, which the load
+ * optimiser consults.  fipr fd, (a), (b) reads 16 bytes at each address and
+ * writes the FPSR condition codes; ftrv (m), (v) reads 64 bytes at m, then
+ * reads and writes 16 bytes at v.  Both may set FPSR sticky flags, so they stay
+ * pinned in program order with the FPSR builtins. */
+O(ie64fipr,     T(e,e,l,e, e,e,l,e), F(0,0,0,0,0,0,0,0,0,1)) X(0,0,1) V(0)
+O(ie64ftrv,     T(l,e,e,e, l,e,e,e), F(0,0,0,0,0,0,0,0,0,1)) X(0,0,1) V(0)
 O(ie64vaarg,    T(e,l,e,e, e,l,e,e), F(0,0,0,0,0,0,0,0,0,1)) X(0,0,1) V(0)
 
 /* Extensions and Truncations */

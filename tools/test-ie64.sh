@@ -313,8 +313,20 @@ fi
 
 if [ -x "$asm" ]
 then
+	# FIPR and FTRV need an assembler that has the instructions.
+	printf '\tfipr f0, (r1), (r2)\n\tftrv (r1), (r2)\n' > "$expected"
+	if "$asm" -c -Werror -o "$image" "$expected" >/dev/null 2>&1
+	then
+		fpvec=1
+	else
+		fpvec=
+		echo "assembler has no fipr/ftrv: skipping fpvec-*.s" >&2
+	fi
 	for gold in test/ie64/*.s
 	do
+		case "$(basename "$gold")" in
+		fpvec-*) [ -n "$fpvec" ] || continue ;;
+		esac
 		"$asm" -c -Werror -o "$image" "$gold" >/dev/null
 	done
 	echo "assembler syntax...                              [ok]"

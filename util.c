@@ -346,6 +346,18 @@ memeff(Ins *i, MemEff *e)
 		e->barrier = 1;
 		meffspan(e, 0, MEread | MEwrite, 8);
 		return 1;
+	case Oie64fipr:
+		/* Reads 16 bytes at each operand and names all it touches:
+		 * no barrier. */
+		meffspan(e, 0, MEread, 16);
+		meffspan(e, 1, MEread, 16);
+		return 1;
+	case Oie64ftrv:
+		/* Reads the 64-byte matrix at arg 0, then reads and writes the
+		 * 16-byte vector at arg 1: no barrier. */
+		meffspan(e, 0, MEread, 64);
+		meffspan(e, 1, MEread | MEwrite, 16);
+		return 1;
 	case Oie64vaarg:
 		/* An aggregate va_arg (see ie64/abi.c) reads the cursor
 		 * word of the va_list at arg[0] and writes it back
