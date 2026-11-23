@@ -1,0 +1,47 @@
+# FIPR and FTRV through the inliner.  The helper functions are what C code
+# written with the builtins compiles to: dot4(a, b) takes two aggregates,
+# and mulv(m, v) returns a new vector.  After inlining, the dot product of
+# two stack variables is one fipr on their addresses, with no call and no
+# copy.  M x v with a new result is at most a 16-byte copy of v and one ftrv.
+type :v4 = { s 4 }
+
+# fipr on its two parameters.
+function s $dot4(:v4 %a, :v4 %b) {
+@start
+	%r =s ie64fipr %a, %b
+	ret %r
+}
+
+# Copies v to a variable of its own and transforms that.
+function :v4 $mulv(l %m, :v4 %v) {
+@start
+	%r =l alloc4 16
+	blit %v, %r, 16
+	ie64ftrv %m, %r
+	ret %r
+}
+
+# The caller's variables are filled by a function that the compiler cannot
+# see, so that nothing is folded.
+export function s $local() {
+@start
+	%a =l alloc4 16
+	%b =l alloc4 16
+@body
+	%q =l call $fill(l %a)
+	%q2 =l call $fill(l %b)
+	%r =s call $dot4(:v4 %a, :v4 %b)
+	ret %r
+}
+
+# M x v into a new vector, then one element of it: one 16-byte copy of v
+# and one ftrv, no call.
+export function s $apply(l %m) {
+@start
+	%v =l alloc4 16
+@body
+	%q =l call $fill(l %v)
+	%t =:v4 call $mulv(l %m, :v4 %v)
+	%x =s loads %t
+	ret %x
+}

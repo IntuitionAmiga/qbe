@@ -195,6 +195,7 @@ ie64eff(Ins *i, uint *rd, uint *wr)
 	case Oie64flog: case Oie64fexp: case Oie64fpow: case Oie64fsqrt:
 	case Oie64dsin: case Oie64dcos: case Oie64dtan: case Oie64datan:
 	case Oie64dlog: case Oie64dexp: case Oie64dpow: case Oie64dsqrt:
+	case Oie64fipr: case Oie64ftrv:
 		break;
 	default:
 		return 0;

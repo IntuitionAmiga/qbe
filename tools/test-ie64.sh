@@ -330,7 +330,7 @@ then
 	for gold in test/ie64/*.s
 	do
 		case "$(basename "$gold")" in
-		fpvec-*) [ -n "$fpvec" ] || continue ;;
+		fpvec-*|inline-fpvec*) [ -n "$fpvec" ] || continue ;;
 		esac
 		"$asm" -c -Werror -o "$image" "$gold" >/dev/null
 	done
