@@ -1,0 +1,9 @@
+# The unsigned double-to-long conversion makes its own 2^63 double constant.
+# It must not change an integer constant with the same bits.
+export
+function l $uconv(d %x) {
+@start
+	%u =l dtoui %x
+	call $tagl(l 4890909195324358656)
+	ret %u
+}

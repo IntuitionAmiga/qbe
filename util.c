@@ -533,6 +533,7 @@ newcon(Con *c0, Fn *fn)
 		c1 = &fn->con[i];
 		if (c0->type == c1->type
 		&& symeq(c0->sym, c1->sym)
+		&& c0->flt == c1->flt
 		&& c0->bits.i == c1->bits.i)
 			return CON(i);
 	}
@@ -548,6 +549,7 @@ getcon(int64_t val, Fn *fn)
 
 	for (c=1; c<fn->ncon; c++)
 		if (fn->con[c].type == CBits
+		&& !fn->con[c].flt
 		&& fn->con[c].bits.i == val)
 			return CON(c);
 	vgrow(&fn->con, ++fn->ncon);

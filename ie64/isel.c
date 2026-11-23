@@ -396,7 +396,8 @@ ie64_isel(Fn *fn)
 					emit(Odtosi, Kl, converted, x, R);
 				} else {
 					Ref threshold = newtmp("ie64conv", Kd, fn);
-					Ref thresholdcon = getcon(UINT64_C(0x43e0000000000000), fn);
+					Con thresholdbits = {.type = CBits, .flt = 2};
+					Ref thresholdcon;
 					Ref highw = newtmp("ie64conv", Kw, fn);
 					Ref high = newtmp("ie64conv", Kl, fn);
 					Ref highfp = newtmp("ie64conv", Kd, fn);
@@ -406,6 +407,8 @@ ie64_isel(Fn *fn)
 					Ref highbit = newtmp("ie64conv", Kl, fn);
 
 					emit(Oor, Kl, i->to, low, highbit);
+					thresholdbits.bits.d = 0x1p63;
+					thresholdcon = newcon(&thresholdbits, fn);
 					emit(Oshl, Kl, highbit, high, getcon(63, fn));
 					emit(Odtosi, Kl, low, adjusted, R);
 					emit(Osub, Kd, adjusted, x, offset);
@@ -413,7 +416,6 @@ ie64_isel(Fn *fn)
 					emit(Osltof, Kd, highfp, high, R);
 					emit(Oextuw, Kl, high, highw, R);
 					emit(Ocmpd + Cfge, Kw, highw, x, threshold);
-					fn->con[thresholdcon.val].flt = 2;
 					emit(Ocopy, Kd, threshold, thresholdcon, R);
 				}
 				if (i->op == Ostoui)

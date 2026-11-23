@@ -1,0 +1,60 @@
+# An integer constant and a floating constant with the same raw bits must
+# stay separate constants: the float class of one must not reach the other,
+# in either order of first use, for 32-bit and 64-bit pairs.
+export
+function $intfirst_s() {
+@start
+	call $tag(w 1)
+	call $value(s s_1.4012984643248171e-45)
+	ret
+}
+export
+function $floatfirst_s() {
+@start
+	call $value(s s_1.4012984643248171e-45)
+	call $tag(w 1)
+	call $tag(w 2)
+	ret
+}
+export
+function $intfirst_one() {
+@start
+	call $tag(w 1065353216)
+	call $value(s s_1)
+	ret
+}
+export
+function $floatfirst_one() {
+@start
+	call $value(s s_1)
+	call $tag(w 1065353216)
+	ret
+}
+export
+function $intfirst_d() {
+@start
+	call $tagl(l 1)
+	call $valued(d d_4.9406564584124654e-324)
+	ret
+}
+export
+function $floatfirst_d() {
+@start
+	call $valued(d d_4.9406564584124654e-324)
+	call $tagl(l 1)
+	ret
+}
+export
+function $intfirst_done() {
+@start
+	call $tagl(l 4607182418800017408)
+	call $valued(d d_1)
+	ret
+}
+export
+function $floatfirst_done() {
+@start
+	call $valued(d d_1)
+	call $tagl(l 4607182418800017408)
+	ret
+}
