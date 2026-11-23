@@ -1,0 +1,94 @@
+# Single constants outside the IE64 FPU constant ROM: the raw bits go
+# through r30 and one fmovi.  The edge cases keep their exact bits.
+export function s $bits_neg_zero() {
+@start
+	ret s_-0
+}
+
+export function s $bits_nan() {
+@start
+	ret s_nan
+}
+
+export function s $bits_neg_nan() {
+@start
+	ret s_-nan
+}
+
+export function s $bits_inf() {
+@start
+	ret s_inf
+}
+
+export function s $bits_neg_inf() {
+@start
+	ret s_-inf
+}
+
+export function s $bits_sub_neg() {
+@start
+	ret s_-0x1p-149
+}
+
+export function s $bits_sub_big() {
+@start
+	ret s_0x1.fffffcp-127
+}
+
+export function s $bits_min_normal() {
+@start
+	ret s_0x1p-126
+}
+
+export function s $bits_neg_max() {
+@start
+	ret s_-0x1.fffffep127
+}
+
+export function s $bits_neg_one() {
+@start
+	ret s_-1
+}
+
+export function s $bits_three() {
+@start
+	ret s_3
+}
+
+export function s $bits_small_int() {
+@start
+	ret s_0x1p-148
+}
+
+export function s $bits_one_third() {
+@start
+	ret s_0.333333343
+}
+
+export function s $bits_between(s %a, s %b) {
+@start
+	%x =s mul %a, s_3
+	%y =s sub %x, s_-0.25
+	%z =s div %y, %b
+	ret %z
+}
+
+# Untyped raw bits that name a single constant (a union copy).
+export function s $bits_union() {
+@start
+	%x =s copy 1078530011
+	ret %x
+}
+
+# A signalling NaN with a payload, as raw bits (0x7f800001).
+export function s $bits_snan() {
+@start
+	%x =s copy 2139095041
+	ret %x
+}
+
+# The double constants keep the data-word load.
+export function d $double_unchanged() {
+@start
+	ret d_1
+}

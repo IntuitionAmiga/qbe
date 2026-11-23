@@ -35,21 +35,15 @@ vadd:
 .type caller,@function
 .align 16
 caller:
-	move.l r30, #lo32(.L__ie64_fconst_0+0)
-	movt r30, #hi32(.L__ie64_fconst_0+0)
-	fload f1, (r30)
+	fmovecr f1, #8
 	fadd f3, f0, f1
-	move.l r30, #lo32(.L__ie64_fconst_1+0)
-	movt r30, #hi32(.L__ie64_fconst_1+0)
-	fload f1, (r30)
+	fmovecr f1, #9
 	fadd f2, f0, f1
-	move.l r30, #lo32(.L__ie64_fconst_2+0)
-	movt r30, #hi32(.L__ie64_fconst_2+0)
-	fload f1, (r30)
+	moveq r30, #1077936128
+	fmovi f1, r30
 	fadd f1, f0, f1
-	move.l r30, #lo32(.L__ie64_fconst_3+0)
-	movt r30, #hi32(.L__ie64_fconst_3+0)
-	fload f4, (r30)
+	moveq r30, #1082130432
+	fmovi f4, r30
 	fadd f0, f0, f4
 	fmovo r2, f3
 	store.l r2, (r1)
@@ -62,23 +56,3 @@ caller:
 	store.l r1, (r2)
 	rts
 .size caller,.-caller
-.section .rodata,"a"
-.local .L__ie64_fconst_0
-.align 4
-.L__ie64_fconst_0:
-	dc.l 0x3f800000
-.section .rodata,"a"
-.local .L__ie64_fconst_1
-.align 4
-.L__ie64_fconst_1:
-	dc.l 0x40000000
-.section .rodata,"a"
-.local .L__ie64_fconst_2
-.align 4
-.L__ie64_fconst_2:
-	dc.l 0x40400000
-.section .rodata,"a"
-.local .L__ie64_fconst_3
-.align 4
-.L__ie64_fconst_3:
-	dc.l 0x40800000

@@ -6,9 +6,7 @@ intfirst_s:
 	sub.q r31, r31, #8
 	moveq r1, #1
 	jsr tag
-	move.l r30, #lo32(.L__ie64_fconst_0+0)
-	movt r30, #hi32(.L__ie64_fconst_0+0)
-	fload f0, (r30)
+	fmovecr f0, #14
 	jsr value
 	add.q r31, r31, #8
 	rts
@@ -19,9 +17,7 @@ intfirst_s:
 .align 16
 floatfirst_s:
 	sub.q r31, r31, #8
-	move.l r30, #lo32(.L__ie64_fconst_0+0)
-	movt r30, #hi32(.L__ie64_fconst_0+0)
-	fload f0, (r30)
+	fmovecr f0, #14
 	jsr value
 	moveq r1, #1
 	jsr tag
@@ -38,9 +34,7 @@ intfirst_one:
 	sub.q r31, r31, #8
 	moveq r1, #1065353216
 	jsr tag
-	move.l r30, #lo32(.L__ie64_fconst_1+0)
-	movt r30, #hi32(.L__ie64_fconst_1+0)
-	fload f0, (r30)
+	fmovecr f0, #8
 	jsr value
 	add.q r31, r31, #8
 	rts
@@ -51,9 +45,7 @@ intfirst_one:
 .align 16
 floatfirst_one:
 	sub.q r31, r31, #8
-	move.l r30, #lo32(.L__ie64_fconst_1+0)
-	movt r30, #hi32(.L__ie64_fconst_1+0)
-	fload f0, (r30)
+	fmovecr f0, #8
 	jsr value
 	moveq r1, #1065353216
 	jsr tag
@@ -68,8 +60,8 @@ intfirst_d:
 	sub.q r31, r31, #8
 	moveq r1, #1
 	jsr tagl
-	move.l r30, #lo32(.L__ie64_fconst_2+0)
-	movt r30, #hi32(.L__ie64_fconst_2+0)
+	move.l r30, #lo32(.L__ie64_fconst_0+0)
+	movt r30, #hi32(.L__ie64_fconst_0+0)
 	dload f0, (r30)
 	jsr valued
 	add.q r31, r31, #8
@@ -81,8 +73,8 @@ intfirst_d:
 .align 16
 floatfirst_d:
 	sub.q r31, r31, #8
-	move.l r30, #lo32(.L__ie64_fconst_2+0)
-	movt r30, #hi32(.L__ie64_fconst_2+0)
+	move.l r30, #lo32(.L__ie64_fconst_0+0)
+	movt r30, #hi32(.L__ie64_fconst_0+0)
 	dload f0, (r30)
 	jsr valued
 	moveq r1, #1
@@ -99,8 +91,8 @@ intfirst_done:
 	move.l r1, #0x00000000
 	movt r1, #0x3ff00000
 	jsr tagl
-	move.l r30, #lo32(.L__ie64_fconst_3+0)
-	movt r30, #hi32(.L__ie64_fconst_3+0)
+	move.l r30, #lo32(.L__ie64_fconst_1+0)
+	movt r30, #hi32(.L__ie64_fconst_1+0)
 	dload f0, (r30)
 	jsr valued
 	add.q r31, r31, #8
@@ -112,8 +104,8 @@ intfirst_done:
 .align 16
 floatfirst_done:
 	sub.q r31, r31, #8
-	move.l r30, #lo32(.L__ie64_fconst_3+0)
-	movt r30, #hi32(.L__ie64_fconst_3+0)
+	move.l r30, #lo32(.L__ie64_fconst_1+0)
+	movt r30, #hi32(.L__ie64_fconst_1+0)
 	dload f0, (r30)
 	jsr valued
 	move.l r1, #0x00000000
@@ -124,21 +116,11 @@ floatfirst_done:
 .size floatfirst_done,.-floatfirst_done
 .section .rodata,"a"
 .local .L__ie64_fconst_0
-.align 4
-.L__ie64_fconst_0:
-	dc.l 0x00000001
-.section .rodata,"a"
-.local .L__ie64_fconst_1
-.align 4
-.L__ie64_fconst_1:
-	dc.l 0x3f800000
-.section .rodata,"a"
-.local .L__ie64_fconst_2
 .align 8
-.L__ie64_fconst_2:
+.L__ie64_fconst_0:
 	dc.q 0x0000000000000001
 .section .rodata,"a"
-.local .L__ie64_fconst_3
+.local .L__ie64_fconst_1
 .align 8
-.L__ie64_fconst_3:
+.L__ie64_fconst_1:
 	dc.q 0x3ff0000000000000

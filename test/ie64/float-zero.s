@@ -3,9 +3,7 @@
 .type single_zero,@function
 .align 16
 single_zero:
-	move.l r30, #lo32(.L__ie64_fconst_0+0)
-	movt r30, #hi32(.L__ie64_fconst_0+0)
-	fload f0, (r30)
+	fmovecr f0, #7
 	rts
 .size single_zero,.-single_zero
 .section .text,"ax"
@@ -13,8 +11,8 @@ single_zero:
 .type double_zero,@function
 .align 16
 double_zero:
-	move.l r30, #lo32(.L__ie64_fconst_1+0)
-	movt r30, #hi32(.L__ie64_fconst_1+0)
+	move.l r30, #lo32(.L__ie64_fconst_0+0)
+	movt r30, #hi32(.L__ie64_fconst_0+0)
 	dload f0, (r30)
 	rts
 .size double_zero,.-double_zero
@@ -24,11 +22,9 @@ double_zero:
 .align 16
 both_zero:
 	sub.q r31, r31, #8
+	fmovecr f0, #7
 	move.l r30, #lo32(.L__ie64_fconst_0+0)
 	movt r30, #hi32(.L__ie64_fconst_0+0)
-	fload f0, (r30)
-	move.l r30, #lo32(.L__ie64_fconst_1+0)
-	movt r30, #hi32(.L__ie64_fconst_1+0)
 	dload f2, (r30)
 	jsr consume_zeros
 	add.q r31, r31, #8
@@ -43,11 +39,6 @@ consume_zeros:
 .size consume_zeros,.-consume_zeros
 .section .rodata,"a"
 .local .L__ie64_fconst_0
-.align 4
-.L__ie64_fconst_0:
-	dc.l 0x00000000
-.section .rodata,"a"
-.local .L__ie64_fconst_1
 .align 8
-.L__ie64_fconst_1:
+.L__ie64_fconst_0:
 	dc.q 0x0000000000000000

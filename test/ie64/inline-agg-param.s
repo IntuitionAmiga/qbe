@@ -14,14 +14,10 @@ sum:
 .type mix,@function
 .align 16
 mix:
-	move.l r30, #lo32(.L__ie64_fconst_0+0)
-	movt r30, #hi32(.L__ie64_fconst_0+0)
-	fload f0, (r30)
+	fmovecr f0, #8
 	fstore f0, (r1)
 	fload f0, (r2)
-	move.l r30, #lo32(.L__ie64_fconst_0+0)
-	movt r30, #hi32(.L__ie64_fconst_0+0)
-	fload f1, (r30)
+	fmovecr f1, #8
 	fadd f0, f0, f1
 	rts
 .size mix,.-mix
@@ -30,9 +26,8 @@ mix:
 .type thru,@function
 .align 16
 thru:
-	move.l r30, #lo32(.L__ie64_fconst_1+0)
-	movt r30, #hi32(.L__ie64_fconst_1+0)
-	fload f0, (r30)
+	moveq r30, #1084227584
+	fmovi f0, r30
 	fstore f0, (r2)
 	fload f0, (r1)
 	rts
@@ -96,9 +91,7 @@ mixed:
 	move.q r1, r18
 	jsr fill
 	fload f0, (r18)
-	move.l r30, #lo32(.L__ie64_fconst_0+0)
-	movt r30, #hi32(.L__ie64_fconst_0+0)
-	fload f1, (r30)
+	fmovecr f1, #8
 	fadd f0, f0, f1
 	load.q r18, 32(r31)
 	add.q r31, r31, #40
@@ -119,9 +112,8 @@ through:
 	store.q r2, (r31)
 	load.q r2, 8(r19)
 	store.q r2, 8(r31)
-	move.l r30, #lo32(.L__ie64_fconst_1+0)
-	movt r30, #hi32(.L__ie64_fconst_1+0)
-	fload f0, (r30)
+	moveq r30, #1084227584
+	fmovi f0, r30
 	fstore f0, (r1)
 	fload f0, (r31)
 	load.q r18, 32(r31)
@@ -154,13 +146,3 @@ compare:
 	add.q r31, r31, #56
 	rts
 .size compare,.-compare
-.section .rodata,"a"
-.local .L__ie64_fconst_0
-.align 4
-.L__ie64_fconst_0:
-	dc.l 0x3f800000
-.section .rodata,"a"
-.local .L__ie64_fconst_1
-.align 4
-.L__ie64_fconst_1:
-	dc.l 0x40a00000

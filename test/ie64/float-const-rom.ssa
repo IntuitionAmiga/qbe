@@ -1,0 +1,99 @@
+# Each single constant equal to an entry of the IE64 FPU constant ROM
+# loads with fmovecr.  Pi, e, log2(e), log10(e), ln(2), ln(10) and log10(2)
+# are the binary32 roundings that the ROM holds.
+export function s $rom_pi() {
+@start
+	ret s_3.14159274
+}
+
+export function s $rom_e() {
+@start
+	ret s_2.71828175
+}
+
+export function s $rom_log2e() {
+@start
+	ret s_1.44269502
+}
+
+export function s $rom_log10e() {
+@start
+	ret s_0.434294492
+}
+
+export function s $rom_ln2() {
+@start
+	ret s_0.693147182
+}
+
+export function s $rom_ln10() {
+@start
+	ret s_2.30258512
+}
+
+export function s $rom_log10_2() {
+@start
+	ret s_0.301029998
+}
+
+export function s $rom_zero() {
+@start
+	ret s_0
+}
+
+export function s $rom_one() {
+@start
+	ret s_1
+}
+
+export function s $rom_two() {
+@start
+	ret s_2
+}
+
+export function s $rom_ten() {
+@start
+	ret s_10
+}
+
+export function s $rom_hundred() {
+@start
+	ret s_100
+}
+
+export function s $rom_thousand() {
+@start
+	ret s_1000
+}
+
+export function s $rom_half() {
+@start
+	ret s_0.5
+}
+
+export function s $rom_tiny() {
+@start
+	ret s_0x1p-149
+}
+
+export function s $rom_max() {
+@start
+	ret s_0x1.fffffep127
+}
+
+# A constant between two arithmetic operations: no memory access.
+export function s $between(s %a, s %b) {
+@start
+	%x =s mul %a, s_1
+	%y =s add %x, s_0.5
+	%z =s mul %y, %b
+	ret %z
+}
+
+# The same constant used twice is loaded twice, once for each use.
+export function s $twice(s %a) {
+@start
+	%x =s add %a, s_10
+	%y =s mul %x, s_10
+	ret %y
+}

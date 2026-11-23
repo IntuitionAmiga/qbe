@@ -263,6 +263,41 @@ stashfloat(Con *c)
 	return floatlabel(fc->id);
 }
 
+/* The IE64 FPU constant ROM (fmovecr indices 0-15), as binary32 bits.
+ * Index 14 is the smallest subnormal and 15 is FLT_MAX.  The table must
+ * equal ie64FmovecrROMTable in the engine's fpu_ie64.go: a single constant
+ * that equals an entry loads the same bits either way. */
+static const uint32_t fmovecrbits[16] = {
+	0x40490fdb, 0x402df854, 0x3fb8aa3b, 0x3ede5bd9,
+	0x3f317218, 0x40135d8e, 0x3e9a209b, 0x00000000,
+	0x3f800000, 0x40000000, 0x41200000, 0x42c80000,
+	0x447a0000, 0x3f000000, 0x00000001, 0x7f7fffff,
+};
+
+/* A single-precision constant, loaded without touching memory so that
+ * the engine keeps the floating-point register file resident across it.
+ * The caller has already written the tab.  A ROM constant is one fmovecr.
+ * Any other is its raw bits in r30 and one fmovi, which copies the low 32
+ * bits unconverted.  Both leave the same bits and condition codes as an
+ * fload of the constant. */
+static void
+emitsingleconst(Ref dst, uint32_t bits, FILE *f)
+{
+	int k;
+
+	for (k=0; k<16; k++)
+		if (fmovecrbits[k] == bits) {
+			fputs("fmovecr ", f);
+			emitreg(dst, f);
+			fprintf(f, ", #%d\n", k);
+			return;
+		}
+	emitintload(TMP(R30), Kw, bits, f);
+	fputs("\tfmovi ", f);
+	emitreg(dst, f);
+	fputs(", r30\n", f);
+}
+
 static void
 emitvalue(Ref r, Fn *fn, FILE *f)
 {
@@ -394,8 +429,15 @@ emitcopy(Ins *i, Fn *fn, FILE *f)
 		if ((i->cls == Ks && c->flt != 1)
 		|| (i->cls == Kd && c->flt != 2))
 			die("IE64 floating copy has the wrong constant width");
+		if (i->cls == Ks) {
+			uint32_t sbits;
+
+			memcpy(&sbits, &c->bits.s, sizeof sbits);
+			emitsingleconst(i->to, sbits, f);
+			return;
+		}
 		emitaddr(TMP(R30), stashfloat(c), 0, f);
-		fputs(i->cls == Kd ? "\tdload " : "\tfload ", f);
+		fputs("\tdload ", f);
 		emitreg(i->to, f);
 		fputs(", (r30)\n", f);
 		return;

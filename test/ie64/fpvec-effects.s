@@ -32,9 +32,7 @@ reload:
 reload_store:
 	move.q r3, r1
 	add.q r1, r2, #8
-	move.l r30, #lo32(.L__ie64_fconst_0+0)
-	movt r30, #hi32(.L__ie64_fconst_0+0)
-	fload f0, (r30)
+	fmovecr f0, #9
 	fstore f0, (r1)
 	ftrv (r3), (r2)
 	fload f0, (r1)
@@ -68,21 +66,15 @@ local_vec:
 	add.q r5, r3, #4
 	add.q r1, r3, #8
 	add.q r4, r3, #12
-	move.l r30, #lo32(.L__ie64_fconst_1+0)
-	movt r30, #hi32(.L__ie64_fconst_1+0)
-	fload f0, (r30)
+	fmovecr f0, #8
 	fstore f0, (r3)
-	move.l r30, #lo32(.L__ie64_fconst_0+0)
-	movt r30, #hi32(.L__ie64_fconst_0+0)
-	fload f0, (r30)
+	fmovecr f0, #9
 	fstore f0, (r5)
-	move.l r30, #lo32(.L__ie64_fconst_2+0)
-	movt r30, #hi32(.L__ie64_fconst_2+0)
-	fload f0, (r30)
+	moveq r30, #1077936128
+	fmovi f0, r30
 	fstore f0, (r1)
-	move.l r30, #lo32(.L__ie64_fconst_3+0)
-	movt r30, #hi32(.L__ie64_fconst_3+0)
-	fload f0, (r30)
+	moveq r30, #1082130432
+	fmovi f0, r30
 	fstore f0, (r4)
 	ftrv (r2), (r3)
 	fload f0, (r1)
@@ -94,9 +86,7 @@ local_vec:
 .type dot_unused,@function
 .align 16
 dot_unused:
-	move.l r30, #lo32(.L__ie64_fconst_1+0)
-	movt r30, #hi32(.L__ie64_fconst_1+0)
-	fload f0, (r30)
+	fmovecr f0, #8
 	fstore f0, (r1)
 	fipr f0, (r1), (r2)
 	rts
@@ -154,19 +144,13 @@ matrix_read:
 	sub.q r31, r31, #88
 	lea r1, 64(r31)
 	lea r2, 0(r31)
-	move.l r30, #lo32(.L__ie64_fconst_1+0)
-	movt r30, #hi32(.L__ie64_fconst_1+0)
-	fload f0, (r30)
+	fmovecr f0, #8
 	fstore f0, (r2)
-	move.l r30, #lo32(.L__ie64_fconst_0+0)
-	movt r30, #hi32(.L__ie64_fconst_0+0)
-	fload f0, (r30)
+	fmovecr f0, #9
 	fstore f0, (r1)
 	ftrv (r2), (r1)
 	fload f0, (r1)
-	move.l r30, #lo32(.L__ie64_fconst_1+0)
-	movt r30, #hi32(.L__ie64_fconst_1+0)
-	fload f1, (r30)
+	fmovecr f1, #8
 	fadd f0, f0, f1
 	add.q r31, r31, #88
 	rts
@@ -177,9 +161,8 @@ matrix_read:
 .align 16
 untouched_local:
 	ftrv (r1), (r2)
-	move.l r30, #lo32(.L__ie64_fconst_4+0)
-	movt r30, #hi32(.L__ie64_fconst_4+0)
-	fload f0, (r30)
+	moveq r30, #1084227584
+	fmovi f0, r30
 	rts
 .size untouched_local,.-untouched_local
 .section .text,"ax"
@@ -195,28 +178,3 @@ dot_forward:
 	fadd f0, f0, f1
 	rts
 .size dot_forward,.-dot_forward
-.section .rodata,"a"
-.local .L__ie64_fconst_0
-.align 4
-.L__ie64_fconst_0:
-	dc.l 0x40000000
-.section .rodata,"a"
-.local .L__ie64_fconst_1
-.align 4
-.L__ie64_fconst_1:
-	dc.l 0x3f800000
-.section .rodata,"a"
-.local .L__ie64_fconst_2
-.align 4
-.L__ie64_fconst_2:
-	dc.l 0x40400000
-.section .rodata,"a"
-.local .L__ie64_fconst_3
-.align 4
-.L__ie64_fconst_3:
-	dc.l 0x40800000
-.section .rodata,"a"
-.local .L__ie64_fconst_4
-.align 4
-.L__ie64_fconst_4:
-	dc.l 0x40a00000
