@@ -351,35 +351,67 @@ ie64_extisnop(Ins *i, Fn *fn)
 
 /*
  * A w value is held in a register as its zero or sign extension, and a
- * conditional branch tests the whole register.  An l temporary that stands
- * in for a w value breaks this: forwarding a store of a w slot to its load,
- * or the removal of a w copy of an l value, leaves the l temporary where a
- * w one was meant, and its upper half may be set.  Extend such a temporary
- * to a w one with a zero extension, where a branch tests it and where it
- * enters a w phi that a branch tests.  An l temporary whose value is known
- * to fit 32 bits needs none.  The extension is not a copy: the register
- * allocator drops a copy whose two sides share a register.
+ * conditional branch tests the whole register, as does the callee of a call
+ * that takes its w parameter from one.  An l temporary that stands in for a
+ * w value breaks this: forwarding a store of a w slot to its load, or the
+ * removal of a w copy of an l value, leaves the l temporary where a w one
+ * was meant, and its upper half may be set.  A symbol address does the same:
+ * it is all 64 bits.  Extend such a value to a w temporary with a zero
+ * extension where a branch tests it, where it becomes a w argument of a
+ * call, and where it enters a w phi that one of these reads.  An l temporary
+ * whose value is known to fit 32 bits needs none.  The extension is not a
+ * copy: the register allocator drops a copy whose two sides share a register.
  */
-static Ref
-wcopy(Fn *fn, Blk *b, Ref r)
-{
-	Ins *ni;
-	Ref t;
-
-	t = newtmp("ie64w", Kw, fn);
-	ni = vnew(b->nins + 1, sizeof ni[0], PFn);
-	memcpy(ni, b->ins, b->nins * sizeof ni[0]);
-	ni[b->nins] = (Ins){.op = Oextuw, .cls = Kw, .to = t, .arg = {r, R}};
-	b->ins = ni;
-	b->nins++;
-	return t;
-}
-
 static int
 wdirty(Fn *fn, Ref r)
 {
+	Con *c;
+
+	if (rtype(r) == RCon) {
+		c = &fn->con[r.val];
+		return c->type == CAddr;
+	}
 	return rtype(r) == RTmp && !isreg(r) && fn->tmp[r.val].cls == Kl
 		&& ie64_uwidth(fn, r, Kw) > 32;
+}
+
+/* Write the instructions that extend r into v; give the w temporary. */
+static uint
+wext(Fn *fn, Ref r, Ins *v, Ref *t)
+{
+	uint k;
+
+	k = 0;
+	if (rtype(r) == RCon) {
+		v[k++] = (Ins){.op = Ocopy, .cls = Kl,
+			.to = newtmp("ie64w", Kl, fn), .arg = {r, R}};
+		r = v[0].to;
+	}
+	*t = newtmp("ie64w", Kw, fn);
+	v[k++] = (Ins){.op = Oextuw, .cls = Kw, .to = *t, .arg = {r, R}};
+	return k;
+}
+
+/* Insert k instructions before the one at index at. */
+static void
+insat(Blk *b, uint at, Ins *v, uint k)
+{
+	Ins *ni;
+
+	ni = vnew(b->nins + k, sizeof ni[0], PFn);
+	memcpy(ni, b->ins, at * sizeof ni[0]);
+	memcpy(ni + at, v, k * sizeof ni[0]);
+	memcpy(ni + at + k, b->ins + at, (b->nins - at) * sizeof ni[0]);
+	b->ins = ni;
+	b->nins += k;
+}
+
+/* Is the instruction the copy of a w argument to an argument register? */
+static int
+wargcopy(Ins *i)
+{
+	return i->op == Ocopy && i->cls == Kw && isreg(i->to)
+		&& i->to.val >= R1 && i->to.val <= R8;
 }
 
 static void
@@ -387,11 +419,12 @@ wnorm(Fn *fn)
 {
 	Blk *b;
 	Phi *p, **def, **stk;
-	uint n, nt, ns;
+	Ins v[2];
+	uint n, k, nt, ns, at, lc;
 	char *need;
-	Ref r;
+	Ref r, t;
 
-	/* A phi is mended only when a branch tests it, directly or through
+	/* A phi is mended only when a sink reads it, directly or through
 	 * other phis.  The other readers of a w value ignore the upper half. */
 	nt = fn->ntmp;
 	def = alloc(nt * sizeof def[0]);
@@ -402,30 +435,54 @@ wnorm(Fn *fn)
 		for (p=b->phi; p; p=p->link)
 			if (p->cls == Kw && rtype(p->to) == RTmp && p->to.val < nt)
 				def[p->to.val] = p;
+#define SINK(r) do { \
+		if (rtype(r) == RTmp && (r).val < nt && def[(r).val] \
+		&& !need[(r).val]) { \
+			need[(r).val] = 1; \
+			stk[ns++] = def[(r).val]; \
+		} \
+	} while (0)
 	for (b=fn->start; b; b=b->link) {
+		/* The argument copies of a call come before its last one. */
+		lc = 0;
+		for (n=0; n<b->nins; n++)
+			if (iscallop(b->ins[n].op))
+				lc = n;
+		for (n=lc; n>0; n--) {
+			at = n - 1;
+			if (!wargcopy(&b->ins[at]))
+				continue;
+			r = b->ins[at].arg[0];
+			SINK(r);
+			if (wdirty(fn, r)) {
+				k = wext(fn, r, v, &t);
+				b->ins[at].arg[0] = t;
+				insat(b, at, v, k);
+			}
+		}
 		if (b->jmp.type != Jjnz)
 			continue;
 		r = b->jmp.arg;
-		if (rtype(r) == RTmp && r.val < nt && def[r.val] && !need[r.val]) {
-			need[r.val] = 1;
-			stk[ns++] = def[r.val];
+		SINK(r);
+		if (wdirty(fn, r)) {
+			k = wext(fn, r, v, &t);
+			insat(b, b->nins, v, k);
+			b->jmp.arg = t;
 		}
-		if (wdirty(fn, r))
-			b->jmp.arg = wcopy(fn, b, r);
 	}
 	while (ns > 0) {
 		p = stk[--ns];
 		for (n=0; n<p->narg; n++) {
 			r = p->arg[n];
-			if (wdirty(fn, r))
-				p->arg[n] = wcopy(fn, p->blk[n], r);
-			else if (rtype(r) == RTmp && r.val < nt && def[r.val]
-			&& !need[r.val]) {
-				need[r.val] = 1;
-				stk[ns++] = def[r.val];
-			}
+			if (wdirty(fn, r)) {
+				k = wext(fn, r, v, &t);
+				insat(p->blk[n], p->blk[n]->nins, v, k);
+				p->arg[n] = t;
+			} else
+				SINK(r);
 		}
 	}
+#undef SINK
 }
 
 void

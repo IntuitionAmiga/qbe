@@ -75,21 +75,27 @@ wide_phi:
 .type wide_phi_chain,@function
 .align 16
 wide_phi_chain:
-	move.q r2, r4
-	bne r1, r0, .L19
+	move.q r30, r1
+	move.q r1, r5
+	move.q r5, r30
+	bne r5, r0, .L19
 .L17:
-	move.q r3, r2
-	move.l r1, r3
+	move.q r3, r4
+	move.l r3, r3
 	bra .L20
 .L19:
-	move.l r1, r3
+	move.l r3, r3
 .L20:
-	move.l r3, r1
-	bne r3, r0, .L23
-.L22:
+	bne r2, r0, .L24
+.L21:
+	move.q r3, r1
+	move.l r3, r3
+.L24:
+	bne r3, r0, .L26
+.L25:
 	moveq r1, #6
 	rts
-.L23:
+.L26:
 	moveq r1, #5
 	rts
 .size wide_phi_chain,.-wide_phi_chain
@@ -98,13 +104,144 @@ wide_phi_chain:
 .type narrow_cond,@function
 .align 16
 narrow_cond:
-	bge r2, r3, .L26
-.L25:
-	bne r1, r0, .L27
-.L26:
+	load.l r1, (r1)
+	bne r1, r0, .L29
+.L28:
 	moveq r1, #6
 	rts
-.L27:
+.L29:
 	moveq r1, #5
 	rts
 .size narrow_cond,.-narrow_cond
+.section .text,"ax"
+.global narrow_cmp
+.type narrow_cmp,@function
+.align 16
+narrow_cmp:
+	bge r2, r3, .L32
+.L31:
+	bne r1, r0, .L33
+.L32:
+	moveq r1, #6
+	rts
+.L33:
+	moveq r1, #5
+	rts
+.size narrow_cmp,.-narrow_cmp
+.section .text,"ax"
+.global wide_callee
+.type wide_callee,@function
+.align 16
+wide_callee:
+	bne r1, r0, .L36
+.L35:
+	moveq r1, #6
+	rts
+.L36:
+	moveq r1, #5
+	rts
+.size wide_callee,.-wide_callee
+.section .text,"ax"
+.global wide_call
+.type wide_call,@function
+.align 16
+wide_call:
+	sub.q r31, r31, #8
+	move.l r1, r1
+	jsr wide_callee
+	sext.l r1, r1
+	add.q r31, r31, #8
+	rts
+.size wide_call,.-wide_call
+.section .text,"ax"
+.global wide_call_phi
+.type wide_call_phi,@function
+.align 16
+wide_call_phi:
+	sub.q r31, r31, #8
+	move.q r30, r1
+	move.q r1, r3
+	move.q r3, r30
+	move.q r30, r2
+	move.q r2, r1
+	move.q r1, r30
+	bne r3, r0, .L41
+.L39:
+	move.q r1, r2
+	move.l r1, r1
+	bra .L42
+.L41:
+	move.l r1, r1
+.L42:
+	jsr wide_callee
+	sext.l r1, r1
+	add.q r31, r31, #8
+	rts
+.size wide_call_phi,.-wide_call_phi
+.section .text,"ax"
+.global wide_const
+.type wide_const,@function
+.align 16
+wide_const:
+	moveq r1, #6
+	rts
+.size wide_const,.-wide_const
+.section .text,"ax"
+.global wide_symbol_phi
+.type wide_symbol_phi,@function
+.align 16
+wide_symbol_phi:
+	bne r1, r0, .L46
+.L45:
+	move.l r1, r2
+	bra .L47
+.L46:
+	move.l r1, #lo32(sym+0)
+	movt r1, #hi32(sym+0)
+	move.l r1, r1
+.L47:
+	move.l r2, r1
+	bne r2, r0, .L49
+.L48:
+	moveq r1, #6
+	rts
+.L49:
+	moveq r1, #5
+	rts
+.size wide_symbol_phi,.-wide_symbol_phi
+.section .text,"ax"
+.global wide_symbol
+.type wide_symbol,@function
+.align 16
+wide_symbol:
+	move.l r1, #lo32(sym+0)
+	movt r1, #hi32(sym+0)
+	move.l r1, r1
+	bne r1, r0, .L52
+.L51:
+	moveq r1, #6
+	rts
+.L52:
+	moveq r1, #5
+	rts
+.size wide_symbol,.-wide_symbol
+.section .text,"ax"
+.global wide_false_edge
+.type wide_false_edge,@function
+.align 16
+wide_false_edge:
+	move.l r2, r1
+	bne r2, r0, .L55
+.L54:
+	rts
+.L55:
+	moveq r1, #5
+	rts
+.size wide_false_edge,.-wide_false_edge
+.section .data,"aw"
+.local sym
+.type sym,@object
+.align 8
+sym:
+	dc.l 0
+.size sym,4

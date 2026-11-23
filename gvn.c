@@ -345,9 +345,9 @@ zeroval(Fn *fn, Blk *b, Ref r, int cls, int *z)
 }
 
 static int
-usecls(Use *u, Ref r, int cls)
+usecls(Fn *fn, Use *u, Ref r, int cls)
 {
-	int k;
+	int k, j;
 
 	switch (u->type) {
 	case UIns:
@@ -363,7 +363,10 @@ usecls(Use *u, Ref r, int cls)
 			return cls; /* eliminated */
 		return u->u.phi->cls;
 	case UJmp:
-		return Kw;
+		/* a branch and a w return read a word; any other return
+		 * reads the whole value */
+		j = fn->rpo[u->bid]->jmp.type;
+		return j == Jjnz || j == Jretw || isretbh(j) ? Kw : Kl;
 	default:
 		break;
 	}
@@ -385,7 +388,7 @@ propjnz0(Fn *fn, Blk *bif, Blk *s0, Blk *snon0, Ref r, int cls)
 		/* we may compare an l temp with a w
 		 * comparison; so check that the use
 		 * does not involve high bits */
-		if (usecls(u, r, cls) == cls)
+		if (usecls(fn, u, r, cls) == cls)
 		if (branchdom(fn, bif, s0, snon0, b))
 			replaceuse(fn, u, r, CON_Z);
 	}
@@ -416,7 +419,8 @@ dedupjmp(Fn *fn, Blk *b)
 	if (b->s1 == b->s2
 	|| isconbits(fn, b->jmp.arg, &v)
 	|| zeroval(fn, b, b->jmp.arg, Kw, &z)) {
-		if (v == 0 || z)
+		/* jnz tests the low word of a constant */
+		if ((v & 0xffffffff) == 0 || z)
 			b->s1 = b->s2;
 		/* we later move active ins out of dead blks */
 		b->s2 = 0;

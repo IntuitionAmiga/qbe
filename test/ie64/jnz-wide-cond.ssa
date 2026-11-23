@@ -61,9 +61,9 @@ function w $wide_phi(w %c, l %a, l %b) {
 	ret 6
 }
 
-# A phi of a phi.
+# A phi of a phi: the second one has an input of its own, so that it stays.
 export
-function w $wide_phi_chain(w %c, w %d, l %a, l %b) {
+function w $wide_phi_chain(w %c, w %d, l %a, l %b, l %e) {
 @start
 	jnz %c, @left, @right
 @left
@@ -78,7 +78,7 @@ function w $wide_phi_chain(w %c, w %d, l %a, l %b) {
 @down
 	jmp @join2
 @join2
-	%q =w phi @up %p, @down %p
+	%q =w phi @up %p, @down %e
 	jnz %q, @yes, @no
 @yes
 	ret 5
@@ -86,17 +86,115 @@ function w $wide_phi_chain(w %c, w %d, l %a, l %b) {
 	ret 6
 }
 
-# Nothing to mend: a compare result, its l extension, and a w parameter.
+# Nothing to mend: the value is a word load, so its upper half is clear.
 export
-function w $narrow_cond(w %c, l %a, l %b) {
+function w $narrow_cond(l %p) {
+@start
+	%y =l loaduw %p
+	jnz %y, @yes, @no
+@yes
+	ret 5
+@no
+	ret 6
+}
+
+# Nothing to mend: a compare result.
+export
+function w $narrow_cmp(w %c, l %a, l %b) {
 @start
 	%x =w csltl %a, %b
-	%y =l extuw %x
-	jnz %y, @yes, @no
+	jnz %x, @yes, @no
 @yes
 	jnz %c, @yes2, @no
 @yes2
 	ret 5
 @no
 	ret 6
+}
+
+# A callee takes its w parameter as it is, so the caller extends an l value
+# that it passes as one.
+export
+function w $wide_callee(w %v) {
+@start
+	jnz %v, @yes, @no
+@yes
+	ret 5
+@no
+	ret 6
+}
+
+export
+function w $wide_call(l %x) {
+@start
+	%r =w call $wide_callee(w %x)
+	ret %r
+}
+
+# A w phi of l values that a call takes as its argument.
+export
+function w $wide_call_phi(w %c, l %a, l %b) {
+@start
+	jnz %c, @left, @right
+@left
+	jmp @join
+@right
+	jmp @join
+@join
+	%p =w phi @left %a, @right %b
+	%r =w call $wide_callee(w %p)
+	ret %r
+}
+
+# A constant condition is its low word.
+export
+function w $wide_const() {
+@start
+	jnz 4294967296, @yes, @no
+@yes
+	ret 5
+@no
+	ret 6
+}
+
+# A symbol address is 64 bits: it enters a w phi, and a branch tests it.
+data $sym = { w 0 }
+
+export
+function w $wide_symbol_phi(w %c, l %v) {
+@start
+	jnz %c, @left, @right
+@left
+	jmp @join
+@right
+	jmp @join
+@join
+	%p =w phi @left $sym, @right %v
+	jnz %p, @yes, @no
+@yes
+	ret 5
+@no
+	ret 6
+}
+
+export
+function w $wide_symbol() {
+@start
+	jnz $sym, @yes, @no
+@yes
+	ret 5
+@no
+	ret 6
+}
+
+# On the false edge of a word test only the low word of the value is zero:
+# the long that the function returns there is not.
+export
+function l $wide_false_edge(l %x) {
+@start
+	jnz %x, @yes, @no
+@yes
+	ret 5
+@no
+	ret %x
 }
