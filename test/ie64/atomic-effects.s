@@ -66,6 +66,7 @@ join:
 	move.q r1, r3
 	move.q r3, r30
 	load.q r2, (r3)
+	move.l r4, r4
 	bne r4, r0, .L6
 .L5:
 	fxor r1, (r3), r1

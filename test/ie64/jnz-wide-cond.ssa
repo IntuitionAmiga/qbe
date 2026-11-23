@@ -1,0 +1,102 @@
+# A branch tests a w value, but an l temporary can stand in for one: the
+# load of a w slot is forwarded from the store of an l value, and a w copy
+# of an l value is removed.  The upper half of such a temporary is not
+# zero.  The branch must test the low 32 bits: the temporary is truncated
+# first, and only when its upper half is not known to be clear.
+
+# An l value as the condition: the low half decides.
+export
+function w $wide_cond(l %a) {
+@start
+	jnz %a, @yes, @no
+@yes
+	ret 5
+@no
+	ret 6
+}
+
+# The w copy of an l value is removed.
+export
+function w $wide_copy(l %a) {
+@start
+	%b =w copy %a
+	jnz %b, @yes, @no
+@yes
+	ret 5
+@no
+	ret 6
+}
+
+# The store of an l value to a w slot, and the load forwarded from it.
+export
+function w $wide_forward(l %x, l %k) {
+@start
+	%s =l alloc4 8
+	%t =l add %s, %k
+	storew 0, %t
+	storew %x, %s
+	%v =w loadw %s
+	jnz %v, @yes, @no
+@yes
+	ret 5
+@no
+	ret 6
+}
+
+# A w phi of l values that a branch tests.
+export
+function w $wide_phi(w %c, l %a, l %b) {
+@start
+	jnz %c, @left, @right
+@left
+	jmp @join
+@right
+	jmp @join
+@join
+	%p =w phi @left %a, @right %b
+	jnz %p, @yes, @no
+@yes
+	ret 5
+@no
+	ret 6
+}
+
+# A phi of a phi.
+export
+function w $wide_phi_chain(w %c, w %d, l %a, l %b) {
+@start
+	jnz %c, @left, @right
+@left
+	jmp @join1
+@right
+	jmp @join1
+@join1
+	%p =w phi @left %a, @right %b
+	jnz %d, @up, @down
+@up
+	jmp @join2
+@down
+	jmp @join2
+@join2
+	%q =w phi @up %p, @down %p
+	jnz %q, @yes, @no
+@yes
+	ret 5
+@no
+	ret 6
+}
+
+# Nothing to mend: a compare result, its l extension, and a w parameter.
+export
+function w $narrow_cond(w %c, l %a, l %b) {
+@start
+	%x =w csltl %a, %b
+	%y =l extuw %x
+	jnz %y, @yes, @no
+@yes
+	jnz %c, @yes2, @no
+@yes2
+	ret 5
+@no
+	ret 6
+}

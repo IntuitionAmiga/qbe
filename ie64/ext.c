@@ -349,6 +349,85 @@ ie64_extisnop(Ins *i, Fn *fn)
 	return 0;
 }
 
+/*
+ * A w value is held in a register as its zero or sign extension, and a
+ * conditional branch tests the whole register.  An l temporary that stands
+ * in for a w value breaks this: forwarding a store of a w slot to its load,
+ * or the removal of a w copy of an l value, leaves the l temporary where a
+ * w one was meant, and its upper half may be set.  Extend such a temporary
+ * to a w one with a zero extension, where a branch tests it and where it
+ * enters a w phi that a branch tests.  An l temporary whose value is known
+ * to fit 32 bits needs none.  The extension is not a copy: the register
+ * allocator drops a copy whose two sides share a register.
+ */
+static Ref
+wcopy(Fn *fn, Blk *b, Ref r)
+{
+	Ins *ni;
+	Ref t;
+
+	t = newtmp("ie64w", Kw, fn);
+	ni = vnew(b->nins + 1, sizeof ni[0], PFn);
+	memcpy(ni, b->ins, b->nins * sizeof ni[0]);
+	ni[b->nins] = (Ins){.op = Oextuw, .cls = Kw, .to = t, .arg = {r, R}};
+	b->ins = ni;
+	b->nins++;
+	return t;
+}
+
+static int
+wdirty(Fn *fn, Ref r)
+{
+	return rtype(r) == RTmp && !isreg(r) && fn->tmp[r.val].cls == Kl
+		&& ie64_uwidth(fn, r, Kw) > 32;
+}
+
+static void
+wnorm(Fn *fn)
+{
+	Blk *b;
+	Phi *p, **def, **stk;
+	uint n, nt, ns;
+	char *need;
+	Ref r;
+
+	/* A phi is mended only when a branch tests it, directly or through
+	 * other phis.  The other readers of a w value ignore the upper half. */
+	nt = fn->ntmp;
+	def = alloc(nt * sizeof def[0]);
+	stk = alloc(nt * sizeof stk[0]);
+	need = alloc(nt);
+	ns = 0;
+	for (b=fn->start; b; b=b->link)
+		for (p=b->phi; p; p=p->link)
+			if (p->cls == Kw && rtype(p->to) == RTmp && p->to.val < nt)
+				def[p->to.val] = p;
+	for (b=fn->start; b; b=b->link) {
+		if (b->jmp.type != Jjnz)
+			continue;
+		r = b->jmp.arg;
+		if (rtype(r) == RTmp && r.val < nt && def[r.val] && !need[r.val]) {
+			need[r.val] = 1;
+			stk[ns++] = def[r.val];
+		}
+		if (wdirty(fn, r))
+			b->jmp.arg = wcopy(fn, b, r);
+	}
+	while (ns > 0) {
+		p = stk[--ns];
+		for (n=0; n<p->narg; n++) {
+			r = p->arg[n];
+			if (wdirty(fn, r))
+				p->arg[n] = wcopy(fn, p->blk[n], r);
+			else if (rtype(r) == RTmp && r.val < nt && def[r.val]
+			&& !need[r.val]) {
+				need[r.val] = 1;
+				stk[ns++] = def[r.val];
+			}
+		}
+	}
+}
+
 void
 ie64_canon(Fn *fn)
 {
@@ -360,6 +439,7 @@ ie64_canon(Fn *fn)
 	Ref *to, r;
 
 	ie64_extfacts(fn);
+	wnorm(fn);
 	nt = fn->ntmp;
 	zc = alloc(nt * sizeof zc[0]);
 	to = alloc(nt * sizeof to[0]);
