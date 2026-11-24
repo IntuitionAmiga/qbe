@@ -1,0 +1,66 @@
+# An unknown pointer can name a different member of the same union.
+export function w $union_unknown(l %out, l %in, w %n) {
+@start
+	storel 4294967296, %out
+	jmp @head
+@head
+	%k =w phi @start 0, @body %k1
+	%sum =w phi @start 0, @body %sum1
+	%more =w cultw %k, %n
+	jnz %more, @body, @done
+@body
+	%old =l loadl %out
+	%new =l add %old, 4294967296
+	storel %new, %out
+	%high =l add %in, 4
+	%part =w loadw %high
+	%sum1 =w add %sum, %part
+	%k1 =w add %k, 1
+	jmp @head
+@done
+	ret %sum
+}
+
+# A four-byte store at offset 4 overlaps an eight-byte accumulator.
+export function $union_overlap(l %p, w %n) {
+@start
+	storel 4294967296, %p
+	jmp @head
+@head
+	%k =w phi @start 0, @body %k1
+	%more =w cultw %k, %n
+	jnz %more, @body, @done
+@body
+	%old =l loadl %p
+	%new =l add %old, 4294967296
+	storel %new, %p
+	%high =l add %p, 4
+	storew %k, %high
+	%k1 =w add %k, 1
+	jmp @head
+@done
+	ret
+}
+
+# A four-byte access starting at offset 8 is disjoint.
+export function w $disjoint(l %p, w %n) {
+@start
+	storel 4294967296, %p
+	jmp @head
+@head
+	%k =w phi @start 0, @body %k1
+	%sum =w phi @start 0, @body %sum1
+	%more =w cultw %k, %n
+	jnz %more, @body, @done
+@body
+	%old =l loadl %p
+	%new =l add %old, 4294967296
+	storel %new, %p
+	%next =l add %p, 8
+	%part =w loadw %next
+	%sum1 =w add %sum, %part
+	%k1 =w add %k, 1
+	jmp @head
+@done
+	ret %sum
+}

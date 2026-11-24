@@ -1,5 +1,4 @@
-# Compiled with -fstrict-aliasing.  A location that a two-block loop loads, changes and stores on every iteration lives in a register: the stores leave the loop and one follows it.
-# The matrix kernel: the block before the loop stores the start value, the loads of the operands are 16 bits wide.
+# The matrix kernel uses separate pointer arguments. Their byte ranges may overlap.
 export function $acc(l %c, l %a, l %b, w %n) {
 @start
 	jmp @head0
@@ -37,8 +36,8 @@ export function $acc(l %c, l %a, l %b, w %n) {
 	ret
 }
 
-# A 64-bit accumulator that the loop reads and writes through a symbol: no access before the loop is needed.
-export function w $global(l %a, w %n) {
+# The 64-bit global accumulator needs no preheader access.
+export function w $global(w %n) {
 @start
 	jmp @head
 @head
@@ -46,11 +45,7 @@ export function w $global(l %a, w %n) {
 	%ck =w cultw %k, %n
 	jnz %ck, @body, @done
 @body
-	%ko =l extuw %k
-	%ko2 =l mul %ko, 2
-	%pa =l add %a, %ko2
-	%x =w loadsh %pa
-	%xl =l extsw %x
+	%xl =l extuw %k
 	%old =l loadl $total
 	%new =l add %old, %xl
 	storel %new, $total
@@ -60,8 +55,9 @@ export function w $global(l %a, w %n) {
 	ret 0
 }
 
-# The exit block has another predecessor, so the store after the loop goes into a block of its own on the exit edge.
-export function w $exitjoin(l %c, l %a, w %n, w %s) {
+# The read at offset 0 is disjoint. Sink the final store onto the loop's
+# exit edge because another path also reaches the exit block.
+export function w $exitjoin(l %c, w %n, w %s) {
 @start
 	%p =l add %c, 8
 	jnz %s, @pre, @join
@@ -73,10 +69,7 @@ export function w $exitjoin(l %c, l %a, w %n, w %s) {
 	%ck =w cultw %k, %n
 	jnz %ck, @body, @join
 @body
-	%ko =l extuw %k
-	%ko2 =l mul %ko, 2
-	%pa =l add %a, %ko2
-	%x =w loadsh %pa
+	%x =w loadsh %c
 	%old =w loadsw %p
 	%new =w add %old, %x
 	storew %new, %p

@@ -17,12 +17,10 @@
  *	@B	... uses %acc, defines %acc1 ...
  *	@exit	storew %acc, %addr
  *
- * Memory is only reached through the temporary, so every other access of
- * the loop must be known not to overlap the location.  QBE has no types to
- * tell it so.  With -fstrict-aliasing an access of another width does not
- * overlap an access of this width, as in C; byte accesses, volatile ones,
- * calls and private operations stop the pass.  Without the option the pass
- * does not run.
+ * Every other memory access must have a provably disjoint byte range.
+ * QBE has no C type information: different widths alone prove nothing
+ * about overlap.  Volatile accesses, calls and private operations stop
+ * the pass.  The pass runs with -fstrict-aliasing.
  *
  * The loads and stores move across the test of the loop, so the address
  * must be valid when the loop runs no iteration: a symbol, or an address
@@ -40,7 +38,7 @@ int strictalias;
 typedef struct Loc Loc;
 struct Loc {
 	Ref base;
-	int64_t off;
+	uint64_t off;
 };
 
 static Loc
@@ -63,7 +61,7 @@ resolve(Fn *fn, Ref r)
 		c = &fn->con[d->arg[1].val];
 		if (c->type != CBits || c->flt)
 			break;
-		l.off += d->op == Oadd ? c->bits.i : -c->bits.i;
+		l.off += d->op == Oadd ? (uint64_t)c->bits.i : -(uint64_t)c->bits.i;
 		l.base = d->arg[0];
 	}
 	return l;
@@ -93,16 +91,14 @@ inloop(Fn *fn, Ref r, Blk *h, Blk *b)
 	return t->bid == h->id || t->bid == b->id;
 }
 
-/* Is this an access that is not an accumulator access, and may overlap it? */
+/* Only compare byte ranges relative to a common base.  Unsigned
+ * distances also account for offsets on either side of the base. */
 static int
-overlaps(Ins *i, int sz)
+overlaps(Loc a, int sz, Loc b, int n)
 {
-	int n;
-
-	if (isvload(i->op) || isvstore(i->op))
-		return 1;
-	n = isload(i->op) ? loadsz(i) : storesz(i);
-	return n == sz || n == 1;
+	return !req(a.base, b.base)
+		|| b.off - a.off < (uint64_t)sz
+		|| a.off - b.off < (uint64_t)n;
 }
 
 /* May the loop run with the location in a register?  Its loads and stores
@@ -113,7 +109,8 @@ loopok(Fn *fn, Blk *h, Blk *b, Loc a, int sz, int k)
 {
 	Blk *x;
 	Ins *i;
-	int mine, nld, nst;
+	Loc other;
+	int nld, nst;
 
 	nld = nst = 0;
 	for (x=h; x; x=(x == h ? b : 0))
@@ -126,7 +123,8 @@ loopok(Fn *fn, Blk *h, Blk *b, Loc a, int sz, int k)
 				return 0;
 			if (isvload(i->op) || isvstore(i->op))
 				return 0;
-			if (sameloc(resolve(fn, addrof(i)), a)) {
+			other = resolve(fn, addrof(i));
+			if (sameloc(other, a)) {
 				/* An access of the location itself. */
 				if (x != b)
 					return 0;
@@ -147,8 +145,8 @@ loopok(Fn *fn, Blk *h, Blk *b, Loc a, int sz, int k)
 				}
 				continue;
 			}
-			mine = overlaps(i, sz);
-			if (mine)
+			if (overlaps(a, sz, other,
+				isload(i->op) ? loadsz(i) : storesz(i)))
 				return 0;
 		}
 	return nst > 0 && nld + nst > 0;
