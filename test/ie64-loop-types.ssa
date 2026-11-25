@@ -1,0 +1,62 @@
+export function $dot(l %acc, l %p, w %n) {
+@start
+    storew 0, %acc #!2
+    jmp @head
+@head
+    %i =w phi @start 0, @body %next
+    %ptr =l phi @start %p, @body %step
+    %more =w cultw %i, %n
+    jnz %more, @body, @exit
+@body
+    %value =w loadsh %ptr #!1
+    %sum =w loadw %acc #!2
+    %total =w add %sum, %value
+    storew %total, %acc #!2
+    %next =w add %i, 1
+    %step =l add %ptr, 2
+    jmp @head
+@exit
+    ret
+}
+# >>> driver
+# #include <stdlib.h>
+# extern void dot(int *, const short *, unsigned);
+# extern void overlap(int *, short *, unsigned);
+# int main(void) {
+#     const short values[] = {1, -9, 300, -11};
+#     int out = 123;
+#     dot(&out, values, 4);
+#     if (out != 281)
+#         return 1;
+#     dot(&out, 0, 0);
+#     if (out != 0)
+#         return 1;
+#     void *shared = malloc(sizeof(int));
+#     if (!shared)
+#         return 1;
+#     overlap(shared, shared, 1);
+#     int failed = *(short *)shared != 42;
+#     free(shared);
+#     return failed;
+# }
+# <<<
+
+# A store to untyped allocated memory can change its effective type.
+export function $overlap(l %acc, l %p, w %n) {
+@start
+    storew 0, %acc #!2
+    jmp @head
+@head
+    %i =w phi @start 0, @body %next
+    %more =w cultw %i, %n
+    jnz %more, @body, @exit
+@body
+    %sum =w loadw %acc #!2
+    %total =w add %sum, 1
+    storew %total, %acc #!2
+    storeh 42, %p #!1
+    %next =w add %i, 1
+    jmp @head
+@exit
+    ret
+}

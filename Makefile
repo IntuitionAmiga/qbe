@@ -10,7 +10,7 @@ COMMOBJ  = main.o util.o parse.o abi.o cfg.o mem.o ssa.o alias.o load.o \
 AMD64OBJ = amd64/targ.o amd64/sysv.o amd64/isel.o amd64/emit.o amd64/winabi.o
 ARM64OBJ = arm64/targ.o arm64/abi.o arm64/isel.o arm64/emit.o
 RV64OBJ  = rv64/targ.o rv64/abi.o rv64/isel.o rv64/emit.o
-IE64OBJ  = ie64/targ.o ie64/regs.o ie64/abi.o ie64/ext.o ie64/opt.o ie64/layout.o ie64/peep.o ie64/isel.o ie64/emit.o
+IE64OBJ  = ie64/targ.o ie64/regs.o ie64/abi.o ie64/ext.o ie64/opt.o ie64/state.o ie64/layout.o ie64/peep.o ie64/isel.o ie64/emit.o
 OBJ      = $(COMMOBJ) $(AMD64OBJ) $(ARM64OBJ) $(RV64OBJ) $(IE64OBJ)
 
 SRCALL   = $(OBJ:.o=.c)
@@ -90,6 +90,8 @@ check-ie64: qbe ie64-argregs-test
 	./ie64-argregs-test
 	sh tools/test-opt-levels.sh ./qbe
 	sh tools/test-ie64.sh ./qbe
+	sh tools/test-ie64-loop-ir.sh ./qbe
+	sh tools/test-ie64-state-row.sh ./qbe
 
 check-amd64_win: qbe
 	TARGET=amd64_win tools/test.sh all

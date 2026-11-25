@@ -39,7 +39,11 @@ static Target *tlist[] = {
 };
 static FILE *outf;
 static int dbg;
-static int optlevel = 2;
+int optlevel = 2;
+extern void ie64_bitopt(Fn *);
+extern void ie64_narrow(Fn *);
+extern void ie64_searchloops(Fn *);
+extern int ie64_threadstate(Fn *);
 
 static void
 lowervolatile(Fn *fn)
@@ -90,6 +94,7 @@ static void
 funcdo(Fn *fn)
 {
 	uint n;
+	int reduced;
 
 	if (dbg)
 		fprintf(stderr, "**** Function %s ****", fn->name);
@@ -125,9 +130,26 @@ funcdo(Fn *fn)
 		T.preopt(fn);
 		filluse(fn);
 	}
+	if (optlevel >= 2 && strcmp(T.name, "ie64") == 0) {
+		ie64_narrow(fn);
+		filluse(fn);
+	}
 	gcm(fn);
 	filluse(fn);
 	ssacheck(fn);
+	if (optlevel >= 2 && strcmp(T.name, "ie64") == 0) {
+		if (ie64_threadstate(fn)) {
+			gvn(fn);
+			fillcfg(fn);
+			simplcfg(fn);
+			filluse(fn);
+			filldom(fn);
+			gcm(fn);
+			filluse(fn);
+			ssacheck(fn);
+		}
+		ie64_bitopt(fn);
+	}
 	if (optlevel >= 2 && T.cansel) {
 		ifconvert(fn);
 		fillcfg(fn);
@@ -137,6 +159,15 @@ funcdo(Fn *fn)
 	}
 	if (strictalias && optlevel >= 2)
 		lpromote(fn);
+	if (optlevel >= 2 && strcmp(T.name, "ie64") == 0) {
+		ie64_searchloops(fn);
+		reduced = lreduce(fn);
+		if (lrowreduce(fn) || reduced) {
+			gcm(fn);
+			filluse(fn);
+			ssacheck(fn);
+		}
+	}
 	T.abi1(fn);
 	simpl(fn);
 	fillcfg(fn);

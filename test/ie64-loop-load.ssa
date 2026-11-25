@@ -1,0 +1,72 @@
+export function l $find(l %node, l %key) {
+@start
+    jmp @head
+@head
+    %p =l phi @start %node, @next %advance
+    %valid =w cnel %p, 0
+    jnz %valid, @check, @exit
+@check
+    %data =l add %p, 8
+    %item =w loadsh %data
+    %byte =w and %item, 255
+    %k =w loadsh %key
+    %ne =w cnew %byte, %k
+    jnz %ne, @next, @exit
+@next
+    %advance =l loadl %p
+    jmp @head
+@exit
+    ret %p
+}
+# >>> driver
+# struct node { struct node *next; short data; };
+# extern struct node *find(struct node *, short *);
+# extern int same(short *, short *);
+# extern struct node *continuation(struct node *, unsigned, unsigned, struct node *);
+# int main(void) {
+#     short expected = 255, notfound = -1;
+#     short a1 = -1, a2 = -1;
+#     struct node b = {0, -1}, a = {&b, 4};
+#     return find(&a, &expected) != &b || find(&a, &notfound) != 0 ||
+#            find(0, 0) != 0 || !same(&a1, &a2) || same(&a1, &expected) ||
+#            continuation(&a, 255, 1, 0) != &b ||
+#            continuation(&a, 0, 1, &a) != 0 ||
+#            continuation(0, 0, 1, &a) != 0 ||
+#            continuation(&a, 255, 0, &a) != &a;
+# }
+# <<<
+
+export function w $same(l %left, l %right) {
+@entry
+    %a =w loadsh %left
+    %b =w loadsh %right
+    %again =w extsh %b
+    %same =w ceqw %a, %again
+    ret %same
+}
+
+# A caller can already supply the key and consume the search result in
+# a later phi. The null test and match share an exit edge to that join.
+export function l $continuation(l %node, w %key, w %run, l %fallback) {
+@start
+    jnz %run, @pre, @join
+@pre
+    jmp @head
+@head
+    %p =l phi @pre %node, @next %advance
+    %valid =w cnel %p, 0
+    jnz %valid, @check, @exit
+@check
+    %data =l add %p, 8
+    %byte =w loadub %data
+    %ne =w cnew %byte, %key
+    jnz %ne, @next, @exit
+@next
+    %advance =l loadl %p
+    jmp @head
+@exit
+    jmp @join
+@join
+    %result =l phi @exit %p, @start %fallback
+    ret %result
+}

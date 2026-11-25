@@ -1,0 +1,13 @@
+export function l $convert(l %x) {
+@start
+	%s =w extsh %x
+	%z =l extuh %s
+	ret %z
+}
+
+export function l $preserve(l %x) {
+@start
+	%s =w extsb %x
+	%z =l extuh %s
+	ret %z
+}

@@ -749,6 +749,19 @@ towards zero.
     `loadsw` to make explicit that the extension mechanism
     used is irrelevant.
 
+  * C scalar memory annotations.
+
+    An ordinary halfword load or store may end in `#!1` to identify
+    an access through C short or unsigned short. A word load or store
+    may end in `#!2` for int or unsigned int. An unannotated access has
+    an unknown alias class. A producer must omit the annotation for
+    character accesses, bit-fields and explicit union member accesses.
+
+    With `-fstrict-aliasing`, loop promotion can use the annotation
+    to rule out a load from its accumulator. Other stores still need
+    a byte-range proof because a store can change the effective type of
+    allocated memory.
+
   * Blits.
 
       * `blit` -- `(m,m,w)`

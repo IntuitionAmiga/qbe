@@ -382,7 +382,9 @@ emit(int op, int k, Ref to, Ref arg0, Ref arg1)
 void
 emiti(Ins i)
 {
-	emit(i.op, i.cls, i.to, i.arg[0], i.arg[1]);
+	if (curi == insb)
+		die("emit, too many instructions");
+	*--curi = i;
 }
 
 void

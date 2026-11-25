@@ -1,0 +1,76 @@
+export function w $word(w %x, w %c) {
+@start
+	jnz %c, @xor, @shift
+@xor
+	%a =w xor %x, 18
+	jmp @shift
+@shift
+	%b =w phi @start %x, @xor %a
+	%h =w extub %b
+	%s =w sar %h, 1
+	jnz %c, @set, @done
+@set
+	%r =w or %s, 128
+	jmp @done
+@done
+	%y =w phi @shift %s, @set %r
+	ret %y
+}
+
+export function l $long_bits(l %x, w %c) {
+@start
+	jnz %c, @xor, @shift
+@xor
+	%a =l xor %x, 18
+	jmp @shift
+@shift
+	%b =l phi @start %x, @xor %a
+	%s =l shr %b, 1
+	jnz %c, @set, @done
+@set
+	%r =l or %s, -9223372036854775808
+	jmp @done
+@done
+	%y =l phi @shift %s, @set %r
+	ret %y
+}
+
+# The output bit selected by the second arm overlaps an input bit.
+export function w $overlap(w %x, w %c) {
+@start
+	jnz %c, @xor, @shift
+@xor
+	%a =w xor %x, 18
+	jmp @shift
+@shift
+	%b =w phi @start %x, @xor %a
+	%s =w shr %b, 1
+	jnz %c, @set, @done
+@set
+	%r =w or %s, 128
+	jmp @done
+@done
+	%y =w phi @shift %s, @set %r
+	ret %y
+}
+
+# An intermediate result that escapes the diamond must stay available.
+export function w $escape(w %x, w %c, l %p) {
+@start
+	jnz %c, @xor, @shift
+@xor
+	%a =w xor %x, 18
+	jmp @shift
+@shift
+	%b =w phi @start %x, @xor %a
+	%h =w extub %b
+	%s =w shr %h, 1
+	jnz %c, @set, @done
+@set
+	%r =w or %s, 128
+	jmp @done
+@done
+	%y =w phi @shift %s, @set %r
+	storew %s, %p
+	ret %y
+}

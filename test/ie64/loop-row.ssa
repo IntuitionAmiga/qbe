@@ -1,0 +1,27 @@
+export function w $row(l %a, l %b, w %base, w %col, w %n, w %stride) {
+@start
+	jmp @head
+@head
+	%k =w phi @start 0, @body %k1
+	%sum =w phi @start 0, @body %sum1
+	%more =w cultw %k, %n
+	jnz %more, @body, @end
+@body
+	%ai =w add %base, %k
+	%al =l extuw %ai
+	%ao =l mul %al, 2
+	%ap =l add %a, %ao
+	%x =w loadsh %ap
+	%r =w mul %k, %stride
+	%bi =w add %r, %col
+	%bl =l extuw %bi
+	%bo =l mul %bl, 2
+	%bp =l add %b, %bo
+	%y =w loadsh %bp
+	%z =w mul %x, %y
+	%sum1 =w add %sum, %z
+	%k1 =w add %k, 1
+	jmp @head
+@end
+	ret %sum
+}

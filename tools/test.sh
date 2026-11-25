@@ -8,7 +8,7 @@ if [ -z "${binref:-}" ]; then
 	binref=${bin}.ref
 fi
 
-tmp=/tmp/qbe.zzzz
+tmp=${TMPDIR:-/tmp}/qbe.zzzz
 
 drv=$tmp.c
 asm=$tmp.s

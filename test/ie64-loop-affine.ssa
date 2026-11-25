@@ -1,0 +1,28 @@
+export function w $affine(w %bound, w %stride, w %offset, l %p) {
+@entry
+    jmp @head
+@head
+    %i =w phi @entry 0, @body %next
+    %sum =w phi @entry 0, @body %acc
+    %run =w cultw %i, %bound
+    jnz %run, @body, @exit
+@body
+    %mul =w mul %i, %stride
+    %idx =w add %mul, %offset
+    %wide =l extsw %idx
+    %addr =l add %p, %wide
+    %read =w loadub %addr
+    %acc =w add %sum, %read
+    %next =w add %i, 1
+    jmp @head
+@exit
+    ret %sum
+}
+# >>> driver
+# unsigned char data[] = {2, 3, 5, 7};
+# extern int affine(unsigned, unsigned, unsigned, unsigned char *);
+# int main(void) {
+#     return affine(3, 0xffffffffu, 1, data + 1) != 10 ||
+#            affine(0, 0xffffffffu, 1, 0) != 0;
+# }
+# <<<

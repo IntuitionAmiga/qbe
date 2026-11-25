@@ -13,7 +13,7 @@ for in in test/ie64/*.ssa
 do
 	# brimm-*.ssa run twice below: with and without -mbranch-imm.
 	case "$(basename "$in")" in
-	brimm-*|lpromote-*|profile-*) continue ;;
+	brimm-*|lpromote-*|profile-*|loop-row.ssa|loop-state.ssa|merge-branches.ssa) continue ;;
 	esac
 	gold=${in%.ssa}.s
 	printf '%-45s' "$(basename "$in")..."
@@ -23,7 +23,13 @@ do
 	inline-*) noinline= ;;
 	*) noinline=-fno-inline ;;
 	esac
-	"$bin" -t ie64 $noinline -o "$tmp" "$in"
+	# Keep the copy-forward regression at the level where the
+	# conditional phi survives. Check bitwise lowering at -O2 below.
+	case "$(basename "$in")" in
+	copy-forward.ssa) level=-O1 ;;
+	*) level=-O2 ;;
+	esac
+	"$bin" -t ie64 $level $noinline -o "$tmp" "$in"
 	cat "$gold" > "$expected"
 	if diff -u "$expected" "$tmp"
 	then
@@ -33,6 +39,11 @@ do
 		exit 1
 	fi
 done
+
+printf '%-45s' "copy-forward.ssa (-O2)..."
+"$bin" -t ie64 -O2 -fno-inline -o "$tmp" test/ie64/copy-forward.ssa
+diff -u test/ie64/copy-forward.o2.s "$tmp"
+echo "[ok]"
 
 # Compare-and-branch with an immediate.  The .s golden is the output with
 # -mbranch-imm.  The .off.s golden is the output without it and must stay

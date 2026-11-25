@@ -2022,13 +2022,42 @@ hoistconsts(Fn *fn)
 		}
 }
 
+extern int optlevel;
+
+/* A slotless, single-block wrapper can leave its return address and
+ * incoming stack in place. The final call must return its l value in R1. */
+static Ins *
+tailcall(Fn *fn)
+{
+	Blk *b = fn->start;
+	Ins *i, *call = 0;
+	Con *c;
+
+	if (optlevel < 2 || b->link || fn->slot || fn->dynalloc || fn->retty >= 0
+	|| b->jmp.type != Jretl || !req(b->jmp.arg, TMP(R1)))
+		return 0;
+	for (i=b->ins; i<&b->ins[b->nins]; i++) {
+		if (i->op == Onop || (i->op == Ocopy && i->cls == Kl && req(i->to, i->arg[0])))
+			continue;
+		if (call || i->op == Osalloc || i->op == Oie64syscall)
+			return 0;
+		if (i->op == Ocall)
+			call = i;
+	}
+	if (!call || call->cls != Kl || !req(call->to, R)
+	|| !(T.retregs(call->arg[1], 0) & BIT(R1)) || rtype(call->arg[0]) != RCon)
+		return 0;
+	c = &fn->con[call->arg[0].val];
+	return c->type == CAddr && !c->bits.i ? call : 0;
+}
+
 void
 ie64_emitfn(Fn *fn, FILE *f)
 {
 	static int id0;
 	Blk *b;
 	Con *c;
-	Ins *i, *cmp;
+	Ins *i, *cmp, *tail;
 	bits *livein, out;
 	int64_t *foff, **foffs;
 	Ins **fused;
@@ -2054,8 +2083,16 @@ ie64_emitfn(Fn *fn, FILE *f)
 	local = 4 * fn->slot;
 	saveoff = (local + 7) & -8;
 	nsaves = emitsaves(fn, saveoff, 0, 0);
+	ie64_dupjumps(fn);
+	ie64_mergeblocks(fn);
+	livein = fillreglive(fn);
+	for (b=fn->start; b; b=b->link)
+		copyfwd(fn, b, livein);
+	for (b=fn->start; b; b=b->link)
+		copyfold(fn, b);
+	tail = nsaves ? 0 : tailcall(fn);
 	frame = saveoff + 8*nsaves;
-	if (frame || !fn->leaf)
+	if (frame || (!fn->leaf && !tail))
 		frame = ((frame + 8 + 15) & -16) - 8;
 	emitframe = frame;
 	emitdynalloc = fn->dynalloc;
@@ -2065,16 +2102,9 @@ ie64_emitfn(Fn *fn, FILE *f)
 		emitsaves(fn, saveoff, 0, f);
 	if (fn->dynalloc)
 		fputs("\tmove.q r25, r31\n", f);
-	ie64_dupjumps(fn);
-	ie64_mergeblocks(fn);
-	livein = fillreglive(fn);
 	nb = fn->nblk;
 	foffs = alloc(nb * sizeof foffs[0]);
 	fused = alloc(nb * sizeof fused[0]);
-	for (b=fn->start; b; b=b->link)
-		copyfwd(fn, b, livein);
-	for (b=fn->start; b; b=b->link)
-		copyfold(fn, b);
 	hoistconsts(fn);
 	livein = fillreglive(fn);
 	for (b=fn->start; b; b=b->link) {
@@ -2125,11 +2155,16 @@ ie64_emitfn(Fn *fn, FILE *f)
 		}
 		first = 0;
 		for (i=b->ins; i<&b->ins[b->nins]; i++)
-			if (i != cmp) {
+			if (i != cmp && i != tail) {
 				emitoff = foff[i - b->ins];
 				emitins(i, fn, f);
 				emitoff = 0;
 			}
+		if (tail) {
+			c = &fn->con[tail->arg[0].val];
+			fprintf(f, "\tbra %s\n", str(c->sym.id));
+			continue;
+		}
 		switch (b->jmp.type) {
 		case Jret0:
 			if (fn->dynalloc)

@@ -1,0 +1,41 @@
+export function w $scan(l %ptr, l %count, w %initial) {
+@start
+	%init =w cnew %initial, 0
+	jnz %init, @alternate, @first
+@first
+	jmp @head
+@alternate
+	jmp @head
+@head
+	%state =w phi @first 3, @alternate 9, @join %next
+	%p =l phi @first %ptr, @alternate %ptr, @join %p1
+	%c =w loadub %p
+	jnz %c, @dispatch, @end
+@dispatch
+	%p1 =l add %p, 1
+	%isfirst =w ceqw %state, 3
+	jnz %isfirst, @alpha, @beta
+@alpha
+	%a =w ceqw %c, 97
+	jnz %a, @aa, @ab
+@aa
+	jmp @alpha_end
+@ab
+	storew %c, %count
+	jmp @alpha_end
+@alpha_end
+	%s1 =w phi @aa %state, @ab 9
+	jmp @join
+@beta
+	%b =w ceqw %c, 98
+	jnz %b, @ba, @bb
+@ba
+	jmp @join
+@bb
+	jmp @join
+@join
+	%next =w phi @alpha_end %s1, @ba %state, @bb 3
+	jmp @head
+@end
+	ret %state
+}

@@ -371,7 +371,7 @@ fixarg(Ref *pr, int sz, int t, E *e)
 		if (s > sz * 4095u) {
 			if (t < 0)
 				return 1;
-			i = &(Ins){Oaddr, Kl, TMP(t), {r}};
+			i = &(Ins){.op = Oaddr, .cls = Kl, .to = TMP(t), .arg = {r}};
 			emitins(i, e);
 			*pr = TMP(t);
 		}
@@ -622,7 +622,7 @@ arm64_emitfn(Fn *fn, FILE *out)
 			for (r=arm64_rclob; *r>=0; r++)
 				if (e->fn->reg & BIT(*r)) {
 					s -= 2;
-					i = &(Ins){Oload, 0, TMP(*r), {SLOT(s)}};
+					i = &(Ins){.op = Oload, .cls = 0, .to = TMP(*r), .arg = {SLOT(s)}};
 					i->cls = *r >= V0 ? Kd : Kl;
 					emitins(i, e);
 				}

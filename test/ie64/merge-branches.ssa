@@ -1,0 +1,42 @@
+export function w $choose(w %c, l %p) {
+@start
+	%test =w ceqw %c, 45
+	jnz %test, @left, @right
+@left
+	%old0 =w loadw %p
+	%new0 =w add %old0, 1
+	storew %new0, %p
+	jmp @join
+@right
+	%old1 =w loadw %p
+	%new1 =w add %old1, 1
+	storew %new1, %p
+	jmp @join
+@join
+	%res =w phi @left 7, @right 8
+	ret %res
+}
+
+export function w $choose_many(w %c, l %p) {
+@start
+	%a =w ceqw %c, 45
+	jnz %a, @left, @more
+@left
+	%old0 =w loadw %p
+	%new0 =w add %old0, 1
+	storew %new0, %p
+	ret 7
+@more
+	%b =w ceqw %c, 43
+	jnz %b, @middle, @right
+@middle
+	%old1 =w loadw %p
+	%new1 =w add %old1, 1
+	storew %new1, %p
+	ret 8
+@right
+	%old2 =w loadw %p
+	%new2 =w add %old2, 1
+	storew %new2, %p
+	ret 9
+}

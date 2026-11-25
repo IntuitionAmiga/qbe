@@ -1,0 +1,19 @@
+export function l $forward(l %a, l %b) {
+@start
+	%r =l call $callee(l %b, l %a)
+	ret %r
+}
+
+export function l $stackarg(l %a) {
+@start
+	%r =l call $callee7(l 1, l 2, l 3, l 4, l 5, l 6, l %a)
+	ret %r
+}
+
+export function l $localaddr(l %a) {
+@start
+	%p =l alloc8 8
+	storel %a, %p
+	%r =l call $consume(l %p)
+	ret %r
+}

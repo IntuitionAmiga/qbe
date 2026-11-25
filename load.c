@@ -85,7 +85,7 @@ iins(int cls, int op, Ref a0, Ref a1, Loc *l)
 	ist->num = inum++;
 	ist->bid = l->blk->id;
 	ist->off = l->off;
-	ist->new.ins = (Ins){op, cls, R, {a0, a1}};
+	ist->new.ins = (Ins){.op = op, .cls = cls, .to = R, .arg = {a0, a1}};
 	return ist->new.ins.to = newtmp("ld", cls, curf);
 }
 
@@ -509,6 +509,7 @@ loadopt(Fn *fn)
 						i->op = Ocopy;
 						break;
 					}
+					i->mtype = MUnknown;
 					i->arg[0] = i->arg[1];
 					i->arg[1] = R;
 				}

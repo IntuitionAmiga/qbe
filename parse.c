@@ -96,6 +96,7 @@ enum Token {
 	Tlbrace,
 	Trbrace,
 	Tnl,
+	Tmemtype,
 	Tdots,
 	Teof,
 
@@ -290,8 +291,11 @@ lex()
 		c = fgetc(inf);
 		goto Alpha;
 	case '#':
-		while ((c=fgetc(inf)) != '\n' && c != EOF)
-			;
+		c = fgetc(inf);
+		if (c == '!')
+			return Tmemtype;
+		while (c != '\n' && c != EOF)
+			c = fgetc(inf);
 		/* fall through */
 	case '\n':
 		lnum++;
@@ -554,24 +558,24 @@ parserefl(int arg)
 			err("invalid function parameter");
 		if (env)
 			if (arg)
-				*curi = (Ins){Oarge, k, R, {r}};
+				*curi = (Ins){.op = Oarge, .cls = k, .to = R, .arg = {r}};
 			else
-				*curi = (Ins){Opare, k, r, {R}};
+				*curi = (Ins){.op = Opare, .cls = k, .to = r, .arg = {R}};
 		else if (k == Kc)
 			if (arg)
-				*curi = (Ins){Oargc, Kl, R, {TYPE(ty), r}};
+				*curi = (Ins){.op = Oargc, .cls = Kl, .to = R, .arg = {TYPE(ty), r}};
 			else
-				*curi = (Ins){Oparc, Kl, r, {TYPE(ty)}};
+				*curi = (Ins){.op = Oparc, .cls = Kl, .to = r, .arg = {TYPE(ty)}};
 		else if (k >= Ksb)
 			if (arg)
-				*curi = (Ins){Oargsb+(k-Ksb), Kw, R, {r}};
+				*curi = (Ins){.op = Oargsb+(k-Ksb), .cls = Kw, .to = R, .arg = {r}};
 			else
-				*curi = (Ins){Oparsb+(k-Ksb), Kw, r, {R}};
+				*curi = (Ins){.op = Oparsb+(k-Ksb), .cls = Kw, .to = r, .arg = {R}};
 		else
 			if (arg)
-				*curi = (Ins){Oarg, k, R, {r}};
+				*curi = (Ins){.op = Oarg, .cls = k, .to = R, .arg = {r}};
 			else
-				*curi = (Ins){Opar, k, r, {R}};
+				*curi = (Ins){.op = Opar, .cls = k, .to = r, .arg = {R}};
 		curi++;
 	Next:
 		if (peek() == Trparen)
@@ -617,7 +621,7 @@ parseline(PState ps)
 	Ref r;
 	Blk *b;
 	Con *c;
-	int t, op, i, k, ty;
+	int t, op, i, k, ty, mt = MUnknown;
 
 	t = nextnl();
 	if (ps == PLbl && t != Tlbl && t != Trbrace)
@@ -751,13 +755,23 @@ parseline(PState ps)
 				err("invalid instruction argument");
 			i++;
 			t = peek();
-			if (t == Tnl)
+			if (t == Tnl || t == Tmemtype)
 				break;
 			if (t != Tcomma)
 				err(", or end of line expected");
 			next();
 		}
-	next();
+	if (peek() == Tmemtype) {
+		next();
+		expect(Tint);
+		if (tokval.num == MShort && (op == Oloadsh || op == Oloaduh || op == Ostoreh))
+			mt = MShort;
+		else if (tokval.num == MInt && (op == Oloadsw || op == Oloaduw || op == Ostorew))
+			mt = MInt;
+		else
+			err("invalid C memory type annotation");
+	}
+	expect(Tnl);
 	switch (op) {
 	case Tphi:
 		if (ps != PPhi || curb == curf->start)
@@ -800,6 +814,7 @@ parseline(PState ps)
 		if (curi - insb >= NIns)
 			err("too many instructions");
 		curi->op = op;
+		curi->mtype = mt;
 		curi->cls = k;
 		curi->to = r;
 		curi->arg[0] = arg[0];
@@ -1422,6 +1437,8 @@ printfn(Fn *fn, FILE *f)
 				fprintf(f, ", ");
 				printref(i->arg[1], fn, f);
 			}
+			if (i->mtype)
+				fprintf(f, " #!%d", i->mtype);
 			fprintf(f, "\n");
 		}
 		switch (b->jmp.type) {

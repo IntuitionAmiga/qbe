@@ -10,12 +10,11 @@ samewidth:
 	moveq r3, #0
 	bls r5, r4, .L4
 .L3:
-	lsl.q r6, r4, #2
-	add.q r6, r2, r6
-	load.l r6, (r6)
+	load.l r6, (r2)
 	add.l r3, r6, r3
 	store.l r3, (r1)
 	add.l r4, r4, #1
+	add.q r2, r2, #4
 	bhi r5, r4, .L3
 .L4:
 	rts
@@ -83,14 +82,13 @@ unproven:
 	moveq r3, #0
 	bls r4, r3, .L19
 .L18:
-	lsl.q r5, r3, #1
-	add.q r5, r2, r5
-	load.w r5, (r5)
+	load.w r5, (r2)
 	sext.w r5, r5
 	load.l r6, (r1)
 	add.l r5, r5, r6
 	store.l r5, (r1)
 	add.l r3, r3, #1
+	add.q r2, r2, #2
 	bhi r4, r3, .L18
 .L19:
 	rts
@@ -106,14 +104,13 @@ volatile:
 	moveq r3, #0
 	bls r4, r3, .L24
 .L23:
-	lsl.q r5, r3, #1
-	add.q r5, r2, r5
-	load.w r5, (r5)
+	load.w r5, (r2)
 	sext.w r5, r5
 	load.l r6, (r1)
 	add.l r5, r5, r6
 	store.l r5, (r1)
 	add.l r3, r3, #1
+	add.q r2, r2, #2
 	bhi r4, r3, .L23
 .L24:
 	rts

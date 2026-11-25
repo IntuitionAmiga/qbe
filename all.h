@@ -244,8 +244,11 @@ struct Op {
 	uint pinned:1;    /* GCM pinned op? */
 };
 
+enum { MUnknown, MShort, MInt };
+
 struct Ins {
-	uint op:30;
+	uint op:28;
+	uint mtype:2;  /* C scalar alias class, consumed by loop promotion */
 	uint cls:2;
 	Ref to;
 	Ref arg[2];
@@ -664,6 +667,8 @@ int pinned(Ins *);
 void gcm(Fn *);
 void lpromote(Fn *);
 extern int strictalias;
+int lreduce(Fn *);
+int lrowreduce(Fn *);
 
 /* ifopt.c */
 void ifconvert(Fn *fn);
