@@ -347,7 +347,7 @@ main(int ac, char *av[])
 			}
 			fprintf(hf, "\n");
 			fprintf(hf, "\t%-11s dump debug information\n", "-d <flags>");
-			fprintf(hf, "\t%-11s do not inline leaf functions (ie64, -O2 and up)\n", "-fno-inline");
+			fprintf(hf, "\t%-11s do not inline functions (ie64, -O2 and up)\n", "-fno-inline");
 			fprintf(hf, "\t%-11s keep loop accumulators in registers when other accesses are disjoint\n", "-fstrict-aliasing");
 			fprintf(hf, "\t%-11s do not copy shared compares and addresses to their uses (ie64)\n", "-fno-sink-fuse");
 			fprintf(hf, "\t%-11s lay out blocks by an execution profile (ie64)\n", "-fprofile-use=FILE");

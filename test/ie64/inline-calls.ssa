@@ -1,0 +1,103 @@
+function w $inc(w %a) {
+@entry
+    %r =w add %a, 1
+    ret %r
+}
+
+function w $walk(w %n, l %cmp) {
+@entry
+    %slot =l alloc8 8
+    storel %cmp, %slot
+    jmp @loop
+@loop
+    %i =w phi @entry %n, @again %next
+    %f =l loadl %slot
+    %v =w call %f(w %i)
+    jnz %i, @again, @done
+@again
+    %next =w sub %i, 1
+    jmp @loop
+@done
+    ret %v
+}
+
+export function w $known(w %n) {
+@entry
+    %v =w call $walk(w %n, l $inc)
+    ret %v
+}
+
+export function w $dynamic(w %n, l %cmp) {
+@entry
+    %v =w call $walk(w %n, l %cmp)
+    ret %v
+}
+
+function w $mutable(l %cmp, l %other) {
+@entry
+    %slot =l alloc8 8
+    storel %cmp, %slot
+    call $replace(l %slot, l %other)
+    %f =l loadl %slot
+    %r =w call %f(w 5)
+    ret %r
+}
+
+export function w $escaped(l %other) {
+@entry
+    %r =w call $mutable(l $inc, l %other)
+    ret %r
+}
+
+function w $reassigned(l %cmp, l %other, w %use_other) {
+@entry
+    %slot =l alloc8 8
+    storel %cmp, %slot
+    jnz %use_other, @change, @call
+@change
+    storel %other, %slot
+    jmp @call
+@call
+    %f =l loadl %slot
+    %r =w call %f(w 5)
+    ret %r
+}
+
+export function w $known_reassigned(l %other, w %use_other) {
+@entry
+    %r =w call $reassigned(l $inc, l %other, w %use_other)
+    ret %r
+}
+
+function l $forward(l %x) {
+@entry
+    %y =l add %x, 17
+    %r =l call $external(l %y)
+    ret %r
+}
+
+export function l $use_forward(l %x) {
+@entry
+    %r =l call $forward(l %x)
+    %y =l add %r, 1
+    ret %y
+}
+
+export function w $external_callback(w %n) {
+@entry
+    %v =w call $walk(w %n, l $foreign_inc)
+    ret %v
+}
+
+function w $nonleaf(w %a) {
+@entry
+    %r =w call $foreign_inc(w %a)
+    call $mark()
+    ret %r
+}
+
+export function w $known_nonleaf(w %n) {
+@entry
+    %v =w call $walk(w %n, l $nonleaf)
+    ret %v
+}

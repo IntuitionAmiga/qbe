@@ -409,6 +409,32 @@ narrowequality(Fn *fn)
 		}
 }
 
+/* Let the load produce the long value directly. This keeps the sign
+ * through spills and leaves the original access width and location. */
+static void
+extendloads(Fn *fn)
+{
+	Blk *b;
+	Ins *i, *d;
+	int ext, load;
+
+	for (b=fn->start; b; b=b->link)
+		for (i=b->ins; i<&b->ins[b->nins]; i++) {
+			if (!isext(i->op) || i->cls != Kl
+			|| rtype(i->arg[0]) != RTmp)
+				continue;
+			d = fn->tmp[i->arg[0].val].def;
+			if (!d || d->op < Oloadsb || d->op > Oloaduw)
+				continue;
+			ext = i->op - Oextsb;
+			load = d->op - Oloadsb;
+			if ((ext ^ load) & 1 || ext < load)
+				continue;
+			d->cls = Kl;
+			i->op = Ocopy;
+		}
+}
+
 void
 ie64_narrow(Fn *fn)
 {
@@ -424,6 +450,7 @@ ie64_narrow(Fn *fn)
 	}
 	narrowloads(fn);
 	narrowequality(fn);
+	extendloads(fn);
 }
 
 /* Runs before GCM, on SSA form with up to date uses.  Returns whether the

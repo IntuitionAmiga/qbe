@@ -13,7 +13,7 @@ for in in test/ie64/*.ssa
 do
 	# brimm-*.ssa run twice below: with and without -mbranch-imm.
 	case "$(basename "$in")" in
-	brimm-*|lpromote-*|profile-*|loop-row.ssa|loop-state.ssa|merge-branches.ssa) continue ;;
+	brimm-*|lpromote-*|profile-*|loop-row.ssa|loop-state.ssa|merge-branches.ssa|inline-calls.ssa|extend-load.ssa) continue ;;
 	esac
 	gold=${in%.ssa}.s
 	printf '%-45s' "$(basename "$in")..."

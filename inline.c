@@ -1,7 +1,7 @@
 #include "all.h"
 
 /*
- * Inlining of small leaf functions of one compilation unit.
+ * Inlining of small functions of one compilation unit.
  *
  * The functions of a unit are held after parsing, before any pass has
  * run, so every body is still the plain IL a front end wrote: stack
@@ -14,9 +14,11 @@
  * The ordinary passes then see one function.  The callee stays in the
  * output, as it may be called from elsewhere.
  *
- * A candidate is a non-variadic function without calls, dynamic
- * allocation or target operations that touch the machine state, within a
- * size bound.  It may take and return aggregates.  Functions are taken in
+ * Leaf candidates may take and return aggregates. Scalar candidates may
+ * also forward one direct call, or call a parameter known at the site
+ * to name a strong function defined in this unit.
+ * All candidates exclude dynamic allocation and target operations that
+ * touch machine state, and have size bounds. Functions are taken in
  * the order the unit defines them, so a function that has inlined its own
  * callees can itself become a candidate when it is still within the bound.
  *
@@ -54,6 +56,10 @@
 enum {
 	MaxIns = 140,		/* instructions of a candidate */
 	MaxBlk = 24,		/* blocks of a candidate */
+	MaxWrapperIns = 24,
+	MaxWrapperBlk = 4,
+	MaxCallbackIns = 180,
+	MaxCallbackBlk = 40,
 	MaxSites = 48,		/* inlined calls in one function */
 	MaxGrow = 6000,		/* instructions a function may reach */
 	MaxAgg = 128,		/* bytes of an aggregate parameter or result */
@@ -72,6 +78,8 @@ struct Cand {
 	uint nret;	/* blocks that return a value */
 	uint dropok;	/* aggregate parameters whose copy the body allows to go */
 	uchar *own;	/* per temporary: names only memory the body owns */
+	Ins *call;	/* the sole call of a non-leaf candidate */
+	int callback;	/* parameter supplying its target, or -1 */
 };
 
 static void
@@ -115,7 +123,7 @@ bcount(Blk *b)
 	for (i=b->ins; i<&b->ins[b->nins]; i++)
 		if (i->op == Oblit0)
 			n += copycost(rsval((i+1)->arg[0]));
-		else if (i->op != Oblit1)
+		else if (i->op != Oblit1 && i->op != Onop)
 			n++;
 	return n > MaxCount ? MaxCount : n;
 }
@@ -421,6 +429,50 @@ analyse(Cand *c)
 				c->dropok |= 1u << j;
 }
 
+static char *
+callsym(Fn *fn, Ref r)
+{
+	Con *c;
+
+	if (rtype(r) != RCon)
+		return 0;
+	c = &fn->con[r.val];
+	if (c->type != CAddr || (c->sym.type & ~SExt) != SGlo || c->bits.i)
+		return 0;
+	return str(c->sym.id);
+}
+
+/* A single-definition chain of long copies can carry a callback
+ * parameter. Slot promotion exposes the usual front-end parameter spill
+ * only if the slot is private and its accesses have uniform width. */
+static int
+callbackpar(Cand *c)
+{
+	Fn *g = c->fn;
+	Ref r = c->call->arg[0];
+	Tmp *t;
+	Ins *d;
+	int k, n;
+
+	filluse(g);
+	promote(g);
+	filluse(g);
+	for (n=0; n<g->ntmp && tmpof(r); n++) {
+		t = &g->tmp[r.val];
+		if (t->ndef != 1 || !(d = t->def) || d->cls != Kl)
+			break;
+		if (d->op == Opar) {
+			k = d - g->start->ins;
+			assert(k >= 0 && k < c->npar);
+			return k;
+		}
+		if (d->op != Ocopy)
+			break;
+		r = d->arg[0];
+	}
+	return -1;
+}
+
 static void
 classify(Cand *c)
 {
@@ -438,6 +490,8 @@ classify(Cand *c)
 	c->nret = 0;
 	c->dropok = 0;
 	c->own = 0;
+	c->call = 0;
+	c->callback = -1;
 	if (g->vararg || g->dynalloc || g->lnk.weak)
 		return;
 	if (g->retty >= 0) {
@@ -469,8 +523,14 @@ classify(Cand *c)
 				c->par[c->npar++] = i->cls;
 				continue;
 			}
-			if (i->op == Ocall || i->op == Ovastart
-			|| i->op == Ovaarg || isarg(i->op)
+			if (i->op == Ocall) {
+				if (c->call || rtype(i->arg[1]) == RType)
+					return;
+				c->call = i;
+			}
+			if (i->op == Ovastart
+			|| i->op == Ovaarg || i->op == Oargc
+			|| i->op == Oargv || i->op == Oarge
 			|| (isie64op(i->op) && !ie64eff(i, &rd, &wr))
 			|| i->op == Osalloc)
 				return;
@@ -495,9 +555,26 @@ classify(Cand *c)
 			return;
 		}
 	}
+	c->ret = ret == -2 ? Kx : ret;
+	if (c->call) {
+		if (c->retty >= 0)
+			return;
+		for (k=0; k<c->npar; k++)
+			if (c->ptyp[k] >= 0)
+				return;
+		if (callsym(g, c->call->arg[0])) {
+			if (ni > MaxWrapperIns || nb > MaxWrapperBlk)
+				return;
+		} else {
+			if (ni > MaxCallbackIns || nb > MaxCallbackBlk
+			|| (c->callback = callbackpar(c)) < 0)
+				return;
+		}
+		c->ok = 1;
+		return;
+	}
 	if (ni > MaxIns || nb > MaxBlk)
 		return;
-	c->ret = ret == -2 ? Kx : ret;
 	c->ok = 1;
 	analyse(c);
 }
@@ -505,17 +582,15 @@ classify(Cand *c)
 static Cand *
 find(Cand *cs, int nc, Fn *fn, Ref r)
 {
-	Con *c;
+	char *name;
 	int n;
 
-	if (rtype(r) != RCon)
-		return 0;
-	c = &fn->con[r.val];
-	if (c->type != CAddr || (c->sym.type & ~SExt) != SGlo || c->bits.i)
+	name = callsym(fn, r);
+	if (!name)
 		return 0;
 	for (n=0; n<nc; n++)
-		if (cs[n].fn != fn && cs[n].ok
-		&& strcmp(cs[n].fn->name, str(c->sym.id)) == 0)
+		if (cs[n].fn != fn && !cs[n].fn->lnk.weak
+		&& strcmp(cs[n].fn->name, name) == 0)
 			return &cs[n];
 	return 0;
 }
@@ -709,6 +784,8 @@ inlinecall(Fn *fn, Cand *c, Blk *b, uint k, uint a0, uint drop, int ownres, Ins 
 			o->to = remap(&m, i->to);
 			o->arg[0] = remap(&m, i->arg[0]);
 			o->arg[1] = remap(&m, i->arg[1]);
+			if (i == c->call && c->callback >= 0)
+				o->arg[0] = b->ins[a0 + c->callback].arg[0];
 			o++;
 		}
 		copyphis(&m, gb, nb);
@@ -853,7 +930,7 @@ inlinefns(Fn **fns, int nf)
 				if (i->op != Ocall)
 					continue;
 				c = find(cs, nf, fn, i->arg[0]);
-				if (!c || sites >= MaxSites)
+				if (!c || !c->ok || sites >= MaxSites)
 					continue;
 				a0 = k;
 				while (a0 > 0 && isarg(b->ins[a0-1].op))
@@ -883,6 +960,8 @@ inlinefns(Fn **fns, int nf)
 					ok = i->arg[1].val == (uint)c->retty;
 				if (ok && !req(i->to, R))
 					ok = c->ret == i->cls;
+				if (ok && c->callback >= 0)
+					ok = find(cs, nf, fn, b->ins[a0+c->callback].arg[0]) != 0;
 				if (!ok || grow + count(c->fn) + sitecost(c, drop) > MaxGrow)
 					continue;
 				grow += count(c->fn) + sitecost(c, drop);

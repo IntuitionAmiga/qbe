@@ -1,0 +1,20 @@
+export function l $extend_half(l %addr) {
+@entry
+    %h =w loadsh %addr
+    %l =l extsh %h
+    ret %l
+}
+
+export function l $extend_byte(l %addr) {
+@entry
+    %b =w loadsb %addr
+    %l =l extsw %b
+    ret %l
+}
+
+export function l $reinterpret_half(l %addr) {
+@entry
+    %h =w loaduh %addr
+    %l =l extsh %h
+    ret %l
+}
