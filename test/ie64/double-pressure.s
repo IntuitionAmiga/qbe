@@ -22,14 +22,14 @@ sum_nine_doubles:
 	dload f10, 128(r31)
 	dstore f10, 0(r31)
 	dload f10, 8(r31)
-	dadd f2, f0, f2
-	dload f0, 0(r31)
+	dadd f0, f0, f2
+	dload f2, 0(r31)
 	dadd f8, f14, f8
 	dadd f4, f4, f12
 	dadd f6, f6, f10
-	dadd f2, f2, f8
+	dadd f0, f0, f8
 	dadd f4, f4, f6
-	dadd f2, f2, f4
+	dadd f0, f0, f4
 	dadd f0, f0, f2
 	fload f8, 16(r31)
 	fload f9, 24(r31)

@@ -1,0 +1,53 @@
+# SPDX-FileCopyrightText: 2026 Zayn Otley
+# SPDX-License-Identifier: LicenseRef-IntuitionEngine-Proprietary
+
+type :pair = { s, s }
+
+function s $shz_fminf(s %x, s %y) {
+@start
+	%r =s ie64fmin %x, %y
+	ret %r
+}
+
+function s $shz_inv_sqrtf_fsrra(s %x) {
+@start
+	%r =s ie64frsqrt %x
+	ret %r
+}
+
+function :pair $shz_sincosf(s %x) {
+@start
+	%p =l alloc4 8
+	%s =s ie64fsincos %x
+	%c =s ie64fcosresult %s
+	%tail =l add %p, 4
+	stores %s, %p
+	stores %c, %tail
+	ret %p
+}
+
+function s $shz_roundf(s %x) {
+@start
+	%r =s ie64fround %x
+	ret %r
+}
+
+function s $fused(s %a, s %b, s %c) {
+@start
+	%pair =s ie64fmapair %b, %c
+	%r =s ie64fma %a, %pair
+	ret %r
+}
+
+export function s $wrappers(s %x, s %y) {
+@start
+	%min =s call $shz_fminf(s %x, s %y)
+	%inv =s call $shz_inv_sqrtf_fsrra(s %min)
+	%p =:pair call $shz_sincosf(s %inv)
+	%s =s loads %p
+	%tail =l add %p, 4
+	%c =s loads %tail
+	%rnd =s call $shz_roundf(s %c)
+	%out =s call $fused(s %s, s %rnd, s %inv)
+	ret %out
+}

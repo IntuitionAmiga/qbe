@@ -1,0 +1,90 @@
+# SPDX-FileCopyrightText: 2026 Zayn Otley
+# SPDX-License-Identifier: LicenseRef-IntuitionEngine-Proprietary
+
+export function l $status(s %x, l %out) {
+@start
+	ie64fmovsc 0
+	%a =s ie64frsqrt %x
+	stores %a, %out
+	%first =l ie64fmovsr
+	ie64fmovsc 0
+	%b =s ie64frsqrt %x
+	stores %b, %out
+	%second =l ie64fmovsr
+	%both =l and %first, %second
+	ret %both
+}
+
+# Only the taken branch may change FPSR. The result can be unused.
+export function l $conditional(s %x, w %take) {
+@start
+	ie64fmovsc 0
+	jnz %take, @do, @read
+@do
+	%unused =s ie64frsqrt %x
+@read
+	%flags =l ie64fmovsr
+	ret %flags
+}
+
+export function $rounding(d %x, l %out) {
+@start
+	%old =l ie64fmovcr
+	ie64fmovcc 2
+	%a =s truncd %x
+	stores %a, %out
+	ie64fmovcc 3
+	%b =s truncd %x
+	stores %b, %out
+	ie64fmovcc %old
+	ret
+}
+
+export function l $literal_conversion(l %out) {
+@start
+	ie64fmovsc 0
+	%a =s truncd d_1e40
+	stores %a, %out
+	%flags =l ie64fmovsr
+	ret %flags
+}
+
+export function l $ordinary(s %x, s %y, l %out) {
+@start
+	ie64fmovsc 0
+	%a =s div %x, %y
+	stores %a, %out
+	%c =w clts %x, %y
+	storew %c, %out
+	%first =l ie64fmovsr
+	ie64fmovsc 0
+	%b =s div %x, %y
+	stores %b, %out
+	%d =w clts %x, %y
+	storew %d, %out
+	%second =l ie64fmovsr
+	%both =l and %first, %second
+	ret %both
+}
+
+export function s $across_call(s %x) {
+@start
+	%a =s ie64frsqrt %x
+	call $observe(s %a)
+	%b =s ie64frsqrt %x
+	ret %b
+}
+
+export function $pair_reset(s %x, l %out) {
+@start
+	%a =s ie64fsincos %x
+	%ac =s ie64fcosresult %a
+	stores %a, %out
+	ie64fmovsc 0
+	%b =s ie64fsincos %x
+	%bc =s ie64fcosresult %b
+	stores %b, %out
+	stores %ac, %out
+	stores %bc, %out
+	ret
+}

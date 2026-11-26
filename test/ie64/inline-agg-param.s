@@ -16,8 +16,8 @@ sum:
 mix:
 	fmovecr f0, #8
 	fstore f0, (r1)
-	fload f0, (r2)
-	fmovecr f1, #8
+	fload f1, (r2)
+	fmovecr f0, #8
 	fadd f0, f0, f1
 	rts
 .size mix,.-mix
@@ -90,8 +90,8 @@ mixed:
 	jsr fill
 	move.q r1, r18
 	jsr fill
-	fload f0, (r18)
-	fmovecr f1, #8
+	fload f1, (r18)
+	fmovecr f0, #8
 	fadd f0, f0, f1
 	load.q r18, 32(r31)
 	add.q r31, r31, #40

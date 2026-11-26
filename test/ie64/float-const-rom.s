@@ -135,7 +135,7 @@ between:
 	fmul f0, f0, f2
 	fmovecr f2, #13
 	fadd f0, f0, f2
-	fmul f0, f1, f0
+	fmul f0, f0, f1
 	rts
 .size between,.-between
 .section .text,"ax"

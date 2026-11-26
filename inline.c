@@ -6,8 +6,8 @@
  * The functions of a unit are held after parsing, before any pass has
  * run, so every body is still the plain IL a front end wrote: stack
  * variables are allocs, phis come only from the front end's conditional
- * expressions, and a temporary may be defined more than once.  A call to a candidate is replaced by a copy of the
- * callee's blocks.  The argument values are copied into the callee's
+ * expressions, and a temporary may be defined more than once. A call to
+ * a candidate is replaced by a copy of the callee's blocks.  The argument values are copied into the callee's
  * parameter temporaries, each return becomes a copy of the result and a
  * jump to the code after the call, and the callee's allocs move to the
  * entry block of the caller, where the memory passes expect static slots.
@@ -17,17 +17,15 @@
  * Leaf candidates may take and return aggregates. Scalar candidates may
  * also forward one direct call, or call a parameter known at the site
  * to name a strong function defined in this unit.
- * All candidates exclude dynamic allocation and target operations that
- * touch machine state, and have size bounds. Functions are taken in
- * the order the unit defines them, so a function that has inlined its own
- * callees can itself become a candidate when it is still within the bound.
+ * All candidates exclude dynamic allocation and have size bounds.
+ * Functions are taken in the order the unit defines them, so a function
+ * that inlined its own callees can become a candidate within that bound.
  *
  * Target operations.  An IE64 operation is accepted when ie64eff says that
- * its effects are its operands, its declared memory accesses and the FPSR
- * flags that it sets.  MMU, interrupt, system, atomic and FPSR move
- * operations are not accepted.  Inlining copies the operations in order and
- * the later passes keep them pinned, so their order with respect to each
- * other is the order of the calls.
+ * its effects are its operands, its declared memory accesses and its FP
+ * environment effects. Inlining copies the operations in order and remaps
+ * the SSA links of FP pairs. The optimiser keeps stateful FP instructions
+ * pinned together with the FP environment moves and calls.
  *
  * Aggregate parameters.  The ABI gives the callee a private copy of an
  * aggregate argument, and the copy stays unless all of this holds:
@@ -168,22 +166,14 @@ sitecost(Cand *c, uint drop)
  * *rd and *wr to the masks of the operands that the operation uses as the
  * address of memory it reads and of memory it writes, as memeff() says.
  * Everything else that such an operation does is a result in a register or
- * a change of the FPSR flags, which the operands and the program order
- * describe.  An operation joins the list below once its effects are in
- * memeff(); one that is a barrier stays a call whatever the list says.
+ * an FP environment effect preserved by pinning the instruction.
+ * The FPEXT pair operands and projections have no effects of their own.
  *
  * Not accepted: MMU (tlbflush, tlbinval, suaen, suadis), interrupt (sei,
  * cli, wait, eret, rti), system (halt, smode, syscall, mfcr, mtcr), the
  * FPCR (fmovcr, fmovcc), which changes how other operations round, the
  * FPSR moves (fmovsr, fmovsc), the atomics (xchg, faa, fand, for, fxor,
  * cas, casd) and vaarg.
- *
- * The FPSR moves read and write the flags that every other FP operation
- * sets, and those other operations are plain IL that the passes may
- * merge or move.  A call keeps them apart, so the moves stay calls: once
- * inlined, a comparison before the clear could serve the same comparison
- * after it.  The FP builtins that only compute are pinned, and their
- * flags are set where the call put them.
  */
 static int
 ie64eff(Ins *i, uint *rd, uint *wr)
@@ -206,7 +196,8 @@ ie64eff(Ins *i, uint *rd, uint *wr)
 	case Oie64fipr: case Oie64ftrv:
 		break;
 	default:
-		return 0;
+		if (!isie64fpext(i->op))
+			return 0;
 	}
 	memeff(i, &e);
 	if (e.barrier)

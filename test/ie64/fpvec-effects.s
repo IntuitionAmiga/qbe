@@ -105,9 +105,9 @@ dot_flags:
 .type read_only,@function
 .align 16
 read_only:
-	fload f1, (r1)
-	fipr f0, (r1), (r2)
-	fadd f1, f1, f1
+	fload f0, (r1)
+	fipr f1, (r1), (r2)
+	fadd f0, f0, f0
 	fadd f0, f0, f1
 	rts
 .size read_only,.-read_only
@@ -147,8 +147,8 @@ matrix_read:
 	fmovecr f0, #9
 	fstore f0, (r1)
 	ftrv (r2), (r1)
-	fload f0, (r1)
-	fmovecr f1, #8
+	fload f1, (r1)
+	fmovecr f0, #8
 	fadd f0, f0, f1
 	add.q r31, r31, #88
 	rts
@@ -168,11 +168,11 @@ untouched_local:
 .type dot_forward,@function
 .align 16
 dot_forward:
-	fload f1, (r1)
-	fload f2, (r2)
-	fipr f0, (r1), (r2)
-	fadd f2, f2, f2
-	fadd f1, f1, f2
+	fload f2, (r1)
+	fload f0, (r2)
+	fipr f1, (r1), (r2)
+	fadd f0, f0, f0
+	fadd f0, f0, f2
 	fadd f0, f0, f1
 	rts
 .size dot_forward,.-dot_forward

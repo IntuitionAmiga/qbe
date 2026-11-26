@@ -159,10 +159,9 @@ normins(Fn *fn, Ins *i)
 		if ((v & 0xffffffff) != v)
 			i->arg[n] = getcon(v & 0xffffffff, fn);
 	}
-	/* order arg[0] <= arg[1] for
-	 * commutative ops, preferring
-	 * RTmp in arg[0] */
-	if (optab[i->op].commutes)
+	/* Prefer a temporary in arg[0] for commutative operations.
+	 * Keep the operand order of comparisons that write FPSR. */
+	if (optab[i->op].commutes && !pinned(i))
 	if (rcmp(i->arg[0], i->arg[1]) > 0) {
 		r = i->arg[1];
 		i->arg[1] = i->arg[0];
@@ -266,8 +265,16 @@ dedupins(Fn *fn, Blk *b, Ins *i)
 	Ins *i1;
 
 	normins(fn, i);
-	if (optlevel >= 2 && strcmp(T.name, "ie64") == 0)
-		normudiv(fn, i);
+	if (strcmp(T.name, "ie64") == 0) {
+		/* Use the stateful conversion form even for literals. Its
+		 * selection path also materialises a constant operand. */
+		if (i->op == Oexts)
+			i->op = Oie64fcvtsd;
+		else if (i->op == Otruncd)
+			i->op = Oie64fcvtds;
+		if (optlevel >= 2)
+			normudiv(fn, i);
+	}
 	if (i->op == Onop || pinned(i))
 		return;
 
@@ -478,7 +485,7 @@ rebuildcfg(Fn *fn)
 		/* blk unreachable after GVN */
 		assert(b != s);
 		for (i=b->ins; i<&b->ins[b->nins]; i++)
-			if (!optab[i->op].pinned)
+			if (!pinned(i))
 			if (gvndup(i, 0) == i)
 				addins(&s->ins, &s->nins, i);
 	}

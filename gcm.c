@@ -16,10 +16,35 @@ isdivwl(Ins *i)
 	}
 }
 
+/* IE64 arithmetic and conversions can update FPSR or depend on FPCR.
+ * Comparisons return a word, so their operand class determines the effect.
+ * Loads and representation copies are handled by their own IL rules. */
+static int
+ie64fp(Ins *i)
+{
+	int k, cc;
+
+	switch (i->op) {
+	case Oadd: case Osub: case Omul: case Odiv: case Oneg:
+		return KBASE(i->cls) == 1;
+	case Ostoui: case Odtoui:
+		/* Selection of these conversions expects constant folding. */
+		return rtype(i->arg[0]) != RCon;
+	case Ostosi:
+		return i->cls == Kw || rtype(i->arg[0]) != RCon;
+	case Odtosi:
+	case Oswtof: case Ouwtof: case Osltof: case Oultof:
+		return 1;
+	default:
+		return iscmp(i->op, &k, &cc) && KBASE(k) == 1;
+	}
+}
+
 int
 pinned(Ins *i)
 {
-	return optab[i->op].pinned || isdivwl(i);
+	return optab[i->op].pinned || isdivwl(i)
+		|| (strcmp(T.name, "ie64") == 0 && ie64fp(i));
 }
 
 /* pinned ins that can be eliminated if unused */

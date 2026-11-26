@@ -54,3 +54,51 @@ for level in 0 2 3; do
 	}
 	"$asm" -c -o "$tmp/pairs.o" "$tmp/pairs.s"
 done
+
+# Check the order of the stateful operations, independently of registers.
+for level in 0 2 3; do
+	"$bin" -t ie64 -O"$level" -mfpext test/ie64-fpext/environment.ssa > "$tmp/env.s"
+	awk '
+		/^[a-z_]+:$/ { fn = substr($1, 1, length($1)-1) }
+		$1 == ".size" { fn = "" }
+		$1 ~ /^(fmovs[rc]|fmovc[rc]|frsqrt|fcvtds|fdiv|fcmp|fsincos|jsr|beq|bne)$/ {
+			# Value comparisons emit their own status read and branches.
+			if (fn == "ordinary" && $1 ~ /^(beq|bne)$/) next
+			seq[fn] = seq[fn] " " $1
+		}
+		END {
+			expect["status"] = " fmovsc frsqrt fmovsr fmovsc frsqrt fmovsr"
+			expect["conditional"] = " fmovsc beq frsqrt fmovsr"
+			expect["rounding"] = " fmovcr fmovcc fcvtds fmovcc fcvtds fmovcc"
+			expect["literal_conversion"] = " fmovsc fcvtds fmovsr"
+			expect["ordinary"] = " fmovsc fdiv fcmp fmovsr fmovsr fmovsc fdiv fcmp fmovsr fmovsr"
+			expect["across_call"] = " frsqrt jsr frsqrt"
+			expect["pair_reset"] = " fsincos fmovsc fsincos"
+			for (fn in expect)
+				if (seq[fn] != expect[fn]) {
+					print fn ": expected" expect[fn] ", got" seq[fn] > "/dev/stderr"
+					bad = 1
+				}
+			exit bad
+		}
+	' "$tmp/env.s"
+	"$asm" -c -o "$tmp/env.o" "$tmp/env.s"
+done
+
+for level in 2 3; do
+	"$bin" -t ie64 -O"$level" -mfpext -mfma test/ie64-fpext/inline.ssa > "$tmp/inline.s"
+	awk '
+		/^wrappers:$/ { body = 1 }
+		$1 == ".size" { body = 0 }
+		body && $1 ~ /^(jsr|jmp|fmin|frsqrt|fsincos|fround|fma)$/ { count[$1]++ }
+		END {
+			if (count["jsr"] || count["jmp"] || count["fmin"] != 1 ||
+			    count["frsqrt"] != 1 || count["fsincos"] != 1 ||
+			    count["fround"] != 1 || count["fma"] != 1) {
+				print "expected each FP operation once in wrappers, with no calls" > "/dev/stderr"
+				exit 1
+			}
+		}
+	' "$tmp/inline.s"
+	"$asm" -c -o "$tmp/inline.o" "$tmp/inline.s"
+done

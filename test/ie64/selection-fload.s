@@ -52,9 +52,8 @@ status_between:
 .align 16
 overwritten_status:
 	fmov f2, f0
-	fmov f0, f1
-	fload f1, (r1)
-	fadd f0, f2, f0
+	fload f0, (r1)
+	fadd f1, f2, f1
 	fadd f0, f0, f1
 	rts
 .size overwritten_status,.-overwritten_status
