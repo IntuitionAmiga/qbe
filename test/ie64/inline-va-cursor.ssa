@@ -1,0 +1,37 @@
+export function l $sum_variadic(w %n, ...) {
+@start
+	%va =l alloc8 8
+	jmp @initialise
+@initialise
+	vastart %va
+	jnz %n, @loop, @empty
+@loop
+	%i =w phi @initialise %n, @loop %left
+	%sum =l phi @initialise 0, @loop %total
+	%x =l vaarg %va
+	%total =l add %sum, %x
+	%left =w sub %i, 1
+	jnz %left, @loop, @done
+@done
+	ret %total
+@empty
+	ret 0
+}
+
+export function l $escaped_cursor(l %p, ...) {
+@start
+	%va =l alloc8 8
+	vastart %va
+	call $advance(l %va, l %p)
+	%x =l vaarg %va
+	ret %x
+}
+
+export function l $stack_cursor(l %a, l %b, l %c, l %d, l %e, l %f, l %g, ...) {
+@start
+	%va =l alloc8 8
+	vastart %va
+	%x =l vaarg %va
+	%r =l add %g, %x
+	ret %r
+}

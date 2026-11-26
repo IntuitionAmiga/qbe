@@ -1,13 +1,67 @@
 #include "all.h"
 
+extern int optlevel;
+
+/* A cursor can become an SSA value when its initialisation dominates
+ * its scalar reads and the address stays private. */
+static uchar *
+privateva(Fn *fn)
+{
+	Blk *b, *start, *use;
+	Ins *i, *init;
+	Tmp *t;
+	Use *u, *end;
+	uchar *local;
+
+	fillcfg(fn);
+	filldom(fn);
+	filluse(fn);
+	local = alloc(fn->ntmp * sizeof local[0]);
+	b = fn->start;
+	for (i=b->ins; i<&b->ins[b->nins]; i++) {
+		if (!isalloc(i->op) || rtype(i->arg[0]) != RCon
+		|| fn->con[i->arg[0].val].type != CBits
+		|| fn->con[i->arg[0].val].bits.i < 8)
+			continue;
+		t = &fn->tmp[i->to.val];
+		if (t->ndef != 1)
+			continue;
+		init = 0;
+		start = 0;
+		end = t->use + t->nuse;
+		for (u=t->use; u<end; u++) {
+			if (u->type != UIns)
+				break;
+			if (u->u.ins->op == Ovaarg)
+				continue;
+			if (u->u.ins->op != Ovastart || init)
+				break;
+			init = u->u.ins;
+			start = fn->rpo[u->bid];
+		}
+		if (u != end || !init)
+			continue;
+		for (u=t->use; u<end; u++) {
+			use = fn->rpo[u->bid];
+			if (!dom(start, use) || (use == start && u->u.ins < init))
+				break;
+		}
+		if (u == end)
+			local[i->to.val] = 1;
+	}
+	return local;
+}
+
 void
 ie64_extsb(Fn *fn)
 {
 	Blk *b;
 	Ins *i;
-	Ref r;
+	Ref r, cursor;
 	int op;
+	uchar *local;
 
+	local = optlevel >= 2 && fn->vararg ? privateva(fn) : 0;
 	for (b=fn->start; b; b=b->link) {
 		curi = &insb[NIns];
 		if (isretbh(b->jmp.type)) {
@@ -18,7 +72,21 @@ ie64_extsb(Fn *fn)
 			b->jmp.type = Jretl;
 		}
 		for (i=&b->ins[b->nins]; i>b->ins;) {
-			emiti(*--i);
+			--i;
+			if (local && isalloc(i->op) && local[i->to.val])
+				continue;
+			cursor = i->arg[0];
+			if (local && (i->op == Ovastart || i->op == Ovaarg)
+			&& rtype(cursor) == RTmp && local[cursor.val]) {
+				if (i->op == Ovastart)
+					emit(Oaddr, Kl, cursor, CON_Z, R);
+				else {
+					emit(Oadd, Kl, cursor, cursor, getcon(8, fn));
+					emit(Oload, i->cls, i->to, cursor, R);
+				}
+				continue;
+			}
+			emiti(*i);
 			if (isargbh(i->op)) {
 				r = newtmp("abi", Kl, fn);
 				curi->op = Oarg;
@@ -177,6 +245,12 @@ ie64_abi(Fn *fn)
 			Ins call;
 
 			--i;
+			/* A promoted va_start names the common incoming cursor.
+			 * Resolve its slot after the named arguments are assigned. */
+			if (i->op == Oaddr && req(i->arg[0], CON_Z)) {
+				emit(Oaddr, Kl, i->to, SLOT(-(2 + 2 * namedstack)), R);
+				continue;
+			}
 			if (i->op == Ovastart) {
 				Ref p = newtmp("abi", Kl, fn);
 				emit(Ostorel, Kw, R, p, i->arg[0]);

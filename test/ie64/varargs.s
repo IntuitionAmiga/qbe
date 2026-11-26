@@ -3,18 +3,8 @@
 .type f,@function
 .align 16
 f:
-	sub.q r31, r31, #8
-	lea r1, 16(r31)
-	store.q r1, (r31)
-	load.q r2, (r31)
-	load.l r1, (r2)
-	add.q r2, r2, #8
-	store.q r2, (r31)
-	load.q r2, (r31)
-	add.q r2, r2, #8
-	store.q r2, (r31)
+	load.l r1, 8(r31)
 	sext.l r1, r1
-	add.q r31, r31, #8
 	rts
 .size f,.-f
 .section .text,"ax"
