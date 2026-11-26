@@ -497,6 +497,53 @@ slotbase(Ref r)
 	return emitdynalloc ? 25 : 31;
 }
 
+/* A signed conversion handles the low range directly. The large path
+ * saves the discarded bits as a sticky low bit of the shifted integer.
+ * For binary64 a one-bit shift suffices because the input is at least
+ * 2^63. For binary32 shift by eleven so the intermediate binary64 is
+ * exact and the final FCVTDS rounds only once. Scaling by two (or by
+ * 2^11, split between an integer shift and doubling) is exact. */
+static void
+emitultof(Ins *i, FILE *f)
+{
+	static unsigned num;
+	unsigned id = num++;
+	int single = i->op == Oie64ultofprep;
+
+	if (single) {
+		fputs("\tlsr.q r30, ", f);
+		emitreg(i->arg[0], f);
+		fprintf(f, ", #53\n\tbne r30, r0, .Lutoh%u\n", id);
+	} else {
+		fputs("\tblt ", f);
+		emitreg(i->arg[0], f);
+		fprintf(f, ", r0, .Lutoh%u\n", id);
+	}
+	fputs("\tdcvtif ", f);
+	emitreg(i->to, f);
+	fputs(", ", f);
+	emitreg(i->arg[0], f);
+	fprintf(f, "\n\tbra .Lutoe%u\n.Lutoh%u:\n\tlsr.q r30, ", id, id);
+	emitreg(i->arg[0], f);
+	fprintf(f, ", #%d\n\tand.q r29, ", single ? 11 : 1);
+	emitreg(i->arg[0], f);
+	fprintf(f, ", #%d\n", single ? 2047 : 1);
+	if (single)
+		fputs("\tadd.q r29, r29, #2047\n\tlsr.q r29, r29, #11\n", f);
+	fputs("\tor.q r30, r30, r29\n", f);
+	if (single)
+		fputs("\tlsl.q r30, r30, #10\n", f);
+	fputs("\tdcvtif ", f);
+	emitreg(i->to, f);
+	fputs(", r30\n\tdadd ", f);
+	emitreg(i->to, f);
+	fputs(", ", f);
+	emitreg(i->to, f);
+	fputs(", ", f);
+	emitreg(i->to, f);
+	fprintf(f, "\n.Lutoe%u:\n", id);
+}
+
 static void
 emitins(Ins *i, Fn *fn, FILE *f)
 {
@@ -752,6 +799,10 @@ emitins(Ins *i, Fn *fn, FILE *f)
 		fputs(", ", f);
 		emitvalue(i->arg[0], fn, f);
 		fputc('\n', f);
+		return;
+	}
+	if (i->op == Oultof || i->op == Oie64ultofprep) {
+		emitultof(i, f);
 		return;
 	}
 	if (i->op == Oswtof && i->cls == Ks) {

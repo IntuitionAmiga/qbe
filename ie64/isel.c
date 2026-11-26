@@ -416,21 +416,11 @@ ie64_isel(Fn *fn)
 				emit(Oextuw, Kl, wide, i->arg[0], R);
 				continue;
 			}
-			if (i->op == Oultof) {
-				Ref bit = newtmp("ie64conv", Kl, fn);
-				Ref half = newtmp("ie64conv", Kl, fn);
-				Ref rounded = newtmp("ie64conv", Kl, fn);
-				Ref d = newtmp("ie64conv", Kd, fn);
-				Ref result = i->cls == Kd ? i->to
-					: newtmp("ie64conv", Kd, fn);
-
-				if (i->cls == Ks)
-					emit(Oie64fcvtds, Ks, i->to, result, R);
-				emit(Oadd, Kd, result, d, d);
-				emit(Osltof, Kd, d, rounded, R);
-				emit(Oor, Kl, rounded, half, bit);
-				emit(Oshr, Kl, half, i->arg[0], getcon(1, fn));
-				emit(Oand, Kl, bit, i->arg[0], getcon(1, fn));
+			if (i->op == Oultof && i->cls == Ks) {
+				t = newtmp("ie64conv", Kd, fn);
+				emit(Oie64fcvtds, Ks, i->to, t, R);
+				emit(Oie64ultofprep, Kd, t, i->arg[0], R);
+				fixarg(&curi->arg[0], Kl, curi, fn);
 				continue;
 			}
 			if (iscmp(i->op, &ck, &cc) && ck == Kw) {

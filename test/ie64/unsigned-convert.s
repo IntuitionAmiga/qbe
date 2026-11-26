@@ -58,11 +58,16 @@ single_to_ulong:
 .type ulong_to_double,@function
 .align 16
 ulong_to_double:
-	and.q r2, r1, #1
-	lsr.q r1, r1, #1
-	or.q r1, r1, r2
+	blt r1, r0, .Lutoh0
 	dcvtif f0, r1
+	bra .Lutoe0
+.Lutoh0:
+	lsr.q r30, r1, #1
+	and.q r29, r1, #1
+	or.q r30, r30, r29
+	dcvtif f0, r30
 	dadd f0, f0, f0
+.Lutoe0:
 	rts
 .size ulong_to_double,.-ulong_to_double
 .section .text,"ax"
@@ -70,11 +75,20 @@ ulong_to_double:
 .type ulong_to_single,@function
 .align 16
 ulong_to_single:
-	and.q r2, r1, #1
-	lsr.q r1, r1, #1
-	or.q r1, r1, r2
+	lsr.q r30, r1, #53
+	bne r30, r0, .Lutoh1
 	dcvtif f0, r1
+	bra .Lutoe1
+.Lutoh1:
+	lsr.q r30, r1, #11
+	and.q r29, r1, #2047
+	add.q r29, r29, #2047
+	lsr.q r29, r29, #11
+	or.q r30, r30, r29
+	lsl.q r30, r30, #10
+	dcvtif f0, r30
 	dadd f0, f0, f0
+.Lutoe1:
 	fcvtds f0, f0
 	rts
 .size ulong_to_single,.-ulong_to_single

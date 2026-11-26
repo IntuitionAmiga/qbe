@@ -1,0 +1,11 @@
+export function s $u64_f32(l %x) {
+@start
+	%y =s ultof %x
+	ret %y
+}
+
+export function d $u64_f64(l %x) {
+@start
+	%y =d ultof %x
+	ret %y
+}
