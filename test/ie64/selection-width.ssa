@@ -1,0 +1,32 @@
+export function w $signed_use(l %a, l %b) {
+@start
+	%x =w loadsw %a
+	%y =w loadw %b
+	%more =w csgtw %x, %y
+	%less =w csltw %x, %y
+	%both =w add %more, %less
+	ret %both
+}
+
+export function l $lower_byte(l %p) {
+@start
+	%x =w loaduh %p
+	%y =l extub %x
+	ret %y
+}
+
+export function l $volatile_half(l %p) {
+@start
+	%x =w loadvuh %p
+	%y =l extub %x
+	ret %y
+}
+
+export function l $used_half(l %p) {
+@start
+	%x =w loaduh %p
+	%y =l extub %x
+	%z =l extuw %x
+	%r =l add %y, %z
+	ret %r
+}

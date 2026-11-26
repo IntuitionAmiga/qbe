@@ -485,6 +485,68 @@ wnorm(Fn *fn)
 #undef SINK
 }
 
+/* A sign-extended word must be kept as an l temporary. A w spill
+ * would otherwise discard the upper half and its extension fact. */
+static int
+signedusers(Tmp *t)
+{
+	Use *u;
+	Ins *i;
+	int k, cc;
+
+	if (!t->nuse)
+		return 0;
+	for (u=t->use; u<&t->use[t->nuse]; u++) {
+		if (u->type != UIns)
+			return 0;
+		i = u->u.ins;
+		if (i->op == Oextsw || i->op == Oswtof)
+			continue;
+		if (iscmp(i->op, &k, &cc) && k == Kw && cc >= Cisge && cc <= Cislt)
+			continue;
+		return 0;
+	}
+	return 1;
+}
+
+static void
+selectloadwidth(Fn *fn)
+{
+	Blk *b;
+	Ins *i, *d;
+	Tmp *t;
+
+	for (b=fn->start; b; b=b->link)
+		for (i=b->ins; i<&b->ins[b->nins]; i++) {
+			if (i->op == Oextub && rtype(i->arg[0]) == RTmp && !isreg(i->arg[0])) {
+				t = &fn->tmp[i->arg[0].val];
+				d = t->def;
+				/* A non-volatile little-endian halfword read used solely
+				 * for its low byte can use an unsigned byte load. */
+				if (t->nuse == 1 && d && (d->op == Oloaduh || d->op == Oloadsh)) {
+					d->op = Oloadub;
+					d->mtype = MUnknown;
+				}
+			}
+			if (i->cls != Kw || rtype(i->to) != RTmp || isreg(i->to))
+				continue;
+			t = &fn->tmp[i->to.val];
+			switch (i->op) {
+			case Oload: case Oloadsw: case Oloaduw:
+				if ((!ie64_signed_loads && t->nuse < 2) || !signedusers(t))
+					break;
+				i->op = Oloadsw;
+				i->cls = Kl;
+				break;
+			case Oloadsb: case Oloadsh: case Oextsb: case Oextsh:
+				if (signedusers(t))
+					i->cls = Kl;
+				break;
+			}
+		}
+	filluse(fn);
+}
+
 void
 ie64_canon(Fn *fn)
 {
@@ -495,6 +557,8 @@ ie64_canon(Fn *fn)
 	int *zc, w;
 	Ref *to, r;
 
+	filluse(fn);
+	selectloadwidth(fn);
 	ie64_extfacts(fn);
 	wnorm(fn);
 	nt = fn->ntmp;
