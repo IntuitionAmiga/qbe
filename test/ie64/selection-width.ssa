@@ -30,3 +30,10 @@ export function l $used_half(l %p) {
 	%r =l add %y, %z
 	ret %r
 }
+
+export function w $logical_word(l %p) {
+@start
+	%x =w loadsw %p
+	%r =w shr %x, 16
+	ret %r
+}

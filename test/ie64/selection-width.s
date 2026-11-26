@@ -51,3 +51,12 @@ used_half:
 	add.q r1, r1, r2
 	rts
 .size used_half,.-used_half
+.section .text,"ax"
+.global logical_word
+.type logical_word,@function
+.align 16
+logical_word:
+	load.l r1, (r1)
+	lsr.l r1, r1, #16
+	rts
+.size logical_word,.-logical_word

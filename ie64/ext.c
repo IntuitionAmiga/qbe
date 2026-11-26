@@ -136,9 +136,9 @@ transfer(Fn *fn, Ins *i, int *ru, int *rs)
 				*ru = 32;
 			break;
 		}
-		/* A w result is the sign-extended register unless the load zero
-		 * extends; the emitter sign-extends signed loads in every class. */
-		if (kw && (i->op == Oloadsb || i->op == Oloadsh || i->op == Oloadsw))
+		/* The emitter sign-extends signed bytes and halfwords in
+		 * either class. A word load with class w zero-extends. */
+		if (kw && (i->op == Oloadsb || i->op == Oloadsh))
 			*ru = 64;
 		goto Done;
 	}
