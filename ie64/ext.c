@@ -197,6 +197,7 @@ transfer(Fn *fn, Ins *i, int *ru, int *rs)
 			*ru = ua < 64 ? max(ua - (int)v, 0) : 64;
 		}
 		break;
+	case Oie64rol: case Oie64ror:
 	case Oadd: case Osub: case Omul: case Oneg: case Oshl:
 	case Odiv: case Orem: case Oudiv: case Ourem:
 		break;
@@ -211,7 +212,7 @@ Done:
 		switch (i->op) {
 		case Oadd: case Osub: case Omul: case Oneg: case Oshl: case Osar:
 		case Odiv: case Orem: case Oudiv: case Ourem: case Oshr:
-		case Oand: case Oor: case Oxor:
+		case Oand: case Oor: case Oxor: case Oie64rol: case Oie64ror:
 			*ru = min(*ru, 32);
 			break;
 		}

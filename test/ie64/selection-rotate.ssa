@@ -1,0 +1,41 @@
+export function l $left_word(l %x, w %n) {
+@start
+	%a =w and %n, 31
+	%neg =w sub 0, %n
+	%b =w and %neg, 31
+	%l =w shl %x, %a
+	%r =w shr %x, %b
+	%rot =w or %l, %r
+	%wide =l extuw %rot
+	ret %wide
+}
+
+export function l $right_long(l %x, w %n) {
+@start
+	%a =w and %n, 63
+	%neg =w neg %n
+	%b =w and %neg, 63
+	%l =l shl %x, %b
+	%r =l shr %x, %a
+	%rot =l or %r, %l
+	ret %rot
+}
+
+export function l $constant_long(l %x) {
+@start
+	%l =l shl %x, 2
+	%r =l shr %x, 62
+	%rot =l or %l, %r
+	ret %rot
+}
+
+export function w $wrong_mask(w %x, w %n) {
+@start
+	%a =w and %n, 31
+	%neg =w neg %n
+	%b =w and %neg, 15
+	%l =w shl %x, %a
+	%r =w shr %x, %b
+	%rot =w or %l, %r
+	ret %rot
+}

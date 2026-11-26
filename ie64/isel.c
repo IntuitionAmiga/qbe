@@ -326,6 +326,101 @@ cmpemit(Cmparg *a, int sign, Fn *fn)
 }
 
 static int
+integerconst(Ref r, int64_t *v, Fn *fn)
+{
+	Con *c;
+
+	if (rtype(r) != RCon || (c = &fn->con[r.val])->type != CBits || c->flt)
+		return 0;
+	*v = c->bits.i;
+	return 1;
+}
+
+static Ins *
+selectdef(Ref r, int op, int k, int single, Fn *fn)
+{
+	Tmp *t;
+	Ins *d;
+
+	if (rtype(r) != RTmp || isreg(r))
+		return 0;
+	t = &fn->tmp[r.val];
+	d = t->def;
+	return t->ndef == 1 && (!single || t->nuse == 1) && d
+		&& d->op == op && d->cls == k ? d : 0;
+}
+
+static Ins *
+negatedcount(Ref r, Ref positive, Fn *fn)
+{
+	Ins *d;
+	int64_t zero;
+
+	d = selectdef(r, Oneg, Kw, 0, fn);
+	if (d && req(d->arg[0], positive))
+		return d;
+	d = selectdef(r, Osub, Kw, 0, fn);
+	if (d && req(d->arg[1], positive)
+	&& integerconst(d->arg[0], &zero, fn) && zero == 0)
+		return d;
+	return 0;
+}
+
+static void
+rotate(Ins *i, Fn *fn)
+{
+	Ins *d[2], *mask[2], *neg;
+	Ref left, right, n;
+	int dir, width, op;
+	int64_t a, z;
+
+	if (i->op != Oor || KBASE(i->cls) != 0)
+		return;
+	for (dir=0; dir<2; dir++) {
+		d[0] = selectdef(i->arg[dir], Oshl, i->cls, 1, fn);
+		d[1] = selectdef(i->arg[1-dir], Oshr, i->cls, 1, fn);
+		if (d[0] && d[1])
+			break;
+	}
+	if (dir == 2 || !req(d[0]->arg[0], d[1]->arg[0]))
+		return;
+	left = d[0]->arg[1];
+	right = d[1]->arg[1];
+	width = i->cls == Kw ? 32 : 64;
+	op = Oie64rol;
+	if (integerconst(left, &a, fn) && integerconst(right, &z, fn)) {
+		if (a <= 0 || a >= width || z != width - a)
+			return;
+		n = left;
+	} else {
+		mask[0] = selectdef(left, Oand, Kw, 1, fn);
+		mask[1] = selectdef(right, Oand, Kw, 1, fn);
+		if (!mask[0] || !mask[1]
+		|| !integerconst(mask[0]->arg[1], &a, fn) || a != width - 1
+		|| !integerconst(mask[1]->arg[1], &z, fn) || z != width - 1)
+			return;
+		left = mask[0]->arg[0];
+		right = mask[1]->arg[0];
+		neg = negatedcount(right, left, fn);
+		n = left;
+		if (!neg) {
+			neg = negatedcount(left, right, fn);
+			if (!neg)
+				return;
+			op = Oie64ror;
+			n = right;
+		}
+		if (fn->tmp[neg->to.val].nuse == 1)
+			*neg = (Ins){.op = Onop};
+		*mask[0] = *mask[1] = (Ins){.op = Onop};
+	}
+	i->op = op;
+	i->arg[0] = d[0]->arg[0];
+	i->arg[1] = n;
+	*d[0] = *d[1] = (Ins){.op = Onop};
+}
+
+static int
 fpwritecc(Ins *i)
 {
 	if (KBASE(i->cls) != 1)
@@ -429,6 +524,10 @@ ie64_isel(Fn *fn)
 		}
 
 	ie64_rangecmp(fn);
+	filluse(fn);
+	for (b=fn->start; b; b=b->link)
+		for (i=b->ins; i<&b->ins[b->nins]; i++)
+			rotate(i, fn);
 	floatloads(fn);
 	ie64_canon(fn);
 

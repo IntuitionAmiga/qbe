@@ -561,6 +561,7 @@ emitins(Ins *i, Fn *fn, FILE *f)
 		[Oadd] = "add", [Osub] = "sub", [Omul] = "mulu",
 		[Oand] = "and", [Oor] = "or", [Oxor] = "eor",
 		[Oshl] = "lsl", [Oshr] = "lsr", [Osar] = "asr",
+		[Oie64rol] = "rol", [Oie64ror] = "ror",
 		[Oudiv] = "divu", [Ourem] = "mod",
 		[Odiv] = "divs", [Orem] = "mods",
 	};
