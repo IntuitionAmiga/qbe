@@ -2263,6 +2263,33 @@ cmp3ret(Blk *b)
 	return 0;
 }
 
+/* A read of FPSR has no FP register operands. Delay local stack reloads
+ * that immediately precede it. This includes the register-group restore
+ * after SINCOS under pressure. Leave source-language loads in place. */
+static void
+delayfpreloads(Blk *b)
+{
+	Ins *i, *first, *prev, read;
+
+	for (i=b->ins; i<&b->ins[b->nins]; i++) {
+		if (i->op != Oie64fmovsr)
+			continue;
+		first = i;
+		while (first != b->ins) {
+			prev = first - 1;
+			if (prev->op != Onop && !(prev->op == Oload && KBASE(prev->cls) == 1
+			&& rtype(prev->arg[0]) == RSlot && rsval(prev->arg[0]) >= 0))
+				break;
+			first = prev;
+		}
+		if (first != i) {
+			read = *i;
+			memmove(first+1, first, (i-first) * sizeof *i);
+			*first = read;
+		}
+	}
+}
+
 static char *
 tablelabel(int id)
 {
@@ -2332,7 +2359,8 @@ ie64_emitfn(Fn *fn, FILE *f)
 	int64_t *foff, **foffs;
 	Ins **fused;
 	uint nb;
-	int first, j, ck, cc, frame, local, saveoff, nsaves;
+	int first, j, ck, cc, frame, local, saveoff, nsaves, live, saved;
+	unsigned char *fpin, *protect;
 
 	/* IE64 JSR pushes an eight-byte return address.  A non-leaf frame therefore
 	 * has an eight-byte residue so the body stack pointer remains 16-byte aligned. */
@@ -2383,6 +2411,9 @@ ie64_emitfn(Fn *fn, FILE *f)
 	foffs = alloc(nb * sizeof foffs[0]);
 	fused = alloc(nb * sizeof fused[0]);
 	hoistconsts(fn);
+	for (b=fn->start; b; b=b->link)
+		delayfpreloads(b);
+	fpin = ie64_fpsrlive(fn);
 	livein = fillreglive(fn);
 	for (b=fn->start; b; b=b->link) {
 		foff = alloc((b->nins + 1) * sizeof foff[0]);
@@ -2433,8 +2464,26 @@ ie64_emitfn(Fn *fn, FILE *f)
 		}
 		first = 0;
 		splitret = !frame && !fn->dynalloc ? cmp3ret(b) : 0;
+		protect = alloc(b->nins * sizeof *protect);
+		live = ie64_fpsrout(b, fpin);
+		for (i=b->ins+b->nins; i!=b->ins;) {
+			--i;
+			protect[i - b->ins] = (live & FpCC) && ie64_fptransport(i);
+			live = ie64_fpsrstep(i, live);
+		}
+		saved = 0;
 		for (i=b->ins; i<&b->ins[b->nins]; i++)
 			if (i != cmp && i != tail) {
+				/* Keep one saved status across transports and intervening
+				 * neutral instructions in this block. */
+				if (saved && (i == splitret || ie64_fpbarrier(i))) {
+					fputs("\tfmovsc r29\n", f);
+					saved = 0;
+				}
+				if (!saved && protect[i - b->ins]) {
+					fputs("\tfmovsr r29\n", f);
+					saved = 1;
+				}
 				emitoff = foff[i - b->ins];
 				if (i == splitret)
 					emitcmp3(i, fn, 1, f);
@@ -2442,6 +2491,9 @@ ie64_emitfn(Fn *fn, FILE *f)
 					emitins(i, fn, f);
 				emitoff = 0;
 			}
+		/* The switch bounds branch can leave before the index uses r29. */
+		if (saved)
+			fputs("\tfmovsc r29\n", f);
 		if (splitret)
 			continue;
 		if (tail) {

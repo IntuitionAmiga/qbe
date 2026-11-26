@@ -373,7 +373,7 @@ regcpy(Ins *i)
 static int
 mustemit(Ins *i)
 {
-	return isie64op(i->op) || isvload(i->op);
+	return i->fpkeep || isie64op(i->op) || isvload(i->op);
 }
 
 static Ins *

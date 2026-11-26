@@ -1,0 +1,253 @@
+# SPDX-FileCopyrightText: 2026 Zayn Otley
+# SPDX-License-Identifier: LicenseRef-IntuitionEngine-Proprietary
+
+export function l $unused_div(s %x, s %y) {
+@start
+	ie64fmovsc 0
+	%unused =s div %x, %y
+	%flags =l ie64fmovsr
+	ret %flags
+}
+
+export function l $sticky(s %x, s %y) {
+@start
+	ie64fmovsc 0
+	%unused =s div %x, %y
+	%replaced =s neg %x
+	%last =s neg %y
+	%flags =l ie64fmovsr
+	ret %flags
+}
+
+export function l $cleared(s %x, s %y) {
+@start
+	%unused =s div %x, %y
+	ie64fmovsc 0
+	%flags =l ie64fmovsr
+	ret %flags
+}
+
+export function $unobserved(s %x, s %y) {
+@start
+	%unused =s div %x, %y
+	ret
+}
+
+export function l $incoming(s %x, s %y) {
+@start
+	%unused =s div %x, %y
+	%flags =l call $observe()
+	ret %flags
+}
+
+export function l $edge(s %x, s %y, w %take) {
+@start
+	ie64fmovsc 0
+	jnz %take, @divide, @replace
+@divide
+	%unused =s div %x, %y
+	jmp @read
+@replace
+	%minus =s neg %x
+@read
+	%flags =l ie64fmovsr
+	ret %flags
+}
+
+export function l $pair_pressure(l %p, d %x) {
+@start
+	%keep0 =d loadv %p
+	%keep1 =d loadv %p
+	%keep2 =d loadv %p
+	%keep3 =d loadv %p
+	%keep4 =d loadv %p
+	%keep5 =d loadv %p
+	%sin =d ie64dsincos %x
+	%cos =d ie64dcosresult %sin
+	%flags =l ie64fmovsr
+	storevd %sin, %p
+	storevd %cos, %p
+	storevd %keep0, %p
+	storevd %keep1, %p
+	storevd %keep2, %p
+	storevd %keep3, %p
+	storevd %keep4, %p
+	storevd %keep5, %p
+	ret %flags
+}
+
+export function l $transport(l %p, d %x, w %bits) {
+@start
+	%sin =d ie64dsin %x
+	%load =d loadv %p
+	%cast =s cast %bits
+	storevd %load, %p
+	storevs %cast, %p
+	storevs s_-1, %p
+	%flags =l ie64fmovsr
+	ret %flags
+}
+
+export function l $call_argument(s %x) {
+@start
+	%unused =s div %x, %x
+	%flags =l call $observe_scalar(s s_-1)
+	ret %flags
+}
+
+export function l $literal_signed() {
+@start
+	ie64fmovsc 0
+	%unused =l stosi s_1e20
+	%flags =l ie64fmovsr
+	ret %flags
+}
+
+export function l $literal_single_unsigned() {
+@start
+	ie64fmovsc 0
+	%unused =l stoui s_1e19
+	%flags =l ie64fmovsr
+	ret %flags
+}
+
+export function l $literal_double_unsigned() {
+@start
+	ie64fmovsc 67108864
+	%unused =w dtoui d_4e9
+	%flags =l ie64fmovsr
+	ret %flags
+}
+
+export function w $literal_unobserved() {
+@start
+	%value =w dtoui d_42.5
+	ret %value
+}
+
+export function $unused_wide(s %x) {
+@start
+	%unused =l stosi %x
+	ret
+}
+
+export function $unused_precision(d %x) {
+@start
+	%unused =s truncd %x
+	ret
+}
+
+export function l $literal_single_word(l %out) {
+@start
+	ie64fmovsc 0
+	%value =w stoui s_4294967040
+	storew %value, %out
+	%flags =l ie64fmovsr
+	ret %flags
+}
+
+export function l $literal_double_long(l %out) {
+@start
+	ie64fmovsc 0
+	%value =l dtoui d_1e19
+	storel %value, %out
+	%flags =l ie64fmovsr
+	ret %flags
+}
+
+export function l $loop(s %x, s %y, w %count) {
+@start
+	ie64fmovsc 0
+@head
+	%left =w phi @start %count, @again %next
+	%flags =l ie64fmovsr
+	jnz %left, @again, @done
+@again
+	%unused =s div %x, %y
+	%next =w sub %left, 1
+	jmp @head
+@done
+	ret %flags
+}
+
+export function l $switch_case(l %index, l %p, s %x, s %y) {
+@start
+	ie64fmovsc 0
+	%unused =s div %x, %y
+	%value =d loadv %p
+	storevd %value, %p
+	switch %index, @miss, @zero, @one, @read, @read
+@miss
+	ret 100
+@zero
+	ret 101
+@one
+	ret 102
+@read
+	%flags =l ie64fmovsr
+	ret %flags
+}
+
+export function l $switch_default(l %index, s %x, s %y) {
+@start
+	ie64fmovsc 0
+	%unused =s div %x, %y
+	switch %index, @read, @zero, @one
+@zero
+	ret 100
+@one
+	ret 101
+@read
+	%minus =s neg %y
+	%flags =l ie64fmovsr
+	ret %flags
+}
+
+export function l $switch_backedge(l %index, s %x, s %y, w %count) {
+@start
+	ie64fmovsc 0
+@head
+	%left =w phi @start %count, @again %next
+	%flags =l ie64fmovsr
+	jnz %left, @again, @done
+@again
+	%unused =s div %x, %y
+	%next =w sub %left, 1
+	switch %index, @out, @out, @out, @head
+@out
+	ret 100
+@done
+	ret %flags
+}
+
+export function l $switch_phi(l %index, l %p, s %x, s %y, w %take) {
+@start
+	ie64fmovsc 0
+	jnz %take, @dispatch, @other
+@dispatch
+	%unused =s div %x, %y
+	switch %index, @miss, @hit, @miss, @hit
+@other
+	jmp @hit
+@hit
+	%value =s phi @dispatch s_-1, @other %y
+	%flags =l ie64fmovsr
+	storevs %value, %p
+	ret %flags
+@miss
+	ret 100
+}
+
+export function l $switch_cleared(l %index, s %x, s %y) {
+@start
+	%unused =s div %x, %y
+	switch %index, @miss, @zero, @read
+@miss
+	ret 100
+@zero
+	ret 101
+@read
+	ie64fmovsc 0
+	%flags =l ie64fmovsr
+	ret %flags
+}

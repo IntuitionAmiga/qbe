@@ -265,16 +265,8 @@ dedupins(Fn *fn, Blk *b, Ins *i)
 	Ins *i1;
 
 	normins(fn, i);
-	if (strcmp(T.name, "ie64") == 0) {
-		/* Use the stateful conversion form even for literals. Its
-		 * selection path also materialises a constant operand. */
-		if (i->op == Oexts)
-			i->op = Oie64fcvtsd;
-		else if (i->op == Otruncd)
-			i->op = Oie64fcvtds;
-		if (optlevel >= 2)
-			normudiv(fn, i);
-	}
+	if (optlevel >= 2 && strcmp(T.name, "ie64") == 0)
+		normudiv(fn, i);
 	if (i->op == Onop || pinned(i))
 		return;
 
@@ -504,6 +496,8 @@ gvn(Fn *fn)
 	Ins *i;
 	uint n, nins;
 
+	if (strcmp(T.name, "ie64") == 0)
+		ie64_fpsrmark(fn);
 	con01[0] = getcon(0, fn);
 	con01[1] = getcon(1, fn);
 

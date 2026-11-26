@@ -28,11 +28,11 @@ ie64fp(Ins *i)
 	case Oadd: case Osub: case Omul: case Odiv: case Oneg:
 		return KBASE(i->cls) == 1;
 	case Ostoui: case Odtoui:
-		/* Selection of these conversions expects constant folding. */
-		return rtype(i->arg[0]) != RCon;
+		return i->fpkeep || rtype(i->arg[0]) != RCon;
 	case Ostosi:
-		return i->cls == Kw || rtype(i->arg[0]) != RCon;
+		return i->fpkeep || i->cls == Kw || rtype(i->arg[0]) != RCon;
 	case Odtosi:
+	case Oexts: case Otruncd:
 	case Oswtof: case Ouwtof: case Osltof: case Oultof:
 		return 1;
 	default:
@@ -47,11 +47,17 @@ pinned(Ins *i)
 		|| (strcmp(T.name, "ie64") == 0 && ie64fp(i));
 }
 
+static int
+deadfp(Ins *i)
+{
+	return !i->fpkeep && strcmp(T.name, "ie64") == 0 && ie64fp(i);
+}
+
 /* pinned ins that can be eliminated if unused */
 static int
 canelim(Ins *i)
 {
-	return isoptload(i->op) || isalloc(i->op) || isdivwl(i);
+	return isoptload(i->op) || isalloc(i->op) || isdivwl(i) || deadfp(i);
 }
 
 static uint earlyins(Fn *, Blk *, Ins *);
@@ -211,6 +217,8 @@ schedlate(Fn *fn, Ref r)
 
 	if (t->def && !pinned(t->def))
 		t->gcmbid = bestbid(fn, earlybid, latebid);
+	else if (t->def && latebid == NOBID && deadfp(t->def))
+		t->gcmbid = NOBID;
 	/* else, keep the early one */
 
 	/* now, gcmbid is the best bid */
@@ -518,6 +526,8 @@ gcm(Fn *fn)
 	Tmp *t;
 	uint bid;
 
+	if (strcmp(T.name, "ie64") == 0)
+		ie64_fpsrmark(fn);
 	filldepth(fn);
 	fillloop(fn);
 

@@ -257,7 +257,8 @@ enum { MUnknown, MShort, MInt };
 #define insdef(i, n) ((n) == 0 ? (i)->to : (i)->arg[2])
 
 struct Ins {
-	uint op:28;
+	uint op:27;
+	uint fpkeep:1; /* IE64 FPSR effect is live */
 	uint mtype:2;  /* C scalar alias class, consumed by loop promotion */
 	uint cls:2;
 	Ref to;
@@ -684,6 +685,7 @@ Ref foldref(Fn *, Ins *);
 extern Ref con01[2];  /* 0 and 1 */
 int zeroval(Fn *, Blk *, Ref, int, int *);
 void gvn(Fn *);
+void ie64_fpsrmark(Fn *);
 
 /* gcm.c */
 int pinned(Ins *);

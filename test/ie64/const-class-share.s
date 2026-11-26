@@ -6,7 +6,9 @@ intfirst_s:
 	sub.q r31, r31, #8
 	moveq r1, #1
 	jsr tag
+	fmovsr r29
 	fmovecr f0, #14
+	fmovsc r29
 	jsr value
 	add.q r31, r31, #8
 	rts
@@ -17,7 +19,9 @@ intfirst_s:
 .align 16
 floatfirst_s:
 	sub.q r31, r31, #8
+	fmovsr r29
 	fmovecr f0, #14
+	fmovsc r29
 	jsr value
 	moveq r1, #1
 	jsr tag
@@ -34,7 +38,9 @@ intfirst_one:
 	sub.q r31, r31, #8
 	moveq r1, #1065353216
 	jsr tag
+	fmovsr r29
 	fmovecr f0, #8
+	fmovsc r29
 	jsr value
 	add.q r31, r31, #8
 	rts
@@ -45,7 +51,9 @@ intfirst_one:
 .align 16
 floatfirst_one:
 	sub.q r31, r31, #8
+	fmovsr r29
 	fmovecr f0, #8
+	fmovsc r29
 	jsr value
 	moveq r1, #1065353216
 	jsr tag
@@ -60,9 +68,11 @@ intfirst_d:
 	sub.q r31, r31, #8
 	moveq r1, #1
 	jsr tagl
+	fmovsr r29
 	move.l r30, #lo32(.L__ie64_fconst_0+0)
 	movt r30, #hi32(.L__ie64_fconst_0+0)
 	dload f0, (r30)
+	fmovsc r29
 	jsr valued
 	add.q r31, r31, #8
 	rts
@@ -73,9 +83,11 @@ intfirst_d:
 .align 16
 floatfirst_d:
 	sub.q r31, r31, #8
+	fmovsr r29
 	move.l r30, #lo32(.L__ie64_fconst_0+0)
 	movt r30, #hi32(.L__ie64_fconst_0+0)
 	dload f0, (r30)
+	fmovsc r29
 	jsr valued
 	moveq r1, #1
 	jsr tagl
@@ -91,9 +103,11 @@ intfirst_done:
 	move.l r1, #0x00000000
 	movt r1, #0x3ff00000
 	jsr tagl
+	fmovsr r29
 	move.l r30, #lo32(.L__ie64_fconst_1+0)
 	movt r30, #hi32(.L__ie64_fconst_1+0)
 	dload f0, (r30)
+	fmovsc r29
 	jsr valued
 	add.q r31, r31, #8
 	rts
@@ -104,9 +118,11 @@ intfirst_done:
 .align 16
 floatfirst_done:
 	sub.q r31, r31, #8
+	fmovsr r29
 	move.l r30, #lo32(.L__ie64_fconst_1+0)
 	movt r30, #hi32(.L__ie64_fconst_1+0)
 	dload f0, (r30)
+	fmovsc r29
 	jsr valued
 	move.l r1, #0x00000000
 	movt r1, #0x3ff00000

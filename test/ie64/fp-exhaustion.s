@@ -16,10 +16,12 @@ fp_caller:
 	fstore f8, 8(r31)
 	fstore f9, 16(r31)
 	move.q r25, r31
+	fmovsr r29
 	dload f8, 32(r25)
 	sub.q r31, r31, #16
 	move.q r1, r31
 	dstore f8, (r1)
+	fmovsc r29
 	jsr fp_callee
 	add.q r31, r31, #16
 	move.q r31, r25

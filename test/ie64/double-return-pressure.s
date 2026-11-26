@@ -22,6 +22,7 @@ call_with_live_doubles:
 	fstore f13, 88(r31)
 	fstore f14, 96(r31)
 	fstore f15, 104(r31)
+	fmovsr r29
 	move.l r30, #lo32(a+0)
 	movt r30, #hi32(a+0)
 	dload f0, (r30)
@@ -52,6 +53,7 @@ call_with_live_doubles:
 	movt r30, #hi32(h+0)
 	dload f0, (r30)
 	dstore f0, 32(r31)
+	fmovsc r29
 	jsr make_double
 	dmov f2, f12
 	dstore f0, 0(r31)

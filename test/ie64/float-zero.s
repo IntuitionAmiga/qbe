@@ -22,10 +22,12 @@ double_zero:
 .align 16
 both_zero:
 	sub.q r31, r31, #8
+	fmovsr r29
 	fmovecr f0, #7
 	move.l r30, #lo32(.L__ie64_fconst_0+0)
 	movt r30, #hi32(.L__ie64_fconst_0+0)
 	dload f2, (r30)
+	fmovsc r29
 	jsr consume_zeros
 	add.q r31, r31, #8
 	rts

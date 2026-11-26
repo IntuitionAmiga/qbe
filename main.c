@@ -182,6 +182,8 @@ funcdo(Fn *fn)
 	filluse(fn);
 	T.isel(fn);
 	fillcfg(fn);
+	if (strcmp(T.name, "ie64") == 0)
+		ie64_fpsrmark(fn);
 	filllive(fn);
 	fillloop(fn);
 	fillcost(fn);

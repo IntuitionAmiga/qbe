@@ -801,16 +801,19 @@ ie64_isel(Fn *fn)
 			}
 			if (i->op == Oexts) {
 				emit(Oie64fcvtsd, Kd, i->to, i->arg[0], R);
+				fixarg(&curi->arg[0], Ks, curi, fn);
 				continue;
 			}
 			if (i->op == Otruncd) {
 				emit(Oie64fcvtds, Ks, i->to, i->arg[0], R);
+				fixarg(&curi->arg[0], Kd, curi, fn);
 				continue;
 			}
 			if (i->op == Ostosi && i->cls == Kl) {
 				t = newtmp("ie64conv", Kd, fn);
 				emit(Odtosi, Kl, i->to, t, R);
 				emit(Oie64fcvtsd, Kd, t, i->arg[0], R);
+				fixarg(&curi->arg[0], Ks, curi, fn);
 				continue;
 			}
 			if (i->op == Osltof && i->cls == Ks) {
@@ -891,9 +894,8 @@ ie64_isel(Fn *fn)
 				Ref x = i->arg[0];
 				Ref converted;
 
-				if (i->op == Ostoui) {
+				if (i->op == Ostoui || rtype(x) == RCon)
 					x = newtmp("ie64conv", Kd, fn);
-				}
 				if (i->cls == Kw) {
 					converted = newtmp("ie64conv", Kl, fn);
 					emit(Ocopy, Kw, i->to, converted, R);
@@ -922,8 +924,11 @@ ie64_isel(Fn *fn)
 					emit(Ocmpd + Cfge, Kw, highw, x, threshold);
 					emit(Ocopy, Kd, threshold, thresholdcon, R);
 				}
-				if (i->op == Ostoui)
+				if (i->op == Ostoui) {
 					emit(Oie64fcvtsd, Kd, x, i->arg[0], R);
+					fixarg(&curi->arg[0], Ks, curi, fn);
+				} else if (rtype(i->arg[0]) == RCon)
+					emit(Ocopy, Kd, x, i->arg[0], R);
 				continue;
 			}
 			/* Several w operations read more than the low 32 bits of a

@@ -10,7 +10,7 @@ COMMOBJ  = main.o util.o parse.o abi.o cfg.o mem.o ssa.o alias.o load.o \
 AMD64OBJ = amd64/targ.o amd64/sysv.o amd64/isel.o amd64/emit.o amd64/winabi.o
 ARM64OBJ = arm64/targ.o arm64/abi.o arm64/isel.o arm64/emit.o
 RV64OBJ  = rv64/targ.o rv64/abi.o rv64/isel.o rv64/emit.o
-IE64OBJ  = ie64/targ.o ie64/regs.o ie64/abi.o ie64/ext.o ie64/opt.o ie64/state.o ie64/layout.o ie64/peep.o ie64/isel.o ie64/emit.o
+IE64OBJ  = ie64/targ.o ie64/regs.o ie64/abi.o ie64/ext.o ie64/opt.o ie64/state.o ie64/layout.o ie64/peep.o ie64/isel.o ie64/emit.o ie64/fpsr.o
 OBJ      = $(COMMOBJ) $(AMD64OBJ) $(ARM64OBJ) $(RV64OBJ) $(IE64OBJ)
 
 SRCALL   = $(OBJ:.o=.c)
@@ -96,6 +96,7 @@ check-ie64: qbe ie64-argregs-test
 	sh tools/test-ie64-extend-load.sh ./qbe
 	sh tools/test-ie64-signed-load.sh ./qbe
 	sh tools/test-ie64-fpext.sh ./qbe
+	sh tools/test-ie64-fpsr.sh ./qbe
 	sh tools/test-ie64-switch.sh ./qbe
 
 check-ie64-libc:

@@ -20,10 +20,12 @@ g:
 	moveq r1, #1
 	moveq r3, #2
 	store.q r3, (r2)
+	fmovsr r29
 	move.l r30, #lo32(.L__ie64_fconst_0+0)
 	movt r30, #hi32(.L__ie64_fconst_0+0)
 	dload f0, (r30)
 	dstore f0, 8(r2)
+	fmovsc r29
 	jsr f
 	add.q r31, r31, #16
 	sext.l r1, r1
