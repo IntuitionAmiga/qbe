@@ -2190,16 +2190,15 @@ hoistconsts(Fn *fn)
 extern int optlevel;
 
 /* A slotless, single-block wrapper can leave its return address and
- * incoming stack in place. The final call must return its l value in R1. */
+ * incoming stack in place when the final call supplies its return registers. */
 static Ins *
-tailcall(Fn *fn)
+tailcall(Fn *fn, bits fpret)
 {
 	Blk *b = fn->start;
 	Ins *i, *call = 0;
 	Con *c;
 
-	if (optlevel < 2 || b->link || fn->slot || fn->dynalloc || fn->retty >= 0
-	|| b->jmp.type != Jretl || !req(b->jmp.arg, TMP(R1)))
+	if (optlevel < 2 || b->link || fn->slot || fn->dynalloc || fn->retty >= 0)
 		return 0;
 	for (i=b->ins; i<&b->ins[b->nins]; i++) {
 		if (i->op == Onop || (i->op == Ocopy && i->cls == Kl && req(i->to, i->arg[0])))
@@ -2209,9 +2208,22 @@ tailcall(Fn *fn)
 		if (i->op == Ocall)
 			call = i;
 	}
-	if (!call || call->cls != Kl || !req(call->to, R)
-	|| !(T.retregs(call->arg[1], 0) & BIT(R1)) || rtype(call->arg[0]) != RCon)
+	if (!call || !req(call->to, R) || rtype(call->arg[0]) != RCon)
 		return 0;
+	switch (b->jmp.type) {
+	case Jretl:
+		if (!req(b->jmp.arg, TMP(R1)) || call->cls != Kl
+		|| T.retregs(call->arg[1], 0) != BIT(R1))
+			return 0;
+		break;
+	case Jret0:
+		if (!fpret || KBASE(call->cls) != 1
+		|| T.retregs(call->arg[1], 0) != fpret)
+			return 0;
+		break;
+	default:
+		return 0;
+	}
 	c = &fn->con[call->arg[0].val];
 	return c->type == CAddr && !c->bits.i ? call : 0;
 }
@@ -2241,7 +2253,7 @@ ie64_emitfn(Fn *fn, FILE *f)
 	Blk *b;
 	Con *c;
 	Ins *i, *cmp, *tail, *splitret;
-	bits *livein, out;
+	bits *livein, out, fpret = 0;
 	int64_t *foff, **foffs;
 	Ins **fused;
 	uint nb;
@@ -2266,6 +2278,13 @@ ie64_emitfn(Fn *fn, FILE *f)
 	local = 4 * fn->slot;
 	saveoff = (local + 7) & -8;
 	nsaves = emitsaves(fn, saveoff, 0, 0);
+	/* Keep the scalar FP return registers before merging with the shared
+	 * epilogue, whose return carries no ABI descriptor. */
+	for (b=fn->start; b; b=b->link)
+		if (rtype(b->jmp.arg) == RCall) {
+			fpret = T.retregs(b->jmp.arg, 0);
+			break;
+		}
 	ie64_dupjumps(fn);
 	ie64_mergeblocks(fn);
 	livein = fillreglive(fn);
@@ -2273,7 +2292,7 @@ ie64_emitfn(Fn *fn, FILE *f)
 		copyfwd(fn, b, livein);
 	for (b=fn->start; b; b=b->link)
 		copyfold(fn, b);
-	tail = nsaves ? 0 : tailcall(fn);
+	tail = nsaves ? 0 : tailcall(fn, fpret);
 	frame = saveoff + 8*nsaves;
 	if (frame || (!fn->leaf && !tail))
 		frame = ((frame + 8 + 15) & -16) - 8;

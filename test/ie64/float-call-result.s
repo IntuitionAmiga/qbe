@@ -3,18 +3,12 @@
 .type call_float,@function
 .align 16
 call_float:
-	sub.q r31, r31, #8
-	jsr returns_float
-	add.q r31, r31, #8
-	rts
+	bra returns_float
 .size call_float,.-call_float
 .section .text,"ax"
 .global call_double
 .type call_double,@function
 .align 16
 call_double:
-	sub.q r31, r31, #8
-	jsr returns_double
-	add.q r31, r31, #8
-	rts
+	bra returns_double
 .size call_double,.-call_double

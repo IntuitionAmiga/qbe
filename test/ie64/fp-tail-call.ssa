@@ -1,0 +1,52 @@
+type :pair = { s, s }
+
+export function s $tail_f32(s %x) {
+@start
+	%r =s call $callee_f32(s %x)
+	ret %r
+}
+
+export function d $tail_f64(d %x) {
+@start
+	%r =d call $callee_f64(d %x)
+	ret %r
+}
+
+export function s $tail_f32_second(s %x, s %y) {
+@start
+	%r =s call $callee_f32(s %y)
+	ret %r
+}
+
+export function s $convert_f64(d %x) {
+@start
+	%r =d call $callee_f64(d %x)
+	%s =s truncd %r
+	ret %s
+}
+
+export function d $change_result(d %x) {
+@start
+	%r =d call $callee_f64(d %x)
+	%s =d add %r, d_1.0
+	ret %s
+}
+
+export function d $stack_arg(d %x, d %y, d %z, d %w) {
+@start
+	%r =d call $callee_stack(d %x, d %y, d %z, d %w, d %x)
+	ret %r
+}
+
+export function d $indirect_call(l %fn, d %x) {
+@start
+	%r =d call %fn(d %x)
+	ret %r
+}
+
+# A pair of separate sin and cos values uses a hidden result pointer.
+export function :pair $sincos_struct(s %x) {
+@start
+	%r =:pair call $callee_sincos(s %x)
+	ret %r
+}

@@ -11,8 +11,5 @@ add:
 .type call,@function
 .align 16
 call:
-	sub.q r31, r31, #8
-	jsr add
-	add.q r31, r31, #8
-	rts
+	bra add
 .size call,.-call
