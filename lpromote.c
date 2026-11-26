@@ -582,11 +582,128 @@ Found:
 	return 1;
 }
 
+static Phi *pairphi(int, Ref, Blk *, Ref, Blk *, Ref, Blk *);
+
+/* Match the common zero-extended index shared by one or two addresses.
+ * Keep word arithmetic out of the address chain: a wrapping word
+ * multiply or add is not a long pointer recurrence. */
+static int
+ptrreduce(Fn *fn, Blk *h, Blk *b, Blk *pre, Phi **pp)
+{
+	Phi *p;
+	Tmp *t;
+	Use *u;
+	Ins *inc, *test, *ext, *scale, *i, *addr[2], code[3], next[2];
+	Ref limit, off, step, base[2], end;
+	uint n, j, na;
+	int64_t stride;
+
+	p = *pp;
+	test = defins(fn, h->jmp.arg);
+	inc = defins(fn, phiarg(p, b));
+	if (p->cls != Kw || h->s1 != b || !consteq(fn, phiarg(p, pre), 0)
+	|| !inc || inc->cls != Kw || inc->op != Oadd
+	|| fn->tmp[inc->to.val].bid != b->id
+	|| !req(inc->arg[0], p->to) || !consteq(fn, inc->arg[1], 1)
+	|| fn->tmp[inc->to.val].nuse != 1
+	|| !test || test->op != Ocmpw + Ciult || !req(test->arg[0], p->to)
+	|| fn->tmp[test->to.val].nuse != 1 || inloop(fn, test->arg[1], h, b))
+		return 0;
+	t = &fn->tmp[p->to.val];
+	if (t->nuse != 3)
+		return 0;
+	ext = 0;
+	for (u=t->use; u<&t->use[t->nuse]; u++) {
+		if (u->type != UIns)
+			return 0;
+		i = u->u.ins;
+		if (i == test || i == inc)
+			continue;
+		if (i->op != Oextuw || i->cls != Kl || u->bid != b->id)
+			return 0;
+		ext = i;
+	}
+	if (!ext)
+		return 0;
+
+	stride = 1;
+	scale = 0;
+	t = &fn->tmp[ext->to.val];
+	if (t->nuse == 1 && t->use[0].type == UIns) {
+		i = t->use[0].u.ins;
+		if (i->op == Omul || i->op == Oshl) {
+			if (t->use[0].bid != b->id || i->cls != Kl
+			|| !req(i->arg[0], ext->to) || !isconbits(fn, i->arg[1], &stride)
+			|| fn->con[i->arg[1].val].flt)
+				return 0;
+			if (i->op == Oshl) {
+				if (stride < 0 || stride > 32)
+					return 0;
+				stride = (int64_t)1 << stride;
+			}
+			scale = i;
+			t = &fn->tmp[i->to.val];
+		}
+	}
+	/* The first 2^32 positions must have distinct byte offsets, including
+	 * the terminating position. This even holds for a wrapping base. */
+	if (stride < 1 || stride > ((int64_t)1 << 32)
+	|| !t->nuse || t->nuse > sizeof addr / sizeof addr[0])
+		return 0;
+	off = scale ? scale->to : ext->to;
+	na = t->nuse;
+	for (j=0; j<na; j++) {
+		u = &t->use[j];
+		if (u->type != UIns || u->bid != b->id)
+			return 0;
+		i = u->u.ins;
+		if (i->op != Oadd || i->cls != Kl)
+			return 0;
+		base[j] = i->arg[req(i->arg[0], off)];
+		if (inloop(fn, base[j], h, b))
+			return 0;
+		addr[j] = i;
+		/* Leave other affine uses to the existing reducer. */
+		for (u=fn->tmp[i->to.val].use;
+		    u<&fn->tmp[i->to.val].use[fn->tmp[i->to.val].nuse]; u++)
+			if (u->type == UIns && (isload(u->u.ins->op) || isstore(u->u.ins->op))
+			&& req(addrof(u->u.ins), i->to))
+				break;
+		if (u == &fn->tmp[i->to.val].use[fn->tmp[i->to.val].nuse])
+			return 0;
+	}
+
+	n = 0;
+	step = getcon(stride, fn);
+	limit = affineins(fn, code, &n, Oextuw, Kl, test->arg[1], R);
+	limit = affineins(fn, code, &n, Omul, Kl, limit, step);
+	end = affineins(fn, code, &n, Oadd, Kl, base[0], limit);
+	*test = (Ins){.op = Ocmpl + Cine, .cls = Kw, .to = test->to,
+		.arg = {addr[0]->to, end}};
+	*pp = p->link;
+	*inc = (Ins){.op = Onop};
+	*ext = (Ins){.op = Onop};
+	if (scale)
+		*scale = (Ins){.op = Onop};
+	for (j=0; j<na; j++) {
+		off = addr[j]->to;
+		i = &next[j];
+		*i = (Ins){.op = Oadd, .cls = Kl, .to = newtmp("stride", Kl, fn),
+			.arg = {off, step}};
+		pairphi(Kl, off, pre, base[j], b, i->to, h);
+		*addr[j] = (Ins){.op = Onop};
+	}
+	if (n)
+		insert(pre, code, n, 1);
+	insert(b, next, na, 1);
+	return 1;
+}
+
 int
 lreduce(Fn *fn)
 {
 	Blk *h, *b, *pre, *exit;
-	Phi *p;
+	Phi **pp;
 	uint n;
 	int changed;
 
@@ -595,8 +712,8 @@ lreduce(Fn *fn)
 		h = fn->rpo[n];
 		if (!loopblocks(h, &b, &pre, &exit))
 			continue;
-		for (p=h->phi; p; p=p->link)
-			if (reduce1(fn, h, b, pre, p)) {
+		for (pp=&h->phi; *pp; pp=&(*pp)->link)
+			if (ptrreduce(fn, h, b, pre, pp) || reduce1(fn, h, b, pre, *pp)) {
 				filluse(fn);
 				changed = 1;
 				break;

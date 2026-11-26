@@ -1,0 +1,41 @@
+export function l $pointer_dot(l %a, l %b, w %n) {
+@start
+	jmp @head
+@head
+	%i =w phi @start 0, @body %next
+	%sum =l phi @start 0, @body %acc
+	%run =w cultw %i, %n
+	jnz %run, @body, @exit
+@body
+	%wide =l extuw %i
+	%offset =l mul %wide, 2
+	%pa =l add %a, %offset
+	%pb =l add %b, %offset
+	%x =l loadsh %pa
+	%y =l loadsh %pb
+	%product =l mul %x, %y
+	%acc =l add %sum, %product
+	%next =w add %i, 1
+	jmp @head
+@exit
+	ret %sum
+}
+
+export function w $pointer_bytes(l %p, w %n) {
+@start
+	jmp @head
+@head
+	%i =w phi @start 0, @body %next
+	%sum =w phi @start 0, @body %acc
+	%run =w cultw %i, %n
+	jnz %run, @body, @exit
+@body
+	%wide =l extuw %i
+	%addr =l add %p, %wide
+	%byte =w loadub %addr
+	%acc =w add %sum, %byte
+	%next =w add %i, 1
+	jmp @head
+@exit
+	ret %sum
+}

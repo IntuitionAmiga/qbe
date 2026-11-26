@@ -3,19 +3,19 @@
 .type samewidth,@function
 .align 16
 samewidth:
-	move.l r5, r3
-	moveq r3, #0
-	store.l r3, (r1)
 	moveq r4, #0
+	store.l r4, (r1)
+	move.l r3, r3
+	lsl.q r3, r3, #2
+	add.q r4, r2, r3
 	moveq r3, #0
-	bls r5, r4, .L4
+	beq r2, r4, .L4
 .L3:
-	load.l r6, (r2)
-	add.l r3, r6, r3
+	load.l r5, (r2)
+	add.l r3, r5, r3
 	store.l r3, (r1)
-	add.l r4, r4, #1
 	add.q r2, r2, #4
-	bhi r5, r4, .L3
+	bne r2, r4, .L3
 .L4:
 	rts
 .size samewidth,.-samewidth
@@ -24,20 +24,18 @@ samewidth:
 .type byte,@function
 .align 16
 byte:
-	move.l r5, r3
-	moveq r3, #0
-	store.l r3, (r1)
 	moveq r4, #0
+	store.l r4, (r1)
+	move.l r3, r3
+	add.q r4, r2, r3
 	moveq r3, #0
-	bls r5, r4, .L9
+	beq r2, r4, .L9
 .L8:
-	move.q r6, r4
-	add.q r6, r2, r6
-	load.b r6, (r6)
-	add.l r3, r6, r3
+	load.b r5, (r2)
+	add.l r3, r5, r3
 	store.l r3, (r1)
-	add.l r4, r4, #1
-	bhi r5, r4, .L8
+	add.q r2, r2, #1
+	bne r2, r4, .L8
 .L9:
 	rts
 .size byte,.-byte
@@ -78,19 +76,19 @@ call:
 .type unproven,@function
 .align 16
 unproven:
-	move.l r4, r3
-	moveq r3, #0
-	bls r4, r3, .L19
-.L18:
-	load.w r5, (r2)
-	sext.w r5, r5
-	load.l r6, (r1)
-	add.l r5, r5, r6
-	store.l r5, (r1)
-	add.l r3, r3, #1
+	move.l r3, r3
+	lsl.q r3, r3, #1
+	add.q r3, r2, r3
+	beq r2, r3, .L18
+.L17:
+	load.w r4, (r2)
+	sext.w r4, r4
+	load.l r5, (r1)
+	add.l r4, r4, r5
+	store.l r4, (r1)
 	add.q r2, r2, #2
-	bhi r4, r3, .L18
-.L19:
+	bne r2, r3, .L17
+.L18:
 	rts
 .size unproven,.-unproven
 .section .text,"ax"
@@ -98,20 +96,20 @@ unproven:
 .type volatile,@function
 .align 16
 volatile:
-	move.l r4, r3
-	moveq r3, #0
-	store.l r3, (r1)
-	moveq r3, #0
-	bls r4, r3, .L24
-.L23:
-	load.w r5, (r2)
-	sext.w r5, r5
-	load.l r6, (r1)
-	add.l r5, r5, r6
-	store.l r5, (r1)
-	add.l r3, r3, #1
+	moveq r4, #0
+	store.l r4, (r1)
+	move.l r3, r3
+	lsl.q r3, r3, #1
+	add.q r3, r2, r3
+	beq r2, r3, .L22
+.L21:
+	load.w r4, (r2)
+	sext.w r4, r4
+	load.l r5, (r1)
+	add.l r4, r4, r5
+	store.l r4, (r1)
 	add.q r2, r2, #2
-	bhi r4, r3, .L23
-.L24:
+	bne r2, r3, .L21
+.L22:
 	rts
 .size volatile,.-volatile

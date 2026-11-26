@@ -3,34 +3,38 @@
 .type acc,@function
 .align 16
 acc:
-	move.l r7, r4
-	moveq r8, #0
-	moveq r11, #0
-	bls r7, r8, .L8
+	move.q r5, r3
+	move.q r30, r2
+	move.q r2, r4
+	move.q r4, r30
+	move.l r10, r2
+	lsl.q r2, r10, #1
+	add.q r8, r4, r2
+	moveq r9, #0
+	moveq r13, #0
+	bls r10, r9, .L8
 .L3:
-	lsl.q r4, r8, #2
-	add.q r6, r1, r4
-	store.l r11, (r6)
-	moveq r5, #0
-	moveq r4, #0
-	bls r7, r5, .L7
+	lsl.q r2, r9, #2
+	add.q r7, r1, r2
+	store.l r13, (r7)
+	moveq r6, #0
+	move.q r2, r4
+	move.q r3, r5
+	beq r2, r8, .L7
 .L6:
-	move.q r9, r5
-	lsl.q r10, r9, #1
-	add.q r9, r2, r10
-	add.q r10, r3, r10
-	load.w r9, (r9)
-	sext.w r9, r9
-	load.w r10, (r10)
-	sext.w r10, r10
-	mulu.l r9, r9, r10
-	add.l r4, r9, r4
-	store.l r4, (r6)
-	add.l r5, r5, #1
-	bhi r7, r5, .L6
+	load.w r11, (r2)
+	sext.w r11, r11
+	load.w r12, (r3)
+	sext.w r12, r12
+	mulu.l r11, r11, r12
+	add.l r6, r11, r6
+	store.l r6, (r7)
+	add.q r2, r2, #2
+	add.q r3, r3, #2
+	bne r2, r8, .L6
 .L7:
-	add.l r8, r8, #1
-	bhi r7, r8, .L3
+	add.l r9, r9, #1
+	bhi r10, r9, .L3
 .L8:
 	rts
 .size acc,.-acc
