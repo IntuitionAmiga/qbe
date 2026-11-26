@@ -3,23 +3,279 @@
 .type crc_step,@function
 .align 16
 crc_step:
-	and.q r2, r2, #0xffff
-	and.q r3, r1, #0xff
-	moveq r1, #0
-	moveq r4, #8
-	moveq r5, #8
-	bls r4, r1, .L5
-.L3:
-	eor.l r4, r3, r2
-	and.l r4, r4, #1
-	neg.l r4, r4
-	and.l r4, r4, #40961
-	asr.l r2, r2, #1
-	eor.l r2, r2, r4
-	add.l r1, r1, #1
-	asr.l r3, r3, #1
-	bhi r5, r1, .L3
-.L5:
+	move.q r3, r1
 	move.q r1, r2
+	move.l r2, #lo32(.L__ie64_bits_1+0)
+	movt r2, #hi32(.L__ie64_bits_1+0)
+	and.q r1, r1, #0xffff
+	eor.l r3, r3, r1
+	and.l r3, r3, #255
+	lsl.q r3, r3, #1
+	add.q r2, r2, r3
+	load.w r2, (r2)
+	lsr.l r1, r1, #8
+	eor.l r1, r1, r2
 	rts
 .size crc_step,.-crc_step
+.section .rodata,"a"
+.local .L__ie64_bits_1
+.type .L__ie64_bits_1,@object
+.align 2
+.L__ie64_bits_1:
+	dc.w 0
+	dc.w 49345
+	dc.w 49537
+	dc.w 320
+	dc.w 49921
+	dc.w 960
+	dc.w 640
+	dc.w 49729
+	dc.w 50689
+	dc.w 1728
+	dc.w 1920
+	dc.w 51009
+	dc.w 1280
+	dc.w 50625
+	dc.w 50305
+	dc.w 1088
+	dc.w 52225
+	dc.w 3264
+	dc.w 3456
+	dc.w 52545
+	dc.w 3840
+	dc.w 53185
+	dc.w 52865
+	dc.w 3648
+	dc.w 2560
+	dc.w 51905
+	dc.w 52097
+	dc.w 2880
+	dc.w 51457
+	dc.w 2496
+	dc.w 2176
+	dc.w 51265
+	dc.w 55297
+	dc.w 6336
+	dc.w 6528
+	dc.w 55617
+	dc.w 6912
+	dc.w 56257
+	dc.w 55937
+	dc.w 6720
+	dc.w 7680
+	dc.w 57025
+	dc.w 57217
+	dc.w 8000
+	dc.w 56577
+	dc.w 7616
+	dc.w 7296
+	dc.w 56385
+	dc.w 5120
+	dc.w 54465
+	dc.w 54657
+	dc.w 5440
+	dc.w 55041
+	dc.w 6080
+	dc.w 5760
+	dc.w 54849
+	dc.w 53761
+	dc.w 4800
+	dc.w 4992
+	dc.w 54081
+	dc.w 4352
+	dc.w 53697
+	dc.w 53377
+	dc.w 4160
+	dc.w 61441
+	dc.w 12480
+	dc.w 12672
+	dc.w 61761
+	dc.w 13056
+	dc.w 62401
+	dc.w 62081
+	dc.w 12864
+	dc.w 13824
+	dc.w 63169
+	dc.w 63361
+	dc.w 14144
+	dc.w 62721
+	dc.w 13760
+	dc.w 13440
+	dc.w 62529
+	dc.w 15360
+	dc.w 64705
+	dc.w 64897
+	dc.w 15680
+	dc.w 65281
+	dc.w 16320
+	dc.w 16000
+	dc.w 65089
+	dc.w 64001
+	dc.w 15040
+	dc.w 15232
+	dc.w 64321
+	dc.w 14592
+	dc.w 63937
+	dc.w 63617
+	dc.w 14400
+	dc.w 10240
+	dc.w 59585
+	dc.w 59777
+	dc.w 10560
+	dc.w 60161
+	dc.w 11200
+	dc.w 10880
+	dc.w 59969
+	dc.w 60929
+	dc.w 11968
+	dc.w 12160
+	dc.w 61249
+	dc.w 11520
+	dc.w 60865
+	dc.w 60545
+	dc.w 11328
+	dc.w 58369
+	dc.w 9408
+	dc.w 9600
+	dc.w 58689
+	dc.w 9984
+	dc.w 59329
+	dc.w 59009
+	dc.w 9792
+	dc.w 8704
+	dc.w 58049
+	dc.w 58241
+	dc.w 9024
+	dc.w 57601
+	dc.w 8640
+	dc.w 8320
+	dc.w 57409
+	dc.w 40961
+	dc.w 24768
+	dc.w 24960
+	dc.w 41281
+	dc.w 25344
+	dc.w 41921
+	dc.w 41601
+	dc.w 25152
+	dc.w 26112
+	dc.w 42689
+	dc.w 42881
+	dc.w 26432
+	dc.w 42241
+	dc.w 26048
+	dc.w 25728
+	dc.w 42049
+	dc.w 27648
+	dc.w 44225
+	dc.w 44417
+	dc.w 27968
+	dc.w 44801
+	dc.w 28608
+	dc.w 28288
+	dc.w 44609
+	dc.w 43521
+	dc.w 27328
+	dc.w 27520
+	dc.w 43841
+	dc.w 26880
+	dc.w 43457
+	dc.w 43137
+	dc.w 26688
+	dc.w 30720
+	dc.w 47297
+	dc.w 47489
+	dc.w 31040
+	dc.w 47873
+	dc.w 31680
+	dc.w 31360
+	dc.w 47681
+	dc.w 48641
+	dc.w 32448
+	dc.w 32640
+	dc.w 48961
+	dc.w 32000
+	dc.w 48577
+	dc.w 48257
+	dc.w 31808
+	dc.w 46081
+	dc.w 29888
+	dc.w 30080
+	dc.w 46401
+	dc.w 30464
+	dc.w 47041
+	dc.w 46721
+	dc.w 30272
+	dc.w 29184
+	dc.w 45761
+	dc.w 45953
+	dc.w 29504
+	dc.w 45313
+	dc.w 29120
+	dc.w 28800
+	dc.w 45121
+	dc.w 20480
+	dc.w 37057
+	dc.w 37249
+	dc.w 20800
+	dc.w 37633
+	dc.w 21440
+	dc.w 21120
+	dc.w 37441
+	dc.w 38401
+	dc.w 22208
+	dc.w 22400
+	dc.w 38721
+	dc.w 21760
+	dc.w 38337
+	dc.w 38017
+	dc.w 21568
+	dc.w 39937
+	dc.w 23744
+	dc.w 23936
+	dc.w 40257
+	dc.w 24320
+	dc.w 40897
+	dc.w 40577
+	dc.w 24128
+	dc.w 23040
+	dc.w 39617
+	dc.w 39809
+	dc.w 23360
+	dc.w 39169
+	dc.w 22976
+	dc.w 22656
+	dc.w 38977
+	dc.w 34817
+	dc.w 18624
+	dc.w 18816
+	dc.w 35137
+	dc.w 19200
+	dc.w 35777
+	dc.w 35457
+	dc.w 19008
+	dc.w 19968
+	dc.w 36545
+	dc.w 36737
+	dc.w 20288
+	dc.w 36097
+	dc.w 19904
+	dc.w 19584
+	dc.w 35905
+	dc.w 17408
+	dc.w 33985
+	dc.w 34177
+	dc.w 17728
+	dc.w 34561
+	dc.w 18368
+	dc.w 18048
+	dc.w 34369
+	dc.w 33281
+	dc.w 17088
+	dc.w 17280
+	dc.w 33601
+	dc.w 16640
+	dc.w 33217
+	dc.w 32897
+	dc.w 16448
+.size .L__ie64_bits_1,512

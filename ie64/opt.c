@@ -887,6 +887,404 @@ nestedext(Fn *fn)
 	return changed;
 }
 
+/*
+ * Collapse a fixed number of right-shifting linear feedback steps.
+ * A step is y' = (y >> 1) ^ (P & -((x ^ y) & 1)), x' = x >> 1.
+ * Omitting x gives an ordinary shift register. After n steps,
+ * y' = (y >> n) ^ table[(x ^ y) & ((1 << n) - 1)]. This follows
+ * by applying the linear step to each of the low n input bits.
+ */
+enum { BitStepMin = 4, BitStepMax = 8, BitLoopBlocks = 4 };
+
+typedef struct BitTable BitTable;
+struct BitTable {
+	BitTable *link;
+	uint64_t poly;
+	int count;
+	uint32_t sym;
+};
+
+static BitTable *bittables;
+
+static Ref
+bittable(Fn *fn, uint64_t poly, int count, int size)
+{
+	static uint id;
+	BitTable *t;
+	Lnk lnk = {.sec = ".rodata", .secf = "\"a\"", .align = size};
+	Dat dat = {.type = DStart, .lnk = &lnk};
+	uint64_t v;
+	int j, n;
+
+	for (t=bittables; t; t=t->link)
+		if (t->poly == poly && t->count == count)
+			break;
+	if (!t) {
+		t = vnew(1, sizeof *t, PHeap);
+		t->link = bittables;
+		t->poly = poly;
+		t->count = count;
+		dat.name = strf(PFn, ".L__ie64_bits_%u", ++id);
+		t->sym = intern(dat.name);
+		bittables = t;
+		T.emitdat(&dat, 0);
+		dat.type = size == 1 ? DB : size == 2 ? DH : size == 4 ? DW : DL;
+		for (j=0; j<1<<count; j++) {
+			v = j;
+			for (n=0; n<count; n++)
+				v = (v >> 1) ^ ((v & 1) ? poly : 0);
+			dat.u.num = v;
+			T.emitdat(&dat, 0);
+		}
+		dat.type = DEnd;
+		T.emitdat(&dat, 0);
+	}
+	return newcon(&(Con){.type = CAddr, .sym.id = t->sym}, fn);
+}
+
+/* Follow same-class copies, including the counter narrowing removed above. */
+static Ins *
+bitdef(Fn *fn, Ref *r, int k)
+{
+	Ins *d;
+
+	while (rtype(*r) == RTmp && r->val >= Tmp0) {
+		d = fn->tmp[r->val].def;
+		if (!d || d->cls != k)
+			return 0;
+		if (d->op != Ocopy)
+			return d;
+		*r = d->arg[0];
+	}
+	return 0;
+}
+
+static int
+bitstep(Fn *fn, Blk *h, Blk *back, Phi *p, int64_t limit)
+{
+	Ins *d;
+	Ref r, base;
+	int64_t n;
+
+	if (p->cls != Kw || !isconst(fn, phiarg(p, h->idom), Kw, &n)
+	|| n != 0 || limit < BitStepMin || limit > BitStepMax)
+		return 0;
+	r = phiarg(p, back);
+	d = bitdef(fn, &r, Kw);
+	if (!d || d->op != Oadd || !isconst(fn, d->arg[1], Kw, &n) || n != 1)
+		return 0;
+	base = d->arg[0];
+	bitdef(fn, &base, Kw);
+	return req(base, p->to);
+}
+
+/* The low bits read by feedback survive a zero extension of them. */
+static Ref
+bitlow(Fn *fn, Ref r, int k, int count)
+{
+	Ins *d;
+
+	for (;;) {
+		bitdef(fn, &r, k);
+		if (rtype(r) != RTmp || r.val < Tmp0 || !(d = fn->tmp[r.val].def)
+		|| (k == Kl && d->cls != Kl))
+			return r;
+		if ((d->op != Oextub || count > 8)
+		&& (d->op != Oextuh || count > 16))
+			return r;
+		if (k == Kl && rtype(d->arg[0]) == RTmp
+		&& fn->tmp[d->arg[0].val].cls != Kl)
+			return r;
+		r = d->arg[0];
+	}
+}
+
+/* Data contributes only its first count bits. For the state, every bit
+ * matters. Report an entry extension if each step first narrows the state. */
+static int
+bitright(Fn *fn, Ref r, Phi *p, int width, int *ext)
+{
+	Ins *d;
+	int k, arith, narrow;
+	int64_t n;
+
+	k = p->cls;
+	d = bitdef(fn, &r, k);
+	if (!d || (d->op != Oshr && d->op != Osar)
+	|| !isconst(fn, d->arg[1], k, &n) || n != 1)
+		return 0;
+	arith = d->op == Osar;
+	r = d->arg[0];
+	d = bitdef(fn, &r, k);
+	if (d && (d->op == Oextub || d->op == Oextuh)) {
+		narrow = d->op == Oextub ? 8 : 16;
+		if (ext && width > narrow) {
+			width = narrow;
+			*ext = d->op;
+		}
+		r = d->arg[0];
+		bitdef(fn, &r, k);
+	}
+	return (!ext || !arith || width < (k == Kw ? 32 : 64)) && req(r, p->to);
+}
+
+static int
+bitfeedback(Fn *fn, Ref r, Phi *state, Phi *data, uint64_t *poly)
+{
+	Ins *d;
+	Ref lhs, rhs;
+	int k;
+	int64_t imm;
+
+	k = state->cls;
+	d = bitdef(fn, &r, k);
+	if (!d || d->op != Oand || !isconst(fn, d->arg[1], k, &imm) || !imm)
+		return 0;
+	*poly = imm;
+	r = d->arg[0];
+	d = bitdef(fn, &r, k);
+	if (!d)
+		return 0;
+	if (d->op == Oneg)
+		r = d->arg[0];
+	else if (d->op == Osub && isconst(fn, d->arg[0], k, &imm) && imm == 0)
+		r = d->arg[1];
+	else
+		return 0;
+	d = bitdef(fn, &r, k);
+	if (!d || d->op != Oand || !isconst(fn, d->arg[1], k, &imm) || imm != 1)
+		return 0;
+	r = d->arg[0];
+	d = bitdef(fn, &r, k);
+	if (!data)
+		return req(bitlow(fn, r, k, 1), state->to);
+	if (!d || d->op != Oxor)
+		return 0;
+	lhs = bitlow(fn, d->arg[0], k, 1);
+	rhs = bitlow(fn, d->arg[1], k, 1);
+	return (req(lhs, state->to) && req(rhs, data->to))
+		|| (req(lhs, data->to) && req(rhs, state->to));
+}
+
+/* A removed definition cannot supply a surviving instruction or phi edge. */
+static int
+bitlooplocal(Fn *fn, Ref r, Blk *blocks[], int nb)
+{
+	Tmp *t = &fn->tmp[r.val];
+	Use *u;
+	int n;
+
+	for (u=t->use; u<&t->use[t->nuse]; u++) {
+		for (n=0; n<nb; n++)
+			if (u->bid == blocks[n]->id)
+				break;
+		if (n == nb)
+			return 0;
+	}
+	return 1;
+}
+
+static int
+bitloopsafe(Fn *fn, Blk *blocks[], int nb, Phi *state)
+{
+	Blk *b;
+	Ins *i;
+	Phi *p;
+	int n;
+
+	for (n=0; n<nb; n++) {
+		b = blocks[n];
+		for (p=b->phi; p; p=p->link)
+			if (p != state && !bitlooplocal(fn, p->to, blocks, nb))
+				return 0;
+		for (i=b->ins; i<&b->ins[b->nins]; i++)
+			switch (i->op) {
+			case Onop:
+				break;
+			case Ocopy: case Oextub: case Oextuh:
+			case Oadd: case Osub: case Oand: case Oxor: case Oneg:
+			case Oshr: case Osar:
+			case Ocmpw + Cislt: case Ocmpw + Ciult:
+				if (rtype(i->to) == RTmp && i->to.val >= Tmp0
+				&& bitlooplocal(fn, i->to, blocks, nb))
+					break;
+				/* fall through */
+			default:
+				return 0;
+			}
+	}
+	return 1;
+}
+
+/* Share the address only where its existing definition dominates. */
+static Ref
+bitbase(Blk *h, Ref symbol)
+{
+	Blk *b;
+	Ins *i;
+
+	for (b=h->idom; b; b=b->idom)
+		for (i=b->ins; i<&b->ins[b->nins]; i++)
+			if (i->op == Ocopy && i->cls == Kl && req(i->arg[0], symbol))
+				return i->to;
+	return R;
+}
+
+static void
+bitlookup(Fn *fn, Blk *h, Phi *state, Phi *data, Blk *pre,
+          uint64_t poly, int count, int ext)
+{
+	Ref seed, input, mixed, low, scaled, offset, address, entry, high, table, base;
+	Ref source, raw, initial;
+	Ins *d;
+	int64_t amount;
+	int k, size, shift, load;
+
+	k = state->cls;
+	shift = poly <= UINT8_MAX ? 0 : poly <= UINT16_MAX ? 1
+		: poly <= UINT32_MAX ? 2 : 3;
+	size = 1 << shift;
+	load = shift == 0 ? Oloadub : shift == 1 ? Oloaduh
+		: shift == 2 && k == Kl ? Oloaduw : Oload;
+	table = bittable(fn, poly, count, size);
+	initial = phiarg(state, pre);
+	seed = ext ? newtmp("feedback", k, fn) : initial;
+	input = data ? bitlow(fn, phiarg(data, pre), k, count) : R;
+	source = R;
+	if (data && (d = bitdef(fn, &input, k))
+	&& (d->op == Oshr || d->op == Osar)
+	&& isconst(fn, d->arg[1], k, &amount)
+	&& amount > 0 && amount <= (k == Kw ? 32 : 64) - count) {
+		raw = bitlow(fn, d->arg[0], k, amount + count);
+		if (!req(raw, d->arg[0])) {
+			source = raw;
+			input = newtmp("feedback", k, fn);
+		}
+	}
+	base = bitbase(h, table);
+	if (req(base, R))
+		base = newtmp("feedback", Kl, fn);
+	else
+		table = R;
+	mixed = data ? newtmp("feedback", k, fn) : seed;
+	low = newtmp("feedback", Kl, fn);
+	offset = shift ? newtmp("feedback", Kl, fn) : low;
+	scaled = k == Kw ? newtmp("feedback", Kw, fn) : low;
+	address = newtmp("feedback", Kl, fn);
+	entry = newtmp("feedback", k, fn);
+	high = newtmp("feedback", k, fn);
+
+	curi = &insb[NIns];
+	emit(Oxor, k, state->to, high, entry);
+	emit(Oshr, k, high, seed, getcon(count, fn));
+	emit(load, k, entry, address, R);
+	emit(Oadd, Kl, address, base, offset);
+	if (shift)
+		emit(Oshl, Kl, offset, low, getcon(shift, fn));
+	if (k == Kw)
+		emit(Oextuw, Kl, low, scaled, R);
+	emit(Oand, k, scaled, mixed, getcon(lowmask(count), fn));
+	if (data)
+		emit(Oxor, k, mixed, input, initial);
+	/* Either right shift gives the same low count bits here. */
+	if (!req(source, R))
+		emit(Osar, k, input, source, getcon(amount, fn));
+	if (ext)
+		emit(ext, k, seed, initial, R);
+	if (!req(table, R))
+		emit(Ocopy, Kl, base, table, R);
+	idup(h, curi, &insb[NIns]-curi);
+	h->phi = 0;
+	h->jmp.type = Jjmp;
+	h->jmp.arg = R;
+	h->s1 = h->s2;
+	h->s2 = 0;
+}
+
+static int
+bitloop(Fn *fn, Blk *h)
+{
+	Blk *blocks[BitLoopBlocks], *b, *back, *pre;
+	Phi *p, *counter, *state, *data;
+	Ins *cmp, *d;
+	Ref r;
+	int nb, k, width, widthmax, ext, swap, w;
+	int64_t limit;
+	uint64_t poly;
+
+	if (!h->phi || h->npred != 2 || h->jmp.type != Jjnz || h->s1 == h->s2)
+		return 0;
+	blocks[0] = h;
+	nb = 1;
+	b = h->s1;
+	while (b != h) {
+		if (nb == BitLoopBlocks || b == h->s2 || b->npred != 1
+		|| b->phi || b->jmp.type != Jjmp)
+			return 0;
+		blocks[nb++] = b;
+		b = b->s1;
+	}
+	if (nb == 1)
+		return 0;
+	back = blocks[nb-1];
+	pre = h->pred[h->pred[0] == back];
+	if (pre != h->idom || dom(h, pre))
+		return 0;
+	r = h->jmp.arg;
+	cmp = bitdef(fn, &r, Kw);
+	if (!cmp || (cmp->op != Ocmpw + Cislt && cmp->op != Ocmpw + Ciult)
+	|| !isconst(fn, cmp->arg[1], Kw, &limit))
+		return 0;
+	r = cmp->arg[0];
+	bitdef(fn, &r, Kw);
+	counter = state = data = 0;
+	for (p=h->phi; p; p=p->link) {
+		if (p->narg != 2 || KBASE(p->cls) != 0)
+			return 0;
+		if (req(p->to, r))
+			counter = p;
+		else if (bitright(fn, phiarg(p, back), p, 0, 0)) {
+			if (data)
+				return 0;
+			data = p;
+		} else {
+			if (state)
+				return 0;
+			state = p;
+		}
+	}
+	if (!counter || !state || !bitstep(fn, h, back, counter, limit)
+	|| (data && data->cls != state->cls)
+	|| !bitloopsafe(fn, blocks, nb, state))
+		return 0;
+
+	k = state->cls;
+	r = phiarg(state, back);
+	d = bitdef(fn, &r, k);
+	if (!d || d->op != Oxor)
+		return 0;
+	ie64_extfacts(fn);
+	widthmax = k == Kw ? 32 : 64;
+	width = ie64_uwidth(fn, phiarg(state, pre), k);
+	if (width > widthmax)
+		width = widthmax;
+	for (swap=0; swap<2; swap++)
+		if (bitfeedback(fn, d->arg[swap], state, data, &poly)) {
+			/* The largest of the entry and feedback widths bounds
+			 * every iteration, since the other term shifts right. */
+			w = width;
+			ext = 0;
+			while (w < widthmax && poly >> w)
+				w++;
+			if (bitright(fn, d->arg[1-swap], state, w, &ext)
+			&& (!ext || poly <= (ext == Oextub ? UINT8_MAX : UINT16_MAX))) {
+				bitlookup(fn, h, state, data, pre, poly, limit, ext);
+				return 1;
+			}
+		}
+	return 0;
+}
+
 void
 ie64_bitopt(Fn *fn)
 {
@@ -908,9 +1306,17 @@ ie64_bitopt(Fn *fn)
 		filluse(fn);
 		ssacheck(fn);
 	}
-	if (nestedext(fn)) {
-		/* Remove intermediates made dead by the rewrites. */
+	changed = nestedext(fn);
+	if (changed)
 		filluse(fn);
+	for (b=fn->start; b; b=b->link)
+		if (bitloop(fn, b)) {
+			fillcfg(fn);
+			filluse(fn);
+			filldom(fn);
+			changed = 1;
+		}
+	if (changed) {
 		gcm(fn);
 		filluse(fn);
 		ssacheck(fn);

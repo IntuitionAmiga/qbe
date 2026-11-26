@@ -50,3 +50,27 @@ if printf "%s\n" "$types" | section overlap | storeafter; then
     echo "a different store class incorrectly allowed promotion" >&2
     exit 1
 fi
+
+recurrence=$("$qbe" -t ie64 -O2 -mbranch-imm test/ie64-loop-recurrence.ssa)
+for spec in shift_pair:w shift_single:q shift_narrow_step:w; do
+    name=${spec%:*}
+    width=${spec#*:}
+    body=$(printf "%s\n" "$recurrence" | section "$name")
+    if ! printf "%s\n" "$body" | rg -q "load\.$width[[:space:]]"; then
+        echo "$name did not use a feedback table" >&2
+        exit 1
+    fi
+    if printf "%s\n" "$body" | rg -q '^[[:space:]]+b[a-z]+[[:space:]]'; then
+        echo "$name kept a loop branch" >&2
+        exit 1
+    fi
+done
+for name in signed_shift observed_step observed_counter; do
+    printf "%s\n" "$recurrence" | section "$name" | rg -q '^[[:space:]]+bls[[:space:]]'
+done
+printf "%s\n" "$recurrence" | section observed_step | rg -q 'store\.l[[:space:]]'
+twice=$(printf "%s\n" "$recurrence" | section shift_twice)
+if [ "$(printf "%s\n" "$twice" | rg -c 'lo32\(\.L__ie64_bits_')" -ne 1 ]; then
+    echo "shift_twice materialised the table address twice" >&2
+    exit 1
+fi

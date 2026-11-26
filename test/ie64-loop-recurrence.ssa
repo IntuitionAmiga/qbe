@@ -1,0 +1,231 @@
+# The data and state shift independently. Only their low bits enter feedback.
+export function w $shift_pair(w %input, w %seed) {
+@start
+	%data =w extub %input
+	%state =w extuh %seed
+@loop
+	%i =w phi @start 0, @step %next
+	%x =w phi @start %data, @step %xnext
+	%y =w phi @start %state, @step %ynext
+	%more =w cultw %i, 8
+	jnz %more, @step, @end
+@step
+	%mix =w xor %x, %y
+	%bit =w and %mix, 1
+	%neg =w neg %bit
+	%feedback =w and %neg, 33800
+	%right =w sar %y, 1
+	%ynext =w xor %right, %feedback
+	%xnext =w sar %x, 1
+	%next =w add %i, 1
+	jmp @loop
+@end
+	ret %y
+}
+
+# A full-width logical shift and a different trip count and polynomial.
+export function l $shift_single(l %seed) {
+@start
+@loop
+	%i =w phi @start 0, @step %next
+	%y =l phi @start %seed, @step %ynext
+	%more =w csltw %i, 5
+	jnz %more, @step, @end
+@step
+	%bit =l and %y, 1
+	%neg =l neg %bit
+	%feedback =l and %neg, 9223372036854775835
+	%right =l shr %y, 1
+	%ynext =l xor %right, %feedback
+	%next =w add %i, 1
+	jmp @loop
+@end
+	ret %y
+}
+
+# A signed shift whose sign bit is not known zero cannot use logical feedback.
+export function w $signed_shift(w %seed) {
+@start
+@loop
+	%i =w phi @start 0, @step %next
+	%y =w phi @start %seed, @step %ynext
+	%more =w cultw %i, 8
+	jnz %more, @step, @end
+@step
+	%bit =w and %y, 1
+	%neg =w neg %bit
+	%feedback =w and %neg, 33800
+	%right =w sar %y, 1
+	%ynext =w xor %right, %feedback
+	%next =w add %i, 1
+	jmp @loop
+@end
+	ret %y
+}
+
+# Each store must stay in the original loop.
+export function w $observed_step(w %seed, l %ptr) {
+@start
+@loop
+	%i =w phi @start 0, @step %next
+	%y =w phi @start %seed, @step %ynext
+	%more =w cultw %i, 8
+	jnz %more, @step, @end
+@step
+	%bit =w and %y, 1
+	%neg =w neg %bit
+	%feedback =w and %neg, 33800
+	%right =w shr %y, 1
+	%ynext =w xor %right, %feedback
+	storew %ynext, %ptr
+	%next =w add %i, 1
+	jmp @loop
+@end
+	ret %y
+}
+
+# A read of the counter must still see the final iteration count.
+export function w $observed_counter(w %seed) {
+@start
+@loop
+	%i =w phi @start 0, @step %next
+	%y =w phi @start %seed, @step %ynext
+	%more =w cultw %i, 8
+	jnz %more, @step, @end
+@step
+	%bit =w and %y, 1
+	%neg =w neg %bit
+	%feedback =w and %neg, 33800
+	%right =w shr %y, 1
+	%ynext =w xor %right, %feedback
+	%next =w add %i, 1
+	jmp @loop
+@end
+	%result =w xor %y, %i
+	ret %result
+}
+
+# Both lookups can read one materialised table address.
+export function w $shift_twice(w %input, w %seed) {
+@start
+	%data =w extub %input
+	%state =w extuh %seed
+@loop
+	%i =w phi @start 0, @step %next
+	%x =w phi @start %data, @step %xnext
+	%y =w phi @start %state, @step %ynext
+	%more =w cultw %i, 8
+	jnz %more, @step, @end
+@step
+	%mix =w xor %x, %y
+	%bit =w and %mix, 1
+	%neg =w neg %bit
+	%feedback =w and %neg, 33800
+	%right =w sar %y, 1
+	%ynext =w xor %right, %feedback
+	%xnext =w sar %x, 1
+	%next =w add %i, 1
+	jmp @loop
+@end
+	%upper =w shr %input, 8
+@loop2
+	%i2 =w phi @end 0, @step2 %next2
+	%x2 =w phi @end %upper, @step2 %xnext2
+	%y2 =w phi @end %y, @step2 %ynext2
+	%more2 =w cultw %i2, 8
+	jnz %more2, @step2, @finish
+@step2
+	%mix2 =w xor %x2, %y2
+	%bit2 =w and %mix2, 1
+	%neg2 =w neg %bit2
+	%feedback2 =w and %neg2, 33800
+	%right2 =w sar %y2, 1
+	%ynext2 =w xor %right2, %feedback2
+	%xnext2 =w sar %x2, 1
+	%next2 =w add %i2, 1
+	jmp @loop2
+@finish
+	ret %y2
+}
+
+# A front end can narrow at each step and express negation as subtraction.
+export function w $shift_narrow_step(w %input, w %seed) {
+@start
+@loop
+	%i =w phi @start 0, @step %next
+	%x =w phi @start %input, @step %xnext
+	%y =w phi @start %seed, @step %ynext
+	%more =w cultw %i, 8
+	jnz %more, @step, @end
+@step
+	%byte =w extub %x
+	%half =w extuh %y
+	%mix =w xor %byte, %half
+	%bit =w and %mix, 1
+	%neg =w sub 0, %bit
+	%feedback =w and %neg, 33800
+	%right =w sar %half, 1
+	%ynext =w xor %right, %feedback
+	%xnext =w sar %byte, 1
+	%next =w add %i, 1
+	jmp @loop
+@end
+	ret %y
+}
+
+
+# >>> driver
+# #include <stdint.h>
+# #include <stdio.h>
+# #ifdef IE_TARGET_IE64
+# #include <intuitionengine.h>
+# #endif
+#
+# extern uint32_t shift_pair(uint32_t, uint32_t);
+# extern uint32_t shift_narrow_step(uint32_t, uint32_t);
+# extern uint32_t shift_twice(uint32_t, uint32_t);
+# extern uint64_t shift_single(uint64_t);
+# extern int32_t signed_shift(uint32_t);
+# extern uint32_t observed_step(uint32_t, uint32_t *);
+# extern uint32_t observed_counter(uint32_t);
+#
+# static uint64_t reference(uint64_t y, uint32_t x, uint64_t poly, int n,
+#                           uint32_t sign)
+# {
+#     while (n--) {
+#         uint64_t next = (y >> 1) | (y & sign);
+#         if ((y ^ x) & 1)
+#             next ^= poly;
+#         y = next;
+#         x >>= 1;
+#     }
+#     return y;
+# }
+#
+# int main(void)
+# {
+#     uint32_t input = UINT32_C(0xfedcba98);
+#     for (uint32_t i = 0; i < 65536; i++) {
+#         uint32_t seed = (i << 16) | (i ^ 0x5a5a);
+#         uint64_t wide = ((uint64_t)input << 32) | seed;
+#         uint32_t saved = 0;
+#         uint32_t byte = reference(seed & 0xffff, input, 33800, 8, 0);
+#         uint32_t word = reference(seed, 0, 33800, 8, 0);
+#         if (shift_pair(input, seed) != byte
+#         || shift_narrow_step(input, seed) != byte
+#         || shift_twice(input, seed) != reference(seed & 0xffff, input, 33800, 16, 0)
+#         || shift_single(wide) != reference(wide, 0, UINT64_C(0x800000000000001b), 5, 0)
+#         || (uint32_t)signed_shift(seed) != reference(seed, 0, 33800, 8, UINT32_C(0x80000000))
+#         || observed_step(seed, &saved) != word || saved != word
+#         || observed_counter(seed) != (word ^ 8))
+#             return 1;
+#         input = input * UINT32_C(1664525) + UINT32_C(1013904223);
+#     }
+#     puts("shift recurrence ok");
+# #ifdef IE_TARGET_IE64
+#     *(volatile uint32_t *)IE_SYSINFO_EXIT = 0;
+#     __builtin_ie64_halt();
+# #endif
+#     return 0;
+# }
+# <<<
