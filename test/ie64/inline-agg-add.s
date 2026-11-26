@@ -45,14 +45,9 @@ caller:
 	moveq r30, #1082130432
 	fmovi f4, r30
 	fadd f0, f0, f4
-	fmovo r2, f3
-	store.l r2, (r1)
-	fmovo r2, f2
-	store.l r2, 4(r1)
-	fmovo r2, f1
-	store.l r2, 8(r1)
-	add.q r2, r1, #12
-	fmovo r1, f0
-	store.l r1, (r2)
+	fstore f3, (r1)
+	fstore f2, 4(r1)
+	fstore f1, 8(r1)
+	fstore f0, 12(r1)
 	rts
 .size caller,.-caller

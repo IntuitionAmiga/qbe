@@ -1427,8 +1427,8 @@ fillreglive(Fn *fn)
 }
 
 /* Is the instruction a definition `t = base + k` that a memory operand can
- * absorb?  That is an add or sub of a small constant, or the address of a
- * stack slot. */
+ * absorb?  This can be an add or sub of a small constant, the address
+ * of a stack slot, or a full-width register copy. */
 static int
 addrdef(Ins *i, Fn *fn, Ref *base, int64_t *k)
 {
@@ -1444,6 +1444,12 @@ addrdef(Ins *i, Fn *fn, Ref *base, int64_t *k)
 		s = rsval(i->arg[0]);
 		*k = s < 0 ? emitframe - 4 * s : 4 * s;
 		*base = TMP(emitdynalloc ? R25 : R31);
+		return 1;
+	}
+	if (i->op == Ocopy && i->cls == Kl && isreg(i->arg[0])
+	&& i->arg[0].val < F0 && !req(i->arg[0], R) && !req(i->to, i->arg[0])) {
+		*base = i->arg[0];
+		*k = 0;
 		return 1;
 	}
 	if ((i->op != Oadd && i->op != Osub) || i->cls != Kl
@@ -1489,7 +1495,7 @@ foldaddrs(Fn *fn, Blk *b, bits *livein, int64_t *off)
 	Ref t, base;
 	int64_t k;
 	uint use[MaxUses], p, q;
-	int n, dead, baseset;
+	int n, dead, baseset, copy;
 	bits out;
 
 	/* Last definition first: when the base of one folded address is the
@@ -1500,6 +1506,7 @@ foldaddrs(Fn *fn, Blk *b, bits *livein, int64_t *off)
 		if (!addrdef(d, fn, &base, &k))
 			continue;
 		t = d->to;
+		copy = d->op == Ocopy;
 		n = 0;
 		dead = 0;
 		baseset = 0;
@@ -1509,7 +1516,9 @@ foldaddrs(Fn *fn, Blk *b, bits *livein, int64_t *off)
 			j = &b->ins[q];
 			if (j->op == Onop)
 				continue;
-			if (isie64op(j->op) || j->op == Osalloc || j->op == Oswap)
+			/* A sincos pair only changes FP registers and status. */
+			if ((isie64op(j->op) && !isie64sincos(j->op))
+			|| j->op == Osalloc || j->op == Oswap)
 				goto Skip;
 			if (iscallop(j->op)) {
 				/* A call reads its argument registers and clobbers the
@@ -1532,7 +1541,10 @@ foldaddrs(Fn *fn, Blk *b, bits *livein, int64_t *off)
 			if ((insuse(j) & BIT(t.val)) && !addruse)
 				goto Skip;
 			if (addruse) {
-				if (baseset || n == MaxUses
+				/* A folded FP displacement can leave an entry copy
+				 * whose only remaining uses are the FP stores. */
+				if ((copy && j->op != Ostores && j->op != Ostored)
+				|| baseset || n == MaxUses
 				|| off[q] + k < INT32_MIN || off[q] + k > INT32_MAX)
 					goto Skip;
 				use[n++] = q;

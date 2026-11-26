@@ -34,12 +34,19 @@ for level in 0 2 3; do
 			instructions[fn]++
 			if ($1 == "fma" || $1 == "dfma") fused[fn]++
 		}
+		fn == "sincos_store_bits" && $1 !~ /:$/ {
+			store_insns++
+			if ($1 == "fsincos") store_pair++
+			if ($1 == "fstore" && $3 == "(r1)") store_sin++
+			if ($1 == "fstore" && $3 == "4(r1)") store_cos++
+		}
 		END {
 			exit (bad || count["pair_sincos"] != 1 || count["wide_sincos"] != 1 ||
 			    count["cos_only"] != 1 || count["two_pairs"] != 2 ||
 			    instructions["scalar_fma"] != 2 || instructions["wide_fma"] != 2 ||
 			    !fused["scalar_fma"] || !fused["wide_fma"] ||
-			    !pressure || saved < 2 || restored < 2 || !cos_after_call)
+			    !pressure || saved < 2 || restored < 2 || !cos_after_call ||
+			    store_insns != 4 || !store_pair || !store_sin || !store_cos)
 		}
 	' "$tmp/pairs.s" || {
 		printf "%s\n" "-O$level: unwanted FP moves, saves or destination in the pair fixture" >&2

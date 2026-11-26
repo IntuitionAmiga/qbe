@@ -142,3 +142,15 @@ export function $sincos_pressure(l %p, d %x) {
 	storevd %keep5, %p
 	ret
 }
+
+export function $sincos_store_bits(l %p, s %a) {
+@start
+	%sin =s ie64fsincos %a
+	%cos =s ie64fcosresult %sin
+	%s =w cast %sin
+	%c =w cast %cos
+	%next =l add %p, 4
+	storew %s, %p
+	storew %c, %next
+	ret
+}

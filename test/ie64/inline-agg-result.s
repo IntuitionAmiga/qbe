@@ -111,8 +111,7 @@ ident:
 .align 16
 inplace:
 	fload f0, 12(r1)
-	fmovo r2, f0
-	store.l r2, (r1)
+	fstore f0, (r1)
 	rts
 .size inplace,.-inplace
 .section .data,"aw"

@@ -1,0 +1,27 @@
+# Copies to memory preserve the source bits, including NaN payloads.
+export function $store_single_cast(l %p, s %x, s %y) {
+@start
+	%lo =w cast %x
+	%hi =w cast %y
+	%next =l add %p, 4
+	storew %lo, %p
+	storevw %hi, %next
+	ret
+}
+
+export function $store_double_cast(l %p, d %x, d %y) {
+@start
+	%lo =l cast %x
+	%hi =l cast %y
+	%prev =l add %p, -8
+	storel %lo, %p
+	storevl %hi, %prev
+	ret
+}
+
+export function w $store_narrow_cast(l %p, s %x) {
+@start
+	%bits =w cast %x
+	storeh %bits, %p
+	ret %bits
+}

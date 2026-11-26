@@ -683,6 +683,34 @@ packedstores(Fn *fn)
 	}
 }
 
+/* These stores write the original FP bits without an integer transfer.
+ * Keep the store in place and preserve its width and volatility. */
+static void
+floatstores(Fn *fn)
+{
+	Blk *b;
+	Ins *i, *d;
+	int k, op;
+
+	filluse(fn);
+	for (b=fn->start; b; b=b->link)
+		for (i=b->ins; i<&b->ins[b->nins]; i++) {
+			switch (i->op) {
+			case Ostorew:  k = Kw; op = Ostores;  break;
+			case Ostorevw: k = Kw; op = Ostorevs; break;
+			case Ostorel:  k = Kl; op = Ostored;  break;
+			case Ostorevl: k = Kl; op = Ostorevd; break;
+			default: continue;
+			}
+			d = selectdef(i->arg[0], Ocast, k, 1, fn);
+			if (!d)
+				continue;
+			i->op = op;
+			i->arg[0] = d->arg[0];
+			*d = (Ins){.op = Onop};
+		}
+}
+
 extern int optlevel;
 
 void
@@ -728,6 +756,7 @@ ie64_isel(Fn *fn)
 	floatloads(fn);
 	if (optlevel >= 2)
 		packedstores(fn);
+	floatstores(fn);
 	ie64_canon(fn);
 
 	/* ABI lowering uses Osalloc around calls with stack arguments.  Keep a
