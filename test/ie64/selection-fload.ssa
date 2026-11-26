@@ -1,0 +1,56 @@
+export function s $load_bits(l %p, l %q) {
+@start
+	%x =w loadw %p
+	storew 0, %q
+	%r =s cast %x
+	ret %r
+}
+
+export function d $load_double_bits(l %p) {
+@start
+	%x =l loadl %p
+	%r =d cast %x
+	ret %r
+}
+
+export function s $shared_bits(l %p, l %q) {
+@start
+	%x =w loadw %p
+	storew %x, %q
+	%r =s cast %x
+	ret %r
+}
+
+export function s $volatile_bits(l %p) {
+@start
+	%x =w loadv %p
+	%r =s cast %x
+	ret %r
+}
+
+export function s $status_between(l %p, l %q) {
+@start
+	%x =w loadw %p
+	%status =l ie64fmovsr
+	storel %status, %q
+	%r =s cast %x
+	ret %r
+}
+
+export function s $overwritten_status(l %p, s %a, s %b) {
+@start
+	%x =w loadw %p
+	%sum =s add %a, %b
+	%r =s cast %x
+	%result =s add %r, %sum
+	ret %result
+}
+
+export function s $live_status(l %p, l %q, s %a, s %b) {
+@start
+	%x =w loadw %p
+	%sum =s add %a, %b
+	stores %sum, %q
+	%r =s cast %x
+	ret %r
+}

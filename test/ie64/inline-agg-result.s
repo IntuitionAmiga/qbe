@@ -113,8 +113,7 @@ ident:
 .type inplace,@function
 .align 16
 inplace:
-	load.l r2, 12(r1)
-	fmovi f0, r2
+	fload f0, 12(r1)
 	fmovo r2, f0
 	store.l r2, (r1)
 	rts

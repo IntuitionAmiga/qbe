@@ -325,6 +325,78 @@ cmpemit(Cmparg *a, int sign, Fn *fn)
 	}
 }
 
+static int
+fpwritecc(Ins *i)
+{
+	if (KBASE(i->cls) != 1)
+		return 0;
+	return i->op == Oadd || i->op == Osub || i->op == Omul || i->op == Odiv
+		|| i->op == Ocast;
+}
+
+static int
+fpobservecc(Ins *i)
+{
+	/* Target-specific ops and calls can expose the current status. */
+	return isie64op(i->op) || iscallop(i->op);
+}
+
+/* FLOAD and DLOAD read the same bytes as the integer load and copy
+ * their raw bits. Keep the read in place. Move the cast's condition
+ * codes only over code that cannot observe them. Treat block exits
+ * as observers because a successor can read the status. */
+static void
+floatloads(Fn *fn)
+{
+	Blk *b;
+	Ins *i, *d, *barrier, *lastfp;
+	Tmp *t;
+	char *dead;
+	uint n;
+	int live, k, cc;
+
+	filluse(fn);
+	dead = vnew(0, sizeof dead[0], PFn);
+	for (b=fn->start; b; b=b->link) {
+		vgrow(&dead, b->nins);
+		live = 1;
+		for (n=b->nins; n>0;) {
+			i = &b->ins[--n];
+			dead[n] = !live;
+			if (fpwritecc(i))
+				live = 0;
+			if (fpobservecc(i))
+				live = 1;
+		}
+
+		barrier = lastfp = 0;
+		for (i=b->ins; i<&b->ins[b->nins]; i++) {
+			if (i->op == Ocast && KBASE(i->cls) == 1
+			&& rtype(i->arg[0]) == RTmp && !isreg(i->arg[0])) {
+				t = &fn->tmp[i->arg[0].val];
+				d = t->def;
+				if (t->bid == b->id && t->nuse == 1 && d && d < i
+				&& (!barrier || d > barrier)
+				&& (dead[i-b->ins] || !lastfp || d > lastfp)
+				&& ((i->cls == Ks && d->cls == Kw
+				    && (d->op == Oload || d->op == Oloadsw || d->op == Oloaduw))
+				 || (i->cls == Kd && d->cls == Kl && d->op == Oload))) {
+					d->op = Oload;
+					d->cls = i->cls;
+					d->to = i->to;
+					*i = (Ins){.op = Onop};
+					lastfp = i;
+					continue;
+				}
+			}
+			if (fpobservecc(i))
+				barrier = i;
+			if (KBASE(i->cls) == 1 || (iscmp(i->op, &k, &cc) && KBASE(k) == 1))
+				lastfp = i;
+		}
+	}
+}
+
 void
 ie64_isel(Fn *fn)
 {
@@ -357,6 +429,7 @@ ie64_isel(Fn *fn)
 		}
 
 	ie64_rangecmp(fn);
+	floatloads(fn);
 	ie64_canon(fn);
 
 	/* ABI lowering uses Osalloc around calls with stack arguments.  Keep a
