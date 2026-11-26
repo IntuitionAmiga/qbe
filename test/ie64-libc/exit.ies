@@ -1,0 +1,16 @@
+-- SPDX-License-Identifier: MIT
+
+local output = ""
+local limit = sys.time_ms() + 10000
+while cpu.is_running() and sys.time_ms() < limit do
+    output = output .. term.read()
+    sys.wait_ms(2)
+end
+output = output .. term.read()
+local status = sys.exit_status()
+if status == 0 and output == "K" then
+    sys.exit(0)
+else
+    sys.print("Picolibc runtime fixture: " .. tostring(status) .. "\n")
+    sys.exit(1)
+end

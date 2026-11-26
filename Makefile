@@ -97,6 +97,9 @@ check-ie64: qbe ie64-argregs-test
 	sh tools/test-ie64-signed-load.sh ./qbe
 	sh tools/test-ie64-fpext.sh ./qbe
 
+check-ie64-libc:
+	sh tools/test-ie64-libc.sh
+
 check-amd64_win: qbe
 	TARGET=amd64_win tools/test.sh all
 
@@ -116,4 +119,4 @@ src:
 wc:
 	@wc -l $(SRCALL)
 
-.PHONY: clean clean-gen check check-arm64 check-rv64 check-ie64 check-amd64_win src 80 wc install uninstall
+.PHONY: clean clean-gen check check-arm64 check-rv64 check-ie64 check-ie64-libc check-amd64_win src 80 wc install uninstall
