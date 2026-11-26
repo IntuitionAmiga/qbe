@@ -1,0 +1,38 @@
+# A loop-invariant unsigned half-span occurs in the test, load and store.
+export function $half_span(l %p, l %width) {
+@start
+	jmp @head
+@head
+	%i =l phi @start 0, @body %next
+	%half0 =l udiv %width, 2
+	%run =w cultl %i, %half0
+	jnz %run, @body, @exit
+@body
+	%half1 =l udiv %width, 2
+	%loadindex =l add %i, %half1
+	%loadoff =l mul %loadindex, 8
+	%loadaddr =l add %p, %loadoff
+	%x =w loadw %loadaddr
+	%half2 =l udiv %width, 2
+	%storeindex =l add %i, %half2
+	%storeoff =l mul %storeindex, 8
+	%storeaddr =l add %p, %storeoff
+	%imag =l add %storeaddr, 4
+	storew %x, %imag
+	%next =l add %i, 1
+	jmp @head
+@exit
+	ret
+}
+
+export function w $word_half(w %n) {
+@start
+	%hi =w udiv %n, 2147483648
+	ret %hi
+}
+
+export function l $long_half(l %n) {
+@start
+	%hi =l udiv %n, -9223372036854775808
+	ret %hi
+}

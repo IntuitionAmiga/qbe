@@ -1,6 +1,7 @@
 #include "all.h"
 
 Ref con01[2];
+extern int optlevel;
 
 static inline uint
 mix(uint x0, uint x1)
@@ -237,6 +238,27 @@ killins(Fn *fn, Ins *i, Ref r)
 	*i = (Ins){.op = Onop};
 }
 
+/* Expose non-trapping unsigned divisions to value numbering and motion.
+ * The late simplifier also lowers them, after those passes have run. */
+static void
+normudiv(Fn *fn, Ins *i)
+{
+	int64_t bits;
+	uint64_t divisor;
+	int shift;
+
+	if (i->op != Oudiv || KBASE(i->cls) != 0
+	|| !isconbits(fn, i->arg[1], &bits) || fn->con[i->arg[1].val].flt)
+		return;
+	divisor = i->cls == Kw ? (uint32_t)bits : (uint64_t)bits;
+	if (!divisor || (divisor & (divisor - 1)))
+		return;
+	for (shift=0; divisor > 1; shift++)
+		divisor >>= 1;
+	i->op = Oshr;
+	i->arg[1] = getcon(shift, fn);
+}
+
 static void
 dedupins(Fn *fn, Blk *b, Ins *i)
 {
@@ -244,6 +266,8 @@ dedupins(Fn *fn, Blk *b, Ins *i)
 	Ins *i1;
 
 	normins(fn, i);
+	if (optlevel >= 2 && strcmp(T.name, "ie64") == 0)
+		normudiv(fn, i);
 	if (i->op == Onop || pinned(i))
 		return;
 
