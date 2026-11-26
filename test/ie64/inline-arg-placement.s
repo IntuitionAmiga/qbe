@@ -20,25 +20,18 @@ copy_packet:
 .type compare_args,@function
 .align 16
 compare_args:
-	load.l r4, (r1)
-	load.l r5, (r2)
-	sext.l r3, r4
-	sext.l r6, r5
-	ble r3, r6, .Lcmp0
-	moveq r3, #1
-	bra .Lcmpe0
-.Lcmp0:
-	moveq r3, #0
-.Lcmpe0:
+	load.l r3, (r1)
+	load.l r4, (r2)
+	sext.l r3, r3
 	sext.l r4, r4
-	sext.l r5, r5
-	bge r4, r5, .Lcmp1
-	moveq r4, #1
-	bra .Lcmpe1
-.Lcmp1:
-	moveq r4, #0
-.Lcmpe1:
-	sub.l r1, r3, r4
-	sext.l r1, r1
+	blt r3, r4, .Lcmp3l0
+	bne r3, r4, .Lcmp3g0
+	moveq r1, #0
+	rts
+.Lcmp3g0:
+	moveq r1, #1
+	rts
+.Lcmp3l0:
+	moveq r1, #-1
 	rts
 .size compare_args,.-compare_args

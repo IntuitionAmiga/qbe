@@ -22,8 +22,8 @@ pack_signed:
 .type xor_high,@function
 .align 16
 xor_high:
-	lsl.l r2, r2, #16
-	eor.l r1, r1, r2
+	lsl.l r3, r2, #16
+	eor.l r1, r1, r3
 	sext.l r1, r1
 	rts
 .size xor_high,.-xor_high
@@ -41,15 +41,13 @@ partial_mask:
 .type packed_stores,@function
 .align 16
 packed_stores:
-	move.l r4, r3
-	move.l r3, r2
-	move.q r2, r1
-	load.l r1, (r2)
+	move.q r4, r1
+	load.l r1, (r4)
 	and.l r5, r1, #4294967264
-	or.l r3, r3, r5
-	lsl.l r4, r4, #16
-	eor.l r3, r3, r4
-	store.l r3, (r2)
+	or.l r5, r2, r5
+	lsl.l r6, r3, #16
+	eor.l r5, r5, r6
+	store.l r5, (r4)
 	sext.l r1, r1
 	rts
 .size packed_stores,.-packed_stores
@@ -58,12 +56,10 @@ packed_stores:
 .type volatile_observation,@function
 .align 16
 volatile_observation:
-	move.q r30, r1
-	move.q r1, r2
-	move.q r2, r30
-	store.l r1, (r2)
-	load.l r1, (r2)
-	store.l r3, (r2)
+	move.q r4, r1
+	store.l r2, (r4)
+	load.l r1, (r4)
+	store.l r3, (r4)
 	sext.l r1, r1
 	rts
 .size volatile_observation,.-volatile_observation
@@ -74,8 +70,8 @@ volatile_observation:
 literal_stores:
 	moveq r30, #983040
 	store.l r1, (r30)
-	eor.l r1, r1, r2
+	eor.l r3, r1, r2
 	moveq r30, #983040
-	store.l r1, (r30)
+	store.l r3, (r30)
 	rts
 .size literal_stores,.-literal_stores

@@ -1616,6 +1616,7 @@ retargetable(Ins *x, int cpycls)
 	switch (x->op) {
 	case Oadd: case Osub: case Omul: case Oand: case Oor: case Oxor:
 	case Oshl: case Oshr: case Osar: case Oudiv: case Ourem:
+	case Oie64rol: case Oie64ror: case Oie64cmp3sl: case Oie64cmp3ul:
 	case Odiv: case Orem: case Oneg: case Ocopy: case Oaddr:
 	case Oextsb: case Oextub: case Oextsh: case Oextuh:
 	case Oextsw: case Oextuw:

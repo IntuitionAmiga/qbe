@@ -4,8 +4,8 @@
 .align 16
 load_bits:
 	fload f0, (r1)
-	moveq r1, #0
-	store.l r1, (r2)
+	moveq r3, #0
+	store.l r3, (r2)
 	rts
 .size load_bits,.-load_bits
 .section .text,"ax"
@@ -21,9 +21,9 @@ load_double_bits:
 .type shared_bits,@function
 .align 16
 shared_bits:
-	load.l r1, (r1)
-	store.l r1, (r2)
-	fmovi f0, r1
+	load.l r3, (r1)
+	store.l r3, (r2)
+	fmovi f0, r3
 	rts
 .size shared_bits,.-shared_bits
 .section .text,"ax"
@@ -40,10 +40,10 @@ volatile_bits:
 .type status_between,@function
 .align 16
 status_between:
-	load.l r1, (r1)
-	fmovsr r3
-	store.q r3, (r2)
-	fmovi f0, r1
+	load.l r3, (r1)
+	fmovsr r4
+	store.q r4, (r2)
+	fmovi f0, r3
 	rts
 .size status_between,.-status_between
 .section .text,"ax"
@@ -63,9 +63,9 @@ overwritten_status:
 .type live_status,@function
 .align 16
 live_status:
-	load.l r1, (r1)
+	load.l r3, (r1)
 	fadd f0, f0, f1
 	fstore f0, (r2)
-	fmovi f0, r1
+	fmovi f0, r3
 	rts
 .size live_status,.-live_status

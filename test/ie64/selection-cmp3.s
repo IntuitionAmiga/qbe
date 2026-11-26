@@ -3,12 +3,12 @@
 .type signed_word,@function
 .align 16
 signed_word:
-	load.l r1, (r1)
-	load.l r2, (r2)
-	sext.l r1, r1
-	sext.l r2, r2
-	blt r1, r2, .Lcmp3l0
-	bne r1, r2, .Lcmp3g0
+	load.l r3, (r1)
+	load.l r4, (r2)
+	sext.l r3, r3
+	sext.l r4, r4
+	blt r3, r4, .Lcmp3l0
+	bne r3, r4, .Lcmp3g0
 	moveq r1, #0
 	rts
 .Lcmp3g0:
@@ -39,25 +39,23 @@ unsigned_long:
 .type different_pairs,@function
 .align 16
 different_pairs:
-	move.l r4, r2
-	move.l r2, r1
-	sext.l r1, r2
-	sext.l r4, r4
-	ble r1, r4, .Lcmp0
-	moveq r1, #1
+	sext.l r4, r1
+	sext.l r5, r2
+	ble r4, r5, .Lcmp0
+	moveq r4, #1
 	bra .Lcmpe0
 .Lcmp0:
-	moveq r1, #0
+	moveq r4, #0
 .Lcmpe0:
-	sext.l r2, r2
-	sext.l r3, r3
-	bge r2, r3, .Lcmp1
-	moveq r2, #1
+	sext.l r5, r1
+	sext.l r6, r3
+	bge r5, r6, .Lcmp1
+	moveq r5, #1
 	bra .Lcmpe1
 .Lcmp1:
-	moveq r2, #0
+	moveq r5, #0
 .Lcmpe1:
-	sub.l r1, r1, r2
+	sub.l r1, r4, r5
 	sext.l r1, r1
 	rts
 .size different_pairs,.-different_pairs

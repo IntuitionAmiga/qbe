@@ -27,15 +27,13 @@ constant_long:
 .type wrong_mask,@function
 .align 16
 wrong_mask:
-	move.l r3, r2
-	move.l r2, r1
-	and.l r1, r3, #31
-	neg.l r3, r3
-	and.l r3, r3, #15
-	lsl.l r1, r2, r1
-	move.l r2, r2
-	lsr.l r2, r2, r3
-	or.l r1, r1, r2
+	and.l r3, r2, #31
+	neg.l r4, r2
+	and.l r5, r4, #15
+	lsl.l r3, r1, r3
+	move.l r4, r1
+	lsr.l r4, r4, r5
+	or.l r1, r3, r4
 	sext.l r1, r1
 	rts
 .size wrong_mask,.-wrong_mask

@@ -3,24 +3,21 @@
 .type signed_use,@function
 .align 16
 signed_use:
-	move.q r30, r1
-	move.q r1, r2
-	move.q r2, r30
-	load.l r2, (r2)
-	sext.l r2, r2
-	load.l r3, (r1)
-	sext.l r3, r3
-	moveq r1, #0
-	ble r2, r3, .Lcmp0
-	moveq r1, #1
+	load.l r4, (r1)
+	sext.l r4, r4
+	load.l r5, (r2)
+	sext.l r5, r5
+	moveq r3, #0
+	ble r4, r5, .Lcmp0
+	moveq r3, #1
 .Lcmp0:
-	bge r2, r3, .Lcmp1
-	moveq r2, #1
+	bge r4, r5, .Lcmp1
+	moveq r4, #1
 	bra .Lcmpe1
 .Lcmp1:
-	moveq r2, #0
+	moveq r4, #0
 .Lcmpe1:
-	add.l r1, r1, r2
+	add.l r1, r3, r4
 	sext.l r1, r1
 	rts
 .size signed_use,.-signed_use
