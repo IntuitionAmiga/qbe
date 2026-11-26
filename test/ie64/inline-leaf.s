@@ -18,8 +18,8 @@ max:
 .type scaled,@function
 .align 16
 scaled:
-	lsl.q r2, r2, #2
-	add.q r1, r1, r2
+	lsl.q r3, r2, #2
+	add.q r1, r1, r3
 	rts
 .size scaled,.-scaled
 .section .text,"ax"

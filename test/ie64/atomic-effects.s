@@ -3,13 +3,11 @@
 .type xchg_reload,@function
 .align 16
 xchg_reload:
-	move.q r3, r1
-	move.q r1, r2
-	load.q r2, (r3)
-	xchg r1, (r3), r1
-	load.q r3, (r3)
-	add.q r2, r2, r3
-	add.q r1, r1, r2
+	load.q r4, (r1)
+	xchg r3, (r1), r2
+	load.q r5, (r1)
+	add.q r4, r4, r5
+	add.q r1, r3, r4
 	rts
 .size xchg_reload,.-xchg_reload
 .section .text,"ax"
@@ -17,14 +15,11 @@ xchg_reload:
 .type xchg_store,@function
 .align 16
 xchg_store:
-	move.q r30, r1
-	move.q r1, r2
-	move.q r2, r30
 	moveq r3, #3
-	store.q r3, (r2)
-	xchg r1, (r2), r1
-	load.q r2, (r2)
-	add.q r1, r1, r2
+	store.q r3, (r1)
+	xchg r3, (r1), r2
+	load.q r4, (r1)
+	add.q r1, r3, r4
 	rts
 .size xchg_store,.-xchg_store
 .section .text,"ax"
@@ -32,14 +27,11 @@ xchg_store:
 .type xchg_other,@function
 .align 16
 xchg_other:
-	move.q r4, r1
-	move.q r1, r3
-	move.q r3, r2
-	load.q r2, (r3)
-	xchg r1, (r4), r1
-	load.q r3, (r3)
-	add.q r2, r2, r3
-	add.q r1, r1, r2
+	load.q r5, (r2)
+	xchg r4, (r1), r3
+	load.q r6, (r2)
+	add.q r5, r5, r6
+	add.q r1, r4, r5
 	rts
 .size xchg_other,.-xchg_other
 .section .text,"ax"
@@ -47,13 +39,12 @@ xchg_other:
 .type acquire,@function
 .align 16
 acquire:
-	move.q r3, r2
-	load.q r2, (r3)
-	moveq r4, #1
-	xchg r1, (r1), r4
-	load.q r3, (r3)
-	add.q r2, r2, r3
-	add.q r1, r1, r2
+	load.q r4, (r2)
+	moveq r3, #1
+	xchg r3, (r1), r3
+	load.q r5, (r2)
+	add.q r4, r4, r5
+	add.q r1, r3, r4
 	rts
 .size acquire,.-acquire
 .section .text,"ax"
@@ -105,12 +96,10 @@ loop:
 .type unused,@function
 .align 16
 unused:
-	move.q r3, r2
-	move.q r2, r1
-	load.q r1, (r2)
-	fand r3, (r2), r3
-	load.q r2, (r2)
-	add.q r1, r1, r2
+	load.q r3, (r1)
+	fand r4, (r1), r2
+	load.q r4, (r1)
+	add.q r1, r3, r4
 	rts
 .size unused,.-unused
 .section .text,"ax"
@@ -118,13 +107,11 @@ unused:
 .type or_reload,@function
 .align 16
 or_reload:
-	move.q r3, r1
-	move.q r1, r2
-	load.q r2, (r3)
-	for r1, (r3), r1
-	load.q r3, (r3)
-	add.q r2, r2, r3
-	add.q r1, r1, r2
+	load.q r4, (r1)
+	for r3, (r1), r2
+	load.q r5, (r1)
+	add.q r4, r4, r5
+	add.q r1, r3, r4
 	rts
 .size or_reload,.-or_reload
 .section .text,"ax"
@@ -132,18 +119,14 @@ or_reload:
 .type cas_reload,@function
 .align 16
 cas_reload:
-	move.q r4, r2
+	load.q r5, (r1)
+	move.q r29, r2
 	move.q r30, r1
-	move.q r1, r3
-	move.q r3, r30
-	load.q r2, (r3)
-	move.q r29, r4
-	move.q r30, r3
-	move.q r1, r1
-	cas r1, (r30), r29
-	load.q r3, (r3)
-	add.q r2, r2, r3
-	add.q r1, r1, r2
+	move.q r4, r3
+	cas r4, (r30), r29
+	load.q r6, (r1)
+	add.q r5, r5, r6
+	add.q r1, r4, r5
 	rts
 .size cas_reload,.-cas_reload
 .section .text,"ax"
@@ -152,9 +135,9 @@ cas_reload:
 .align 16
 private:
 	moveq r3, #1
-	xchg r1, (r1), r3
-	move.l r2, r2
-	add.q r1, r1, r2
+	xchg r3, (r1), r3
+	move.l r4, r2
+	add.q r1, r3, r4
 	rts
 .size private,.-private
 .section .text,"ax"

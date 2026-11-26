@@ -46,8 +46,8 @@ escaped_cursor:
 .type stack_cursor,@function
 .align 16
 stack_cursor:
-	load.q r1, 8(r31)
-	load.q r2, 16(r31)
-	add.q r1, r1, r2
+	load.q r7, 8(r31)
+	load.q r8, 16(r31)
+	add.q r1, r7, r8
 	rts
 .size stack_cursor,.-stack_cursor

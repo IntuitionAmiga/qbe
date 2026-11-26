@@ -3,14 +3,12 @@
 .type cmp_loaded,@function
 .align 16
 cmp_loaded:
-	load.l r1, (r1)
-	load.l r2, (r2)
-	bls r2, r1, .Lcmp0
-	moveq r1, #1
-	bra .Lcmpe0
-.Lcmp0:
+	load.l r3, (r1)
+	load.l r4, (r2)
 	moveq r1, #0
-.Lcmpe0:
+	bls r4, r3, .Lcmp0
+	moveq r1, #1
+.Lcmp0:
 	rts
 .size cmp_loaded,.-cmp_loaded
 .section .text,"ax"
@@ -33,14 +31,12 @@ cmp_masked:
 .type cmp_param,@function
 .align 16
 cmp_param:
-	move.l r1, r1
-	move.l r2, r2
-	bls r2, r1, .Lcmp2
-	moveq r1, #1
-	bra .Lcmpe2
-.Lcmp2:
+	move.l r3, r1
+	move.l r4, r2
 	moveq r1, #0
-.Lcmpe2:
+	bls r4, r3, .Lcmp2
+	moveq r1, #1
+.Lcmp2:
 	rts
 .size cmp_param,.-cmp_param
 .section .text,"ax"

@@ -3,9 +3,9 @@
 .type shr_signed_byte,@function
 .align 16
 shr_signed_byte:
-	sext.b r1, r1
-	move.l r1, r1
-	lsr.l r1, r1, #4
+	sext.b r3, r1
+	move.l r3, r3
+	lsr.l r1, r3, #4
 	rts
 .size shr_signed_byte,.-shr_signed_byte
 .section .text,"ax"
@@ -22,10 +22,10 @@ shr_param:
 .type sdiv_sum,@function
 .align 16
 sdiv_sum:
-	add.l r1, r1, r2
-	sext.l r2, r3
-	sext.l r1, r1
-	divs.l r1, r1, r2
+	add.l r4, r1, r2
+	sext.l r5, r3
+	sext.l r4, r4
+	divs.l r1, r4, r5
 	sext.l r1, r1
 	rts
 .size sdiv_sum,.-sdiv_sum
@@ -45,9 +45,9 @@ sdiv_neg_const:
 .type udiv_sum,@function
 .align 16
 udiv_sum:
-	sub.l r1, r1, r2
-	move.l r2, r3
-	divu.l r1, r1, r2
+	sub.l r4, r1, r2
+	move.l r5, r3
+	divu.l r1, r4, r5
 	sext.l r1, r1
 	rts
 .size udiv_sum,.-udiv_sum
@@ -56,8 +56,8 @@ udiv_sum:
 .type swtod_sum,@function
 .align 16
 swtod_sum:
-	add.l r1, r1, r2
-	sext.l r1, r1
-	dcvtif f0, r1
+	add.l r3, r1, r2
+	sext.l r3, r3
+	dcvtif f0, r3
 	rts
 .size swtod_sum,.-swtod_sum

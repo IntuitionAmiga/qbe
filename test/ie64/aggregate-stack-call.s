@@ -3,8 +3,8 @@
 .type f,@function
 .align 16
 f:
-	load.q r1, 8(r31)
-	load.l r1, (r1)
+	load.q r7, 8(r31)
+	load.l r1, (r7)
 	sext.l r1, r1
 	rts
 .size f,.-f

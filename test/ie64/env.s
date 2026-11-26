@@ -11,11 +11,10 @@ envonly:
 .type envfull,@function
 .align 16
 envfull:
-	move.q r2, r1
-	load.q r1, 8(r31)
-	add.q r2, r28, r2
-	add.q r2, r6, r2
-	add.q r1, r1, r2
+	load.q r7, 8(r31)
+	add.q r8, r28, r1
+	add.q r8, r6, r8
+	add.q r1, r7, r8
 	rts
 .size envfull,.-envfull
 .section .text,"ax"

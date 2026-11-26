@@ -20,6 +20,7 @@ enum {
 };
 
 static bits regu;      /* registers used */
+static bits parregs;   /* incoming integer argument registers */
 static Tmp *tmp;       /* function temporaries */
 static Mem *mem;       /* function mem references */
 static struct {
@@ -193,7 +194,7 @@ ralloctry(RMap *m, int t, int try)
 		if (try)
 			return R;
 		regs = tmp[phicls(t, tmp)].hint.m;
-		regs |= m->b->t[0];
+		regs |= m->b->t[0] | parregs;
 		if (KBASE(tmp[t].cls) == 0) {
 			r0 = T.gpr0;
 			r1 = r0 + T.ngpr;
@@ -646,7 +647,7 @@ prio2(int t1, int t2)
 void
 rega(Fn *fn)
 {
-	int j, t, r, x, scratch, rl[Tmp0];
+	int j, t, r, x, scratch, preferargs, rl[Tmp0];
 	Blk *b, *b1, *s, ***ps, *blist, **blk, **bp;
 	RMap *end, *beg, cur, old, *m;
 	Ins *i;
@@ -657,7 +658,7 @@ rega(Fn *fn)
 	/* 1. setup */
 	stmov = 0;
 	stblk = 0;
-	regu = 0;
+	regu = parregs = 0;
 	scratch = -1;
 	tmp = fn->tmp;
 	mem = fn->mem;
@@ -680,13 +681,26 @@ rega(Fn *fn)
 	for (bp=blk, b=fn->start; b; b=b->link)
 		*bp++ = b;
 	qsort(blk, fn->nblk, sizeof blk[0], carve);
+	preferargs = strcmp(T.name, "ie64") == 0 && fn->leaf && fn->nblk == 1;
 	for (b=fn->start, i=b->ins; i<&b->ins[b->nins]; i++)
 		if (i->op != Ocopy || !isreg(i->arg[0]))
 			break;
 		else {
 			assert(rtype(i->to) == RTmp);
 			sethint(i->to.val, i->arg[0].val);
+			/* Keep low argument registers free for their incoming values
+			 * when backward allocation chooses registers for locals. */
+			if (preferargs && KBASE(i->cls) == 0)
+				parregs |= BIT(i->arg[0].val);
 		}
+
+	/* One incoming argument cannot form a swap with another. */
+	if (!(parregs & (parregs - 1)))
+		parregs = 0;
+	b = fn->start;
+	if (parregs && (b->jmp.type == Jretw || b->jmp.type == Jretl)
+	&& rtype(b->jmp.arg) == RTmp)
+		sethint(b->jmp.arg.val, T.gpr0);
 
 	/* 2. assign registers */
 	for (bp=blk; bp<&blk[fn->nblk]; bp++) {

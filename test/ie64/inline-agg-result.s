@@ -37,13 +37,10 @@ glob:
 .type id,@function
 .align 16
 id:
-	move.q r30, r1
-	move.q r1, r2
-	move.q r2, r30
-	load.q r3, (r1)
-	store.q r3, (r2)
-	load.q r1, 8(r1)
-	store.q r1, 8(r2)
+	load.q r3, (r2)
+	store.q r3, (r1)
+	load.q r3, 8(r2)
+	store.q r3, 8(r1)
 	rts
 .size id,.-id
 .section .text,"ax"

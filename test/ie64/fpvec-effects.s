@@ -30,12 +30,11 @@ reload:
 .type reload_store,@function
 .align 16
 reload_store:
-	move.q r3, r1
-	add.q r1, r2, #8
+	add.q r3, r2, #8
 	fmovecr f0, #9
-	fstore f0, (r1)
-	ftrv (r3), (r2)
-	fload f0, (r1)
+	fstore f0, (r3)
+	ftrv (r1), (r2)
+	fload f0, (r3)
 	rts
 .size reload_store,.-reload_store
 .section .text,"ax"
@@ -128,11 +127,10 @@ beyond_vector:
 .type last_word,@function
 .align 16
 last_word:
-	move.q r3, r1
-	add.q r1, r2, #12
-	fload f0, (r1)
-	ftrv (r3), (r2)
-	fload f1, (r1)
+	add.q r3, r2, #12
+	fload f0, (r3)
+	ftrv (r1), (r2)
+	fload f1, (r3)
 	fadd f0, f0, f1
 	rts
 .size last_word,.-last_word

@@ -10,6 +10,8 @@ facilities:
 	fstore f8, 24(r31)
 	fstore f10, 32(r31)
 	fstore f11, 40(r31)
+	move.q r18, r1
+	move.q r19, r2
 	move.q r20, r3
 	fmov f8, f0
 	dmov f10, f2
@@ -17,15 +19,13 @@ facilities:
 	sei
 	cli
 	tlbflush
-	tlbinval r2
+	tlbinval r19
 	suaen
 	suadis
 	wait #5
-	mtcr cr6, r2
-	move.q r19, r2
-	mfcr r2, cr6
-	move.q r18, r1
-	smode r1
+	mtcr cr6, r19
+	mfcr r4, cr6
+	smode r4
 	syscall #7
 	dmov f2, f10
 	fmov f0, f8
@@ -39,8 +39,8 @@ facilities:
 	fxor r4, (r1), r3
 	move.q r29, r3
 	move.q r30, r1
-	move.q r1, r2
-	cas r1, (r30), r29
+	move.q r4, r2
+	cas r4, (r30), r29
 	fmovecr f1, #0
 	fmovecr f4, #1
 	fcvtsd f4, f4
@@ -68,12 +68,12 @@ facilities:
 	dexp f0, f2
 	dpow f0, f2, f0
 	dsqrt f0, f2
-	fmovsr r1
-	fmovcr r1
-	moveq r1, #1
-	fmovsc r1
-	moveq r1, #2
-	fmovcc r1
+	fmovsr r4
+	fmovcr r4
+	moveq r4, #1
+	fmovsc r4
+	moveq r4, #2
+	fmovcc r4
 	load.q r18, 0(r31)
 	load.q r19, 8(r31)
 	load.q r20, 16(r31)

@@ -1,0 +1,15 @@
+export function $copy_packet(l %dst, l %src) {
+@start
+	blit %src, %dst, 40
+	ret
+}
+
+export function w $compare_args(l %a, l %b) {
+@start
+	%x =w loadw %a
+	%y =w loadw %b
+	%gt =w csgtw %x, %y
+	%lt =w csltw %x, %y
+	%r =w sub %gt, %lt
+	ret %r
+}

@@ -83,8 +83,8 @@ addr_escapes:
 .type addr_stored,@function
 .align 16
 addr_stored:
-	add.q r1, r1, #24
-	store.q r1, (r2)
+	add.q r3, r1, #24
+	store.q r3, (r2)
 	rts
 .size addr_stored,.-addr_stored
 .section .text,"ax"
@@ -139,12 +139,9 @@ across_call:
 .type base_reused,@function
 .align 16
 base_reused:
-	move.q r30, r1
-	move.q r1, r2
-	move.q r2, r30
-	mulu.q r1, r1, r1
-	load.q r2, 8(r2)
-	add.q r1, r1, r2
+	mulu.q r3, r2, r2
+	load.q r4, 8(r1)
+	add.q r1, r3, r4
 	rts
 .size base_reused,.-base_reused
 .section .text,"ax"
