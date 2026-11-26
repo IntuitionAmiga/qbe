@@ -1,0 +1,34 @@
+export function w $extract_low(w %x) {
+@start
+	%shift =w shl %x, 27
+	%field =w shr %shift, 27
+	ret %field
+}
+
+export function w $pack_signed(w %x) {
+@start
+	%low =w and %x, 511
+	%biased =w sub %low, 256
+	%shift =w shl %biased, 5
+	%field =w and %shift, 16352
+	ret %field
+}
+
+export function w $xor_high(w %x, w %y) {
+@start
+	%low =w and %x, 65535
+	%high =w shr %x, 16
+	%other =w and %y, 65535
+	%mix =w xor %high, %other
+	%shift =w shl %mix, 16
+	%masked =w and %shift, 4294901760
+	%r =w or %masked, %low
+	ret %r
+}
+
+export function w $partial_mask(w %x) {
+@start
+	%shift =w shl %x, 5
+	%field =w and %shift, 65504
+	ret %field
+}

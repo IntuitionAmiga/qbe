@@ -420,6 +420,115 @@ rotate(Ins *i, Fn *fn)
 	*d[0] = *d[1] = (Ins){.op = Onop};
 }
 
+static Ins *
+shiftdef(Ref r, int op, int k, int64_t *n, Fn *fn)
+{
+	Ins *d = selectdef(r, op, k, 1, fn);
+
+	return d && integerconst(d->arg[1], n, fn)
+		&& *n > 0 && *n < (k == Kw ? 32 : 64) ? d : 0;
+}
+
+/* Combine a packed high-field XOR with the retained low field. */
+static int
+fieldxor(Ins *i, int h, uint64_t full, Fn *fn)
+{
+	Ins *lo, *mask, *sh, *x, *hi;
+	Ref field;
+	int k, a;
+	int64_t n, z, lm;
+	uint64_t hm;
+
+	k = i->cls;
+	lo = selectdef(i->arg[1-h], Oand, k, 1, fn);
+	if (!lo || !integerconst(lo->arg[1], &lm, fn))
+		return 0;
+	field = i->arg[h];
+	mask = selectdef(field, Oand, k, 1, fn);
+	sh = shiftdef(mask ? mask->arg[0] : field, Oshl, k, &n, fn);
+	if (!sh)
+		return 0;
+	hm = (full << n) & full;
+	if (((uint64_t)lm & full) != (full ^ hm)
+	|| (mask && (!integerconst(mask->arg[1], &z, fn) || ((uint64_t)z & full) != hm)))
+		return 0;
+	x = selectdef(sh->arg[0], Oxor, k, 1, fn);
+	if (!x)
+		return 0;
+	for (a=0; a<2; a++) {
+		hi = shiftdef(x->arg[a], Oshr, k, &z, fn);
+		if (hi && z == n && req(hi->arg[0], lo->arg[0]))
+			break;
+	}
+	if (a == 2)
+		return 0;
+	sh->arg[0] = x->arg[1-a];
+	i->op = Oxor;
+	i->arg[0] = lo->arg[0];
+	i->arg[1] = sh->to;
+	*lo = *x = *hi = (Ins){.op = Onop};
+	if (mask)
+		*mask = (Ins){.op = Onop};
+	return 1;
+}
+
+static void
+bitfield(Ins *i, Fn *fn)
+{
+	Ins *sh, *sub, *bound;
+	int k;
+	int64_t n, z, bias;
+	uint64_t full, mask, low;
+
+	k = i->cls;
+	if (KBASE(k) != 0)
+		return;
+	full = k == Kw ? UINT32_MAX : UINT64_MAX;
+	if (i->op == Oor) {
+		if (!fieldxor(i, 0, full, fn))
+			fieldxor(i, 1, full, fn);
+		return;
+	}
+	if (!integerconst(i->arg[1], &z, fn))
+		return;
+	if (i->op == Oshr && (sh = shiftdef(i->arg[0], Oshl, k, &n, fn)) && z == n) {
+		i->op = Oand;
+		i->arg[0] = sh->arg[0];
+		i->arg[1] = getcon(full >> n, fn);
+		*sh = (Ins){.op = Onop};
+		return;
+	}
+	if (i->op == Oshl && z > 0 && z < (k == Kw ? 32 : 64)) {
+		bound = selectdef(i->arg[0], Oand, k, 1, fn);
+		if (bound && integerconst(bound->arg[1], &n, fn)
+		&& ((uint64_t)n & (full >> z)) == (full >> z)) {
+			i->arg[0] = bound->arg[0];
+			*bound = (Ins){.op = Onop};
+		}
+		return;
+	}
+	if (i->op != Oand || !(sh = shiftdef(i->arg[0], Oshl, k, &n, fn)))
+		return;
+	mask = (uint64_t)z & full;
+	if ((mask | ((UINT64_C(1) << n) - 1)) != full) {
+		/* Reduce the signed bias modulo the field width. The input
+		 * mask makes subtracting half the range equivalent to toggling
+		 * that bit, without a borrow into any adjacent field. */
+		sub = selectdef(sh->arg[0], Osub, k, 1, fn);
+		if (!sub || !integerconst(sub->arg[1], &bias, fn) || bias <= 0
+		|| ((uint64_t)bias & ((uint64_t)bias - 1)))
+			return;
+		bound = selectdef(sub->arg[0], Oand, k, 0, fn);
+		low = 2 * (uint64_t)bias - 1;
+		if (!bound || !integerconst(bound->arg[1], &z, fn) || ((uint64_t)z & full) != low
+		|| low > (full >> n) || mask != (low << n))
+			return;
+		sub->op = Oxor;
+	}
+	i->op = Ocopy;
+	i->arg[1] = R;
+}
+
 static int
 fpwritecc(Ins *i)
 {
@@ -526,8 +635,11 @@ ie64_isel(Fn *fn)
 	ie64_rangecmp(fn);
 	filluse(fn);
 	for (b=fn->start; b; b=b->link)
-		for (i=b->ins; i<&b->ins[b->nins]; i++)
+		for (i=&b->ins[b->nins]; i!=b->ins;) {
+			--i;
 			rotate(i, fn);
+			bitfield(i, fn);
+		}
 	floatloads(fn);
 	ie64_canon(fn);
 
