@@ -296,6 +296,21 @@ cmpplan(Ref r, int sign, int forcmp, Cmparg *a, Fn *fn)
 		a->cpy = newtmp("ie64cmp", Kw, fn);
 }
 
+static int
+exactlongtodouble(Ref r, Blk *b, Fn *fn)
+{
+	Ins *d;
+
+	if (ie64_swidth(fn, r, Kl) <= 54)
+		return 1;
+	if (rtype(r) != RTmp || isreg(r) || fn->tmp[r.val].bid != b->id
+	|| !(d = fn->tmp[r.val].def))
+		return 0;
+	/* Truncating a binary32 or binary64 cannot add significant bits.
+	 * A saturated INT64_MAX rounds to 2^63 in both widths. */
+	return d->cls == Kl && (d->op == Ostosi || d->op == Odtosi);
+}
+
 static void
 cmpemit(Cmparg *a, int sign, Fn *fn)
 {
@@ -401,7 +416,9 @@ ie64_isel(Fn *fn)
 			if (i->op == Osltof && i->cls == Ks) {
 				t = newtmp("ie64conv", Kd, fn);
 				emit(Oie64fcvtds, Ks, i->to, t, R);
-				emit(Osltof, Kd, t, i->arg[0], R);
+				emit(exactlongtodouble(i->arg[0], b, fn) ? Osltof : Oie64sltofprep,
+					Kd, t, i->arg[0], R);
+				fixarg(&curi->arg[0], Kl, curi, fn);
 				continue;
 			}
 			if (i->op == Ouwtof) {

@@ -21,3 +21,10 @@ export function s $long_to_single(l %value) {
 	%result =s sltof %value
 	ret %result
 }
+
+export function s $double_to_long_to_single(d %value) {
+@start
+	%integer =l dtosi %value
+	%result =s sltof %integer
+	ret %result
+}

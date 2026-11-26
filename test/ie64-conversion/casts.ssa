@@ -4,8 +4,108 @@ export function s $u64_f32(l %x) {
 	ret %y
 }
 
+export function l $f32_u64(s %x) {
+@start
+	%y =l stoui %x
+	ret %y
+}
+
 export function d $u64_f64(l %x) {
 @start
 	%y =d ultof %x
+	ret %y
+}
+
+export function l $f64_u64(d %x) {
+@start
+	%y =l dtoui %x
+	ret %y
+}
+
+export function s $s64_f32(l %x) {
+@start
+	%y =s sltof %x
+	ret %y
+}
+
+export function l $f32_s64(s %x) {
+@start
+	%y =l stosi %x
+	ret %y
+}
+
+export function d $s64_f64(l %x) {
+@start
+	%y =d sltof %x
+	ret %y
+}
+
+export function l $f64_s64(d %x) {
+@start
+	%y =l dtosi %x
+	ret %y
+}
+
+export function s $u32_f32(w %x) {
+@start
+	%y =s uwtof %x
+	ret %y
+}
+
+export function l $f32_u32(s %x) {
+@start
+	%y =w stoui %x
+	%r =l extuw %y
+	ret %r
+}
+
+export function d $u32_f64(w %x) {
+@start
+	%y =d uwtof %x
+	ret %y
+}
+
+export function l $f64_u32(d %x) {
+@start
+	%y =w dtoui %x
+	%r =l extuw %y
+	ret %r
+}
+
+export function s $s32_f32(w %x) {
+@start
+	%y =s swtof %x
+	ret %y
+}
+
+export function l $f32_s32(s %x) {
+@start
+	%y =w stosi %x
+	%r =l extsw %y
+	ret %r
+}
+
+export function d $s32_f64(w %x) {
+@start
+	%y =d swtof %x
+	ret %y
+}
+
+export function l $f64_s32(d %x) {
+@start
+	%y =w dtosi %x
+	%r =l extsw %y
+	ret %r
+}
+
+export function s $narrow(d %x) {
+@start
+	%y =s truncd %x
+	ret %y
+}
+
+export function d $extend(s %x) {
+@start
+	%y =d exts %x
 	ret %y
 }

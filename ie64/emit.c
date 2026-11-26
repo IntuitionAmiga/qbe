@@ -499,21 +499,27 @@ slotbase(Ref r)
 
 /* A signed conversion handles the low range directly. The large path
  * saves the discarded bits as a sticky low bit of the shifted integer.
- * For binary64 a one-bit shift suffices because the input is at least
- * 2^63. For binary32 shift by eleven so the intermediate binary64 is
- * exact and the final FCVTDS rounds only once. Scaling by two (or by
- * 2^11, split between an integer shift and doubling) is exact. */
+ * For unsigned binary64 a one-bit shift suffices because the input is
+ * at least 2^63. For binary32 discard eleven low bits so the binary64
+ * intermediate is exact and the final FCVTDS rounds only once. For a
+ * signed source restore all eleven places in the integer. For unsigned
+ * restore ten in the integer and double the converted result. */
 static void
-emitultof(Ins *i, FILE *f)
+emitlongtofloat(Ins *i, FILE *f)
 {
 	static unsigned num;
 	unsigned id = num++;
-	int single = i->op == Oie64ultofprep;
+	int single = i->op != Oultof;
+	int sign = i->op == Oie64sltofprep;
 
 	if (single) {
-		fputs("\tlsr.q r30, ", f);
+		fputs(sign ? "\tasr.q r30, " : "\tlsr.q r30, ", f);
 		emitreg(i->arg[0], f);
-		fprintf(f, ", #53\n\tbne r30, r0, .Lutoh%u\n", id);
+		fputs(", #53\n", f);
+		/* Inside the exact signed range the shifted value is -1 or 0. */
+		if (sign)
+			fputs("\tadd.q r30, r30, #1\n\tlsr.q r30, r30, #1\n", f);
+		fprintf(f, "\tbne r30, r0, .Lutoh%u\n", id);
 	} else {
 		fputs("\tblt ", f);
 		emitreg(i->arg[0], f);
@@ -523,7 +529,7 @@ emitultof(Ins *i, FILE *f)
 	emitreg(i->to, f);
 	fputs(", ", f);
 	emitreg(i->arg[0], f);
-	fprintf(f, "\n\tbra .Lutoe%u\n.Lutoh%u:\n\tlsr.q r30, ", id, id);
+	fprintf(f, "\n\tbra .Lutoe%u\n.Lutoh%u:\n\t%s.q r30, ", id, id, sign ? "asr" : "lsr");
 	emitreg(i->arg[0], f);
 	fprintf(f, ", #%d\n\tand.q r29, ", single ? 11 : 1);
 	emitreg(i->arg[0], f);
@@ -532,16 +538,20 @@ emitultof(Ins *i, FILE *f)
 		fputs("\tadd.q r29, r29, #2047\n\tlsr.q r29, r29, #11\n", f);
 	fputs("\tor.q r30, r30, r29\n", f);
 	if (single)
-		fputs("\tlsl.q r30, r30, #10\n", f);
+		fprintf(f, "\tlsl.q r30, r30, #%d\n", sign ? 11 : 10);
 	fputs("\tdcvtif ", f);
 	emitreg(i->to, f);
-	fputs(", r30\n\tdadd ", f);
-	emitreg(i->to, f);
-	fputs(", ", f);
-	emitreg(i->to, f);
-	fputs(", ", f);
-	emitreg(i->to, f);
-	fprintf(f, "\n.Lutoe%u:\n", id);
+	fputs(", r30\n", f);
+	if (!sign) {
+		fputs("\tdadd ", f);
+		emitreg(i->to, f);
+		fputs(", ", f);
+		emitreg(i->to, f);
+		fputs(", ", f);
+		emitreg(i->to, f);
+		fputc('\n', f);
+	}
+	fprintf(f, ".Lutoe%u:\n", id);
 }
 
 static void
@@ -801,8 +811,8 @@ emitins(Ins *i, Fn *fn, FILE *f)
 		fputc('\n', f);
 		return;
 	}
-	if (i->op == Oultof || i->op == Oie64ultofprep) {
-		emitultof(i, f);
+	if (i->op == Oultof || i->op == Oie64ultofprep || i->op == Oie64sltofprep) {
+		emitlongtofloat(i, f);
 		return;
 	}
 	if (i->op == Oswtof && i->cls == Ks) {
