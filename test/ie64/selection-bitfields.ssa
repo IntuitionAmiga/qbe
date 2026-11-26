@@ -32,3 +32,23 @@ export function w $partial_mask(w %x) {
 	%field =w and %shift, 65504
 	ret %field
 }
+
+export function w $packed_stores(l %p, w %a, w %b) {
+@start
+	%x =w loadw %p
+	%keep =w and %x, 4294967264
+	%low =w or %keep, %a
+	storew %low, %p
+	%upper =w shl %b, 16
+	%r =w xor %low, %upper
+	storew %r, %p
+	ret %x
+}
+
+export function w $volatile_observation(l %p, w %a, w %b) {
+@start
+	storew %a, %p
+	%x =w loadv %p
+	storew %b, %p
+	ret %x
+}

@@ -36,3 +36,34 @@ partial_mask:
 	and.l r1, r1, #65504
 	rts
 .size partial_mask,.-partial_mask
+.section .text,"ax"
+.global packed_stores
+.type packed_stores,@function
+.align 16
+packed_stores:
+	move.l r4, r3
+	move.l r3, r2
+	move.q r2, r1
+	load.l r1, (r2)
+	and.l r5, r1, #4294967264
+	or.l r3, r3, r5
+	lsl.l r4, r4, #16
+	eor.l r3, r3, r4
+	store.l r3, (r2)
+	sext.l r1, r1
+	rts
+.size packed_stores,.-packed_stores
+.section .text,"ax"
+.global volatile_observation
+.type volatile_observation,@function
+.align 16
+volatile_observation:
+	move.q r30, r1
+	move.q r1, r2
+	move.q r2, r30
+	store.l r1, (r2)
+	load.l r1, (r2)
+	store.l r3, (r2)
+	sext.l r1, r1
+	rts
+.size volatile_observation,.-volatile_observation

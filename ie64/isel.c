@@ -646,6 +646,44 @@ floatloads(Fn *fn)
 	}
 }
 
+/* Fold the stores of successive packed-field updates if each writes the
+ * same bytes and the intervening integer operations cannot observe or
+ * interrupt the write. Volatile accesses and other effects end the scan. */
+static void
+packedstores(Fn *fn)
+{
+	Ins *i, *store;
+	Blk *b;
+
+	for (b=fn->start; b; b=b->link) {
+		store = 0;
+		for (i=b->ins; i<&b->ins[b->nins]; i++) {
+			if (i->op >= Ostoreb && i->op <= Ostorel) {
+				if (store && store->op == i->op
+				&& req(store->arg[1], i->arg[1]))
+					*store = (Ins){.op = Onop};
+				store = i;
+				continue;
+			}
+			if (KBASE(i->cls) != 0) {
+				store = 0;
+				continue;
+			}
+			switch (i->op) {
+			case Onop: case Ocopy: case Oadd: case Osub:
+			case Oand: case Oor: case Oxor:
+			case Oshl: case Oshr: case Osar:
+				break;
+			default:
+				store = 0;
+				break;
+			}
+		}
+	}
+}
+
+extern int optlevel;
+
 void
 ie64_isel(Fn *fn)
 {
@@ -687,6 +725,8 @@ ie64_isel(Fn *fn)
 			cmp3(i, fn);
 		}
 	floatloads(fn);
+	if (optlevel >= 2)
+		packedstores(fn);
 	ie64_canon(fn);
 
 	/* ABI lowering uses Osalloc around calls with stack arguments.  Keep a
