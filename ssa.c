@@ -279,7 +279,8 @@ renblk(Blk *b, Name **stk, Fn *fn)
 {
 	Phi *p;
 	Ins *i;
-	Blk *s, **ps, *succ[3];
+	Blk *s;
+	uint n;
 	int t, m;
 
 	for (p=b->phi; p; p=p->link)
@@ -297,10 +298,9 @@ renblk(Blk *b, Name **stk, Fn *fn)
 	if (rtype(b->jmp.arg) == RTmp)
 	if (fn->tmp[t].visit)
 		b->jmp.arg = getstk(t, b, stk);
-	succ[0] = b->s1;
-	succ[1] = b->s2 == b->s1 ? 0 : b->s2;
-	succ[2] = 0;
-	for (ps=succ; (s=*ps); ps++)
+	for (n=0; (s=succ(b, n)); n++) {
+		if (n && !b->jmp.tab && s == b->s1)
+			continue;
 		for (p=s->phi; p; p=p->link) {
 			t = p->to.val;
 			if ((t=fn->tmp[t].visit)) {
@@ -311,6 +311,7 @@ renblk(Blk *b, Name **stk, Fn *fn)
 				p->blk[m] = b;
 			}
 		}
+	}
 	for (s=b->dom; s; s=s->dlink)
 		renblk(s, stk, fn);
 }

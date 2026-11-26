@@ -377,7 +377,7 @@ def(Slice sl, bits msk, Blk *b, Ins *i, Loc *il)
 		bp = b->pred[0];
 		assert(bp->loop >= il->blk->loop);
 		l = *il;
-		if (bp->s2)
+		if (succ(bp, 1))
 			l.type = LNoLoad;
 		r1 = def(sl, msk, bp, 0, &l);
 		if (req(r1, R))
@@ -400,7 +400,7 @@ def(Slice sl, bits msk, Blk *b, Ins *i, Loc *il)
 	p->blk = vnew(p->narg, sizeof p->blk[0], PFn);
 	for (np=0; np<b->npred; ++np) {
 		bp = b->pred[np];
-		if (!bp->s2
+		if (!succ(bp, 1)
 		&& il->type != LNoLoad
 		&& bp->loop < il->blk->loop)
 			l.type = LLoad;

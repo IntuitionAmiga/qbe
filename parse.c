@@ -53,6 +53,7 @@ enum Token {
 	Tphi,
 	Tjmp,
 	Tjnz,
+	Tswitch,
 	Tret,
 	Thlt,
 	Texport,
@@ -116,6 +117,7 @@ static char *kwmap[Ntok] = {
 	[Tphi] = "phi",
 	[Tjmp] = "jmp",
 	[Tjnz] = "jnz",
+	[Tswitch] = "switch",
 	[Tret] = "ret",
 	[Thlt] = "hlt",
 	[Texport] = "export",
@@ -612,6 +614,50 @@ closeblk()
 	curi = insb;
 }
 
+static void
+parseswitch(Blk *b)
+{
+	JTab *t;
+	Blk *s;
+	uint n;
+
+	if (strcmp(T.name, "ie64") != 0)
+		err("switch needs the ie64 target");
+	b->jmp.type = Jswitch;
+	b->jmp.arg = parseref();
+	if (req(b->jmp.arg, R))
+		err("invalid index for switch");
+	t = alloc(sizeof *t);
+	t->entry = vnew(0, sizeof t->entry[0], PFn);
+	t->succ = vnew(1, sizeof t->succ[0], PFn);
+	expect(Tcomma);
+	expect(Tlbl);
+	s = findblk();
+	if (s == curf->start)
+		err("invalid jump to the start block");
+	t->succ[0] = s;
+	t->nsucc = s->visit = 1;
+	if (peek() != Tcomma)
+		err("switch needs at least one table entry");
+	do {
+		expect(Tcomma);
+		expect(Tlbl);
+		s = findblk();
+		if (s == curf->start)
+			err("invalid jump to the start block");
+		if (!s->visit) {
+			vgrow(&t->succ, ++t->nsucc);
+			t->succ[t->nsucc-1] = s;
+			s->visit = t->nsucc;
+		}
+		vgrow(&t->entry, ++t->nentry);
+		t->entry[t->nentry-1] = s->visit - 1;
+	} while (peek() == Tcomma);
+	b->jmp.tab = t;
+	for (n=0; n<t->nsucc; n++)
+		t->succ[n]->visit = 0;
+}
+
 static PState
 parseline(PState ps)
 {
@@ -692,6 +738,9 @@ parseline(PState ps)
 		}
 		if (curb->s1 == curf->start || curb->s2 == curf->start)
 			err("invalid jump to the start block");
+		goto Close;
+	case Tswitch:
+		parseswitch(curb);
 		goto Close;
 	case Thlt:
 		curb->jmp.type = Jhlt;
@@ -842,6 +891,7 @@ typecheck(Fn *fn)
 	Tmp *t;
 	Ref r;
 	BSet pb[1], ppb[1];
+	Blk *s;
 
 	fillpreds(fn);
 	bsinit(pb, fn->nblk);
@@ -912,13 +962,14 @@ typecheck(Fn *fn)
 				goto JErr;
 		}
 		if (b->jmp.type == Jjnz && !usecheck(r, Kw, fn))
+			goto JErr;
+		if (b->jmp.type == Jswitch && !usecheck(r, Kl, fn))
 		JErr:
 			err("invalid type for jump argument %%%s in block @%s",
 				fn->tmp[r.val].name, b->name);
-		if (b->s1 && b->s1->jmp.type == Jxxx)
-			err("block @%s is used undefined", b->s1->name);
-		if (b->s2 && b->s2->jmp.type == Jxxx)
-			err("block @%s is used undefined", b->s2->name);
+		for (n=0; (s=succ(b, n)); n++)
+			if (s->jmp.type == Jxxx)
+				err("block @%s is used undefined", s->name);
 	}
 }
 
@@ -1461,6 +1512,18 @@ printfn(Fn *fn, FILE *f)
 				fprintf(f, ", :%s", typ[fn->retty].name);
 			fprintf(f, "\n");
 			break;
+		case Jswitch: {
+			JTab *t = b->jmp.tab;
+			uint n;
+
+			fprintf(f, "\tswitch ");
+			printref(b->jmp.arg, fn, f);
+			fprintf(f, ", @%s", t->succ[0]->name);
+			for (n=0; n<t->nentry; n++)
+				fprintf(f, ", @%s", t->succ[t->entry[n]]->name);
+			fputc('\n', f);
+			break;
+		}
 		case Jhlt:
 			fprintf(f, "\thlt\n");
 			break;

@@ -362,7 +362,7 @@ merge(BSet *u, Blk *bu, BSet *v, Blk *bv)
 void
 spill(Fn *fn)
 {
-	Blk *b, *s1, *s2, *hd, **bp;
+	Blk *b, *s, *hd, **bp;
 	int j, l, t, k, d, lvarg[3];
 	uint n;
 	BSet u[1], v[1], w[1];
@@ -399,14 +399,10 @@ spill(Fn *fn)
 		/* 1. find temporaries in registers at
 		 * the end of the block (put them in v) */
 		curi = 0;
-		s1 = b->s1;
-		s2 = b->s2;
 		hd = 0;
-		if (s1 && s1->id <= b->id)
-			hd = s1;
-		if (s2 && s2->id <= b->id)
-		if (!hd || s2->id >= hd->id)
-			hd = s2;
+		for (n=0; (s=succ(b, n)); n++)
+			if (s->id <= b->id && (!hd || s->id >= hd->id))
+				hd = s;
 		if (hd) {
 			/* back-edge */
 			bszero(v);
@@ -427,15 +423,14 @@ spill(Fn *fn)
 					limit(u, n, 0);
 				bsunion(v, u);
 			}
-		} else if (s1) {
-			/* avoid reloading temporaries
-			 * in the middle of loops */
+		} else if ((s=succ(b, 0))) {
+			/* Prefer values live on every edge. */
 			bszero(v);
-			liveon(w, b, s1);
-			merge(v, b, w, s1);
-			if (s2) {
-				liveon(u, b, s2);
-				merge(v, b, u, s2);
+			liveon(w, b, s);
+			merge(v, b, w, s);
+			for (n=1; (s=succ(b, n)); n++) {
+				liveon(u, b, s);
+				merge(v, b, u, s);
 				bsinter(w, u);
 			}
 			limit2(v, 0, 0, w);

@@ -13,6 +13,80 @@ newblk()
 	return b;
 }
 
+static Blk **
+edgeslot(Blk **s1, Blk **s2, JTab *tab, uint n)
+{
+	if (tab)
+		return n < tab->nsucc ? &tab->succ[n] : 0;
+	if (n == 0 && *s1)
+		return s1;
+	if (n == 1 && *s2)
+		return s2;
+	return 0;
+}
+
+Blk **
+succedge(Blk *b, uint n)
+{
+	return edgeslot(&b->s1, &b->s2, b->jmp.tab, n);
+}
+
+Blk *
+succ(Blk *b, uint n)
+{
+	Blk **p;
+
+	p = succedge(b, n);
+	return p ? *p : 0;
+}
+
+static int
+hassucc(Blk *b, Blk *target)
+{
+	Blk *s;
+	uint n;
+
+	for (n=0; (s=succ(b, n)); n++)
+		if (s == target)
+			return 1;
+	return 0;
+}
+
+/* Keep the dispatch in the caller on a call-free block. The inliner
+ * splits ordinary call blocks and leaves switch callees out of line. */
+void
+splitcallswitches(Fn *fn)
+{
+	Blk *b, *d, *s;
+	Ins *i;
+	Phi *p;
+	uint n, j;
+
+	for (b=fn->start; b; b=b->link) {
+		if (!b->jmp.tab)
+			continue;
+		for (i=b->ins; i<&b->ins[b->nins] && i->op != Ocall; i++)
+			;
+		if (i == &b->ins[b->nins])
+			continue;
+		d = newblk();
+		d->name = strf(PFn, "%s.switch", b->name);
+		d->jmp = b->jmp;
+		for (n=0; (s=succ(d, n)); n++)
+			for (p=s->phi; p; p=p->link)
+				for (j=0; j<p->narg; j++)
+					if (p->blk[j] == b)
+						p->blk[j] = d;
+		d->link = b->link;
+		b->link = d;
+		b->jmp.type = Jjmp;
+		b->jmp.arg = R;
+		b->jmp.tab = 0;
+		b->s1 = d;
+		b = d;
+	}
+}
+
 static void
 fixphis(Fn *f)
 {
@@ -26,7 +100,7 @@ fixphis(Fn *f)
 			for (n=n0=0; n<p->narg; n++) {
 				bp = p->blk[n];
 				if (bp->id != -1u)
-				if (bp->s1 == b || bp->s2 == b) {
+				if (hassucc(bp, b)) {
 					p->blk[n0] = bp;
 					p->arg[n0] = p->arg[n];
 					n0++;
@@ -48,22 +122,22 @@ addpred(Blk *bp, Blk *b)
 void
 fillpreds(Fn *f)
 {
-	Blk *b;
+	Blk *b, *s;
+	uint n;
 
 	for (b=f->start; b; b=b->link)
 		b->npred = 0;
-	for (b=f->start; b; b=b->link) {
-		if (b->s1)
-			addpred(b, b->s1);
-		if (b->s2 && b->s2 != b->s1)
-			addpred(b, b->s2);
-	}
+	for (b=f->start; b; b=b->link)
+		for (n=0; (s=succ(b, n)); n++)
+			if (!s->npred || s->pred[s->npred-1] != b)
+				addpred(b, s);
 }
 
 static void
 porec(Blk *b, uint *npo)
 {
 	Blk *s1, *s2;
+	uint n;
 
 	if (!b || b->id != -1u)
 		return;
@@ -74,8 +148,13 @@ porec(Blk *b, uint *npo)
 		s1 = b->s2;
 		s2 = b->s1;
 	}
-	porec(s1, npo);
-	porec(s2, npo);
+	if (b->jmp.tab)
+		for (n=0; n<b->jmp.tab->nsucc; n++)
+			porec(b->jmp.tab->succ[n], npo);
+	else {
+		porec(s1, npo);
+		porec(s2, npo);
+	}
 	b->id = (*npo)++;
 }
 
@@ -104,6 +183,17 @@ fillrpo(Fn *f)
 void
 fillcfg(Fn *f)
 {
+	Blk *b;
+	JTab *t;
+	int64_t i;
+
+	for (b=f->start; b; b=b->link)
+		if ((t=b->jmp.tab) && isconbits(f, b->jmp.arg, &i)) {
+			b->s1 = t->succ[(uint64_t)i < t->nentry ? t->entry[i] : 0];
+			b->jmp.type = Jjmp;
+			b->jmp.arg = R;
+			b->jmp.tab = 0;
+		}
 	fillrpo(f);
 	fillpreds(f);
 	fixphis(f);
@@ -206,18 +296,15 @@ addfron(Blk *a, Blk *b)
 void
 fillfron(Fn *fn)
 {
-	Blk *a, *b;
+	Blk *a, *b, *s;
+	uint n;
 
 	for (b=fn->start; b; b=b->link)
 		b->nfron = 0;
-	for (b=fn->start; b; b=b->link) {
-		if (b->s1)
-			for (a=b; !sdom(a, b->s1); a=a->idom)
-				addfron(a, b->s1);
-		if (b->s2)
-			for (a=b; !sdom(a, b->s2); a=a->idom)
-				addfron(a, b->s2);
-	}
+	for (b=fn->start; b; b=b->link)
+		for (n=0; (s=succ(b, n)); n++)
+			for (a=b; !sdom(a, s); a=a->idom)
+				addfron(a, s);
 }
 
 static void
@@ -328,7 +415,8 @@ simpljmp(Fn *fn)
 {
 
 	Blk **uf; /* union-find */
-	Blk **p, *b, *ret;
+	Blk **p, **edge, *b, *ret;
+	uint n;
 
 	ret = newblk();
 	ret->id = fn->nblk++;
@@ -348,10 +436,20 @@ simpljmp(Fn *fn)
 		}
 	}
 	for (p=&fn->start; (b=*p); p=&b->link) {
-		if (b->s1)
-			uffind(&b->s1, uf);
-		if (b->s2)
-			uffind(&b->s2, uf);
+		for (n=0; (edge=succedge(b, n)); n++)
+			uffind(edge, uf);
+		if (b->jmp.tab) {
+			JTab *tab = b->jmp.tab;
+
+			for (n=1; n<tab->nsucc && tab->succ[n] == tab->succ[0]; n++)
+				;
+			if (n == tab->nsucc) {
+				b->jmp.type = Jjmp;
+				b->jmp.arg = R;
+				b->jmp.tab = 0;
+				b->s1 = tab->succ[0];
+			}
+		}
 		if (b->s1 && b->s1 == b->s2) {
 			b->jmp.type = Jjmp;
 			b->s2 = 0;
@@ -364,16 +462,18 @@ simpljmp(Fn *fn)
 static int
 reachrec(Blk *b, Blk *to)
 {
+	Blk *s;
+	uint n;
+
 	if (b == to)
 		return 1;
 	if (!b || b->visit)
 		return 0;
 
 	b->visit = 1;
-	if (reachrec(b->s1, to))
-		return 1;
-	if (reachrec(b->s2, to))
-		return 1;
+	for (n=0; (s=succ(b, n)); n++)
+		if (reachrec(s, to))
+			return 1;
 
 	return 0;
 }
@@ -451,12 +551,13 @@ struct Jmp {
 	int type;
 	Ref arg;
 	Blk *s1, *s2;
+	JTab *tab;
 };
 
 static int
 jmpeq(Jmp *a, Jmp *b)
 {
-	return a->type == b->type && req(a->arg, b->arg)
+	return !a->tab && !b->tab && a->type == b->type && req(a->arg, b->arg)
 		&& a->s1 == b->s1 && a->s2 == b->s2;
 }
 
@@ -479,7 +580,7 @@ simplcfg(Fn *fn)
 	Jmp *jmp, *j, *jj;
 	Phi *p;
 	int *empty, done;
-	uint n;
+	uint n, k;
 
 	if (debug['C']) {
 		fprintf(stderr, "\n> Before CFG simplification:\n");
@@ -506,6 +607,7 @@ simplcfg(Fn *fn)
 		jmp[b->id].arg = b->jmp.arg;
 		jmp[b->id].s1 = b->s1;
 		jmp[b->id].s2 = b->s2;
+		jmp[b->id].tab = b->jmp.tab;
 		empty[b->id] = !b->phi;
 		for (i=b->ins; i<&b->ins[b->nins]; i++)
 			if (i->op != Onop && i->op != Odbgloc) {
@@ -525,9 +627,8 @@ simplcfg(Fn *fn)
 				addbins(&b->ins, &b->nins, j->s1);
 				empty[b->id] &= empty[j->s1->id];
 				jj = &jmp[j->s1->id];
-				pb = (Blk*[]){jj->s1, jj->s2, 0};
-				for (; (bb=*pb); pb++)
-					for (p=bb->phi; p; p=p->link) {
+				for (k=0; (pb=edgeslot(&jj->s1, &jj->s2, jj->tab, k)); k++)
+					for (p=(*pb)->phi; p; p=p->link) {
 						n = phiargn(p, j->s1);
 						p->blk[n] = b;
 					}
@@ -552,8 +653,9 @@ simplcfg(Fn *fn)
 			b->jmp.arg = j->arg;
 			b->s1 = j->s1;
 			b->s2 = j->s2;
-			assert(!j->s1 || j->s1->id != -1u);
-			assert(!j->s2 || j->s2->id != -1u);
+			b->jmp.tab = j->tab;
+			for (k=0; (bb=succ(b, k)); k++)
+				assert(bb->id != -1u);
 		}
 
 	fillcfg(fn);

@@ -96,6 +96,7 @@ check-ie64: qbe ie64-argregs-test
 	sh tools/test-ie64-extend-load.sh ./qbe
 	sh tools/test-ie64-signed-load.sh ./qbe
 	sh tools/test-ie64-fpext.sh ./qbe
+	sh tools/test-ie64-switch.sh ./qbe
 
 check-ie64-libc:
 	sh tools/test-ie64-libc.sh

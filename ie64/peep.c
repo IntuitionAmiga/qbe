@@ -78,14 +78,9 @@ ie64_dupjumps(Fn *fn)
 		for (b=fn->start; b; b=b->link)
 			b->visit = 0;
 		fn->start->visit = 1;
-		for (b=fn->start; b; b=b->link) {
-			if (b->s1)
-				b->s1->visit = 1;
-			if (b->s2)
-				b->s2->visit = 1;
-			/* A block that falls through reaches its successor
-			 * through the edges above. */
-		}
+		for (b=fn->start; b; b=b->link)
+			for (n=0; (s=succ(b, n)); n++)
+				s->visit = 1;
 		for (pb=&fn->start->link; *pb;)
 			if (!(*pb)->visit) {
 				*pb = (*pb)->link;
@@ -106,12 +101,9 @@ ie64_mergeblocks(Fn *fn)
 
 	np = alloc(fn->nblk * sizeof np[0]);
 	np[fn->start->id]++;
-	for (b=fn->start; b; b=b->link) {
-		if (b->s1)
-			np[b->s1->id]++;
-		if (b->s2)
-			np[b->s2->id]++;
-	}
+	for (b=fn->start; b; b=b->link)
+		for (n=0; (s=succ(b, n)); n++)
+			np[s->id]++;
 	for (b=fn->start; b; b=b->link)
 		while ((s = b->link) && b->jmp.type == Jjmp && b->s1 == s
 		&& s != b && np[s->id] == 1) {

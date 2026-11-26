@@ -62,8 +62,9 @@ bset(Ref r, Blk *b, int *nlv, Tmp *tmp)
 void
 filllive(Fn *f)
 {
-	Blk *b;
+	Blk *b, *s;
 	Ins *i;
+	uint a;
 	int d, k, t, m[2], n, chg, nlv[2];
 	BSet u[1], v[1];
 	Mem *ma;
@@ -81,12 +82,8 @@ Again:
 		b = f->rpo[n];
 
 		bscopy(u, b->out);
-		if (b->s1) {
-			liveon(v, b, b->s1);
-			bsunion(b->out, v);
-		}
-		if (b->s2) {
-			liveon(v, b, b->s2);
+		for (a=0; (s=succ(b, a)); a++) {
+			liveon(v, b, s);
 			bsunion(b->out, v);
 		}
 		chg |= !bsequal(b->out, u);

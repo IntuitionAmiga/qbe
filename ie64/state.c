@@ -303,7 +303,8 @@ plan(Thread *t, Phi *p)
 		v = &t->version[n];
 		b = v->src;
 		cost += b->nins;
-		if (cost > 2048)
+		/* The versioner clones unary and binary loop terminators. */
+		if (cost > 2048 || b->jmp.tab)
 			return 0;
 		for (i=b->ins; i<&b->ins[b->nins]; i++)
 			if (isalloc(i->op))
@@ -371,6 +372,7 @@ materialise(Thread *t)
 	Blk *b, *s, **edge, *src;
 	Version *v;
 	int n, k;
+	uint a;
 
 	fn = t->fn;
 	/* Save the original CFG for exact phi-edge lookup. */
@@ -386,8 +388,7 @@ materialise(Thread *t)
 		b = fn->rpo[n];
 		if (t->region[n])
 			continue;
-		for (k=0; k<2; k++) {
-			edge = k ? &b->s2 : &b->s1;
+		for (a=0; (edge=succedge(b, a)); a++) {
 			s = *edge;
 			if (s == t->head)
 				*edge = t->entry[n]->out;

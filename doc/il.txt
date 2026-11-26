@@ -574,14 +574,14 @@ to the loop block.
     JUMP :=
         'jmp' @IDENT               # Unconditional
       | 'jnz' VAL, @IDENT, @IDENT  # Conditional
+      | 'switch' VAL, @IDENT, @IDENT [, @IDENT]*  # IE64 table jump
       | 'ret' [VAL]                # Return
       | 'hlt'                      # Termination
 
 A jump instruction ends every block and transfers the
 control to another program location.  The target of
 a jump must never be the first block in a function.
-The three kinds of jumps available are described in
-the following list.
+The kinds of jumps available are described in the following list.
 
  1. Unconditional jump.
 
@@ -595,7 +595,16 @@ the following list.
     subtyping a long argument can be passed, but only its
     least significant 32 bits will be compared to 0.
 
- 3. Function return.
+ 3. Table jump (IE64).
+
+    The argument is an unsigned long index into the table of
+    labels following the default label.  Index zero selects the
+    first table entry.  An index outside the table selects the
+    default.  The table must have at least one entry.  Labels
+    may repeat.  A target block has one edge from the switch
+    block for its phi inputs, regardless of how often it appears.
+
+ 4. Function return.
 
     Terminates the execution of the current function,
     optionally returning a value to the caller.  The value
@@ -603,7 +612,7 @@ the following list.
     prototype.  If the function prototype does not specify
     a return type, no return value can be used.
 
- 4. Program termination.
+ 5. Program termination.
 
     Terminates the execution of the program with a
     target-dependent error.  This instruction can be used
@@ -1218,3 +1227,4 @@ instructions unless you know exactly what you are doing.
       * `jmp`
       * `jnz`
       * `ret`
+      * `switch`

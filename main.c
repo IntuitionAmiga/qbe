@@ -247,6 +247,8 @@ flushfuncs(void)
 
 	if (!nfnq)
 		return;
+	for (n=0; n<nfnq; n++)
+		splitcallswitches(fnq[n]);
 	inlinefns(fnq, nfnq);
 	for (n=0; n<nfnq; n++)
 		funcdo(fnq[n]);

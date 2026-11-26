@@ -716,13 +716,13 @@ extern int optlevel;
 void
 ie64_isel(Fn *fn)
 {
-	Blk *b, **sb;
+	Blk *b, *sb;
 	Ins *i, *ii, *sel0;
 	Phi *p;
 	Ref t;
 	int64_t n;
 	Slotmemo memo;
-	uint pa;
+	uint pa, edge;
 	int a, ck, cc, pn, npend, pendsign;
 	Cmparg pend[2];
 	Con *c;
@@ -1005,13 +1005,18 @@ ie64_isel(Fn *fn)
 		 * emit reads again at the branch. */
 		sel0 = curi;
 		memo.n = 0;
-		for (sb=(Blk*[3]){b->s1, b->s2, 0}; *sb; sb++)
-			for (p=(*sb)->phi; p; p=p->link) {
+		for (edge=0; (sb=succ(b, edge)); edge++)
+			for (p=sb->phi; p; p=p->link) {
 				for (pa=0; p->blk[pa] != b; pa++)
 					assert(pa+1 < p->narg);
 				slotarg(&p->arg[pa], &memo, fn);
 			}
 		slotarg(&b->jmp.arg, &memo, fn);
+		if (b->jmp.tab && rtype(b->jmp.arg) == RCon) {
+			t = newtmp("switch", Kl, fn);
+			emit(Ocopy, Kl, t, b->jmp.arg, R);
+			b->jmp.arg = t;
+		}
 		for (ii=sel0; ii<&insb[NIns]; ii++) {
 			slotarg(&ii->arg[0], &memo, fn);
 			slotarg(&ii->arg[1], &memo, fn);

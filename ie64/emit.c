@@ -24,7 +24,14 @@ rawfloatbits(int cls, uint64_t bits)
 	return (bits & UINT64_C(0x7ff0000000000000)) != 0;
 }
 static unsigned floatid;
-static int emitframe, emitdynalloc;
+static int emitframe, emitdynalloc, emitlocals;
+
+static void
+auxlocal(const char *prefix, unsigned id, FILE *f)
+{
+	if (emitlocals)
+		fprintf(f, ".local .L%s%u\n", prefix, id);
+}
 
 static char *
 copystr(char *s)
@@ -512,6 +519,8 @@ emitlongtofloat(Ins *i, FILE *f)
 	int single = i->op != Oultof;
 	int sign = i->op == Oie64sltofprep;
 
+	auxlocal("utoh", id, f);
+	auxlocal("utoe", id, f);
 	if (single) {
 		fputs(sign ? "\tasr.q r30, " : "\tlsr.q r30, ", f);
 		emitreg(i->arg[0], f);
@@ -563,6 +572,10 @@ emitcmp3(Ins *i, Fn *fn, int ret, FILE *f)
 	unsigned id = num++;
 	int u = i->op == Oie64cmp3ul;
 
+	auxlocal("cmp3g", id, f);
+	auxlocal("cmp3l", id, f);
+	if (!ret)
+		auxlocal("cmp3e", id, f);
 	fputs(u ? "\tbhi " : "\tblt ", f);
 	emitcmpreg(i->arg[u], fn, f);
 	fputs(", ", f);
@@ -1170,9 +1183,11 @@ emitins(Ins *i, Fn *fn, FILE *f)
 			default: die("IE64 comparison value is not implemented");
 			}
 			id = cmpid++;
+			auxlocal("cmp", id, f);
 			/* The branch reads the operands before the result is written,
 			 * so the result may share a register with an operand. */
 			if (req(i->to, i->arg[0]) || req(i->to, i->arg[1])) {
+				auxlocal("cmpe", id, f);
 				fputc('\t', f);
 				fputs(br, f);
 				fputc(' ', f);
@@ -1207,6 +1222,8 @@ emitins(Ins *i, Fn *fn, FILE *f)
 			if (!isreg(i->arg[0]) || !isreg(i->arg[1]))
 				die("IE64 floating comparison operands are not selected");
 			id = cmpid++;
+			auxlocal("cmp", id, f);
+			auxlocal("cmptrue", id, f);
 			fprintf(f, "\t%s ", k == Kd ? "dcmp" : "fcmp");
 			fputs("r29", f);
 			fputs(", ", f);
@@ -1381,6 +1398,19 @@ insuse(Ins *i)
 	return u;
 }
 
+static bits
+successorlive(Blk *b, bits *livein)
+{
+	Blk *s;
+	bits out;
+	uint n;
+
+	out = 0;
+	for (n=0; (s=succ(b, n)); n++)
+		out |= livein[s->id];
+	return out;
+}
+
 /* Registers live on entry to each block of the final, allocated CFG.  Folding
  * a comparison into its branch is only sound while nothing reads the
  * comparison's result register afterwards, and the temporary-level liveness
@@ -1397,11 +1427,7 @@ fillreglive(Fn *fn)
 	do {
 		chg = 0;
 		for (b=fn->start; b; b=b->link) {
-			live = 0;
-			if (b->s1)
-				live |= in[b->s1->id];
-			if (b->s2)
-				live |= in[b->s2->id];
+			live = successorlive(b, in);
 			if (rtype(b->jmp.arg) == RCall)
 				live |= T.retregs(b->jmp.arg, 0);
 			else if (isreg(b->jmp.arg))
@@ -1560,11 +1586,7 @@ foldaddrs(Fn *fn, Blk *b, bits *livein, int64_t *off)
 		}
 		if (!dead) {
 			/* Falling off the end of the block: t must not be live out. */
-			out = 0;
-			if (b->s1)
-				out |= livein[b->s1->id];
-			if (b->s2)
-				out |= livein[b->s2->id];
+			out = successorlive(b, livein);
 			if (rtype(b->jmp.arg) == RCall)
 				out |= T.retregs(b->jmp.arg, 0);
 			else if (isreg(b->jmp.arg))
@@ -1593,11 +1615,7 @@ liveout(Blk *b, bits *livein)
 {
 	bits out;
 
-	out = 0;
-	if (b->s1)
-		out |= livein[b->s1->id];
-	if (b->s2)
-		out |= livein[b->s2->id];
+	out = successorlive(b, livein);
 	if (rtype(b->jmp.arg) == RCall)
 		out |= T.retregs(b->jmp.arg, 0);
 	else if (isreg(b->jmp.arg))
@@ -1809,17 +1827,29 @@ callclobbers(int r)
 /* Hoist the constants a loop loads into registers that the loop leaves
  * alone, out of the loop.  A loop without calls leaves most of the
  * caller-save registers free. */
+static int
+succloophead(Blk *b, Blk *h)
+{
+	Blk *s;
+	uint n;
+
+	for (n=0; (s=succ(b, n)); n++)
+		if (s == h)
+			return 1;
+	return 0;
+}
+
 static void
 hoistloop(Fn *fn, Blk *h, Blk *l, bits *livein)
 {
 	enum { MaxCand = 64 };
-	Blk *b, *p, *pre, *other, *x;
+	Blk *b, *p, *pre, *other, *x, *s;
 	Ins *i, *j, *ni;
 	Cand *cs;
 	int64_t gv[32];
 	int gcnt[32], greg[32], ng, nc, k, q, r, n, ok, *rs;
 	bits mention, free_, lout;
-	uint npre, t;
+	uint npre, t, a;
 	int hascall = 0;
 
 	pre = 0;
@@ -1827,16 +1857,13 @@ hoistloop(Fn *fn, Blk *h, Blk *l, bits *livein)
 	mention = 0;
 	for (b=fn->start; b; b=b->link) {
 		if (b->id < h->id || b->id > l->id) {
-			if (b->s1 == h || b->s2 == h) {
+			for (a=0; (s=succ(b, a)); a++)
+				if (s != h && s->id >= h->id && s->id <= l->id)
+					return;
+			if (succloophead(b, h)) {
 				pre = b;
 				npre++;
 			}
-			if (b->s1 && b->s1 != h && b->s1->id >= h->id
-			&& b->s1->id <= l->id)
-				return;
-			if (b->s2 && b->s2 != h && b->s2->id >= h->id
-			&& b->s2->id <= l->id)
-				return;
 			continue;
 		}
 		for (i=b->ins; i<&b->ins[b->nins]; i++) {
@@ -1884,11 +1911,7 @@ hoistloop(Fn *fn, Blk *h, Blk *l, bits *livein)
 	cs = alloc(MaxCand * sizeof cs[0]);
 	nc = 0;
 	for (x=h; x && x->id <= l->id; x=x->link) {
-		lout = 0;
-		if (x->s1)
-			lout |= livein[x->s1->id];
-		if (x->s2)
-			lout |= livein[x->s2->id];
+		lout = successorlive(x, livein);
 		if (isreg(x->jmp.arg))
 			lout |= BIT(x->jmp.arg.val);
 		for (q=0; q<(int)x->nins; q++) {
@@ -2021,12 +2044,12 @@ hoistloop(Fn *fn, Blk *h, Blk *l, bits *livein)
 static void
 hoistsame(Fn *fn, Blk *h, Blk *l, bits *livein)
 {
-	Blk *b, *pre, *other, *x;
+	Blk *b, *pre, *other, *x, *s;
 	Ins *i, *ni;
 	bits mention, ok, bad, seen;
 	int64_t val[R28+1], v;
 	int hascall, r, nl;
-	uint npre, n;
+	uint npre, n, a;
 
 	pre = 0;
 	npre = 0;
@@ -2034,16 +2057,13 @@ hoistsame(Fn *fn, Blk *h, Blk *l, bits *livein)
 	hascall = 0;
 	for (b=fn->start; b; b=b->link) {
 		if (b->id < h->id || b->id > l->id) {
-			if (b->s1 == h || b->s2 == h) {
+			for (a=0; (s=succ(b, a)); a++)
+				if (s != h && s->id >= h->id && s->id <= l->id)
+					return;
+			if (succloophead(b, h)) {
 				pre = b;
 				npre++;
 			}
-			if (b->s1 && b->s1 != h && b->s1->id >= h->id
-			&& b->s1->id <= l->id)
-				return;
-			if (b->s2 && b->s2 != h && b->s2->id >= h->id
-			&& b->s2->id <= l->id)
-				return;
 			continue;
 		}
 		for (i=b->ins; i<&b->ins[b->nins]; i++) {
@@ -2136,9 +2156,8 @@ hoistconsts(Fn *fn)
 
 	n = 0;
 	for (b=fn->start; b; b=b->link)
-		for (k=0; k<2; k++) {
-			s = k ? b->s2 : b->s1;
-			if (!s || s->id > b->id)
+		for (k=0; (s=succ(b, k)); k++) {
+			if (s->id > b->id)
 				continue;
 			for (i=0; i<n; i++)
 				if (hd[i] == s)
@@ -2165,11 +2184,9 @@ hoistconsts(Fn *fn)
 			for (b=fn->start; b; b=b->link) {
 				if (b->id <= lt[i]->id)
 					continue;
-				s = b->s1 && b->s1->id > hd[i]->id
-				&& b->s1->id <= lt[i]->id ? b->s1 : 0;
-				if (!s)
-					s = b->s2 && b->s2->id > hd[i]->id
-					&& b->s2->id <= lt[i]->id ? b->s2 : 0;
+				for (k=0; (s=succ(b, k)); k++)
+					if (s->id > hd[i]->id && s->id <= lt[i]->id)
+						break;
 				if (s)
 					break;
 			}
@@ -2244,6 +2261,64 @@ cmp3ret(Blk *b)
 		break;
 	}
 	return 0;
+}
+
+static char *
+tablelabel(int id)
+{
+	return strf(PFn, ".L__ie64_jtab_%d", id);
+}
+
+static void
+emitswitch(Blk *b, int id0, Fn *fn, FILE *f)
+{
+	JTab *t = b->jmp.tab;
+	Ref idx = b->jmp.arg;
+
+	if (rtype(idx) == RSlot) {
+		fprintf(f, "\tload.q r29, %d(r%d)\n", slotoffset(idx), slotbase(idx));
+		idx = TMP(R29);
+	}
+	emitbranch(Ciuge, 0, idx, getcon(t->nentry, fn), t->succ[0], id0, fn, f);
+	fputs("\tlsl.q r29, ", f);
+	emitreg(idx, f);
+	fputs(", #3\n\t", f);
+	emitaddr(TMP(R30), tablelabel(id0+b->id), 0, f);
+	fputs("\tadd.q r30, r30, r29\n\tload.q r30, (r30)\n\tjmp (r30)\n", f);
+}
+
+/* Explicitly local dotted names can be referenced across sections. */
+static void
+emittables(Fn *fn, int id0, FILE *f)
+{
+	Blk *b;
+	JTab *t;
+	uint n;
+	char *label;
+
+	if (!emitlocals)
+		return;
+	/* ie64asm gives declared locals internal names that also start new
+	 * label scopes. Declare every emitted block label in this function. */
+	for (b=fn->start; b; b=b->link)
+		if (b != fn->start || b->npred > 1) {
+			fputs(".local ", f);
+			emitlbl(id0+b->id, f);
+			fputc('\n', f);
+		}
+	fputs(".section .rodata,\"a\"\n\t.align 8\n", f);
+	for (b=fn->start; b; b=b->link) {
+		if (!(t=b->jmp.tab))
+			continue;
+		label = tablelabel(id0+b->id);
+		fprintf(f, ".local %s\n.type %s,@object\n%s:\n", label, label, label);
+		for (n=0; n<t->nentry; n++) {
+			fputs("\tdc.q ", f);
+			emitlbl(id0+t->succ[t->entry[n]]->id, f);
+			fputc('\n', f);
+		}
+		fprintf(f, ".size %s,%" PRIu64 "\n", label, (uint64_t)t->nentry * 8);
+	}
 }
 
 void
@@ -2337,15 +2412,16 @@ ie64_emitfn(Fn *fn, FILE *f)
 					break;
 				}
 		if (cmp) {
-			out = livein[b->s1->id];
-			if (b->s2)
-				out |= livein[b->s2->id];
+			out = successorlive(b, livein);
 			if (out & BIT(cmp->to.val))
 				cmp = 0;
 		}
 		fused[b->id] = cmp;
 	}
 	ie64_layout(fn, id0);
+	for (b=fn->start; b && !b->jmp.tab; b=b->link)
+		;
+	emitlocals = b != 0;
 	for (first=1, b=fn->start; b; b=b->link) {
 		foff = foffs[b->id];
 		cmp = fused[b->id];
@@ -2477,6 +2553,9 @@ ie64_emitfn(Fn *fn, FILE *f)
 				fputs("\tbra ", f), emitlbl(id0+b->s2->id, f), fputc('\n', f);
 			}
 			break;
+		case Jswitch:
+			emitswitch(b, id0, fn, f);
+			break;
 		case Jhlt:
 			fputs("\thalt\n", f);
 			break;
@@ -2484,8 +2563,9 @@ ie64_emitfn(Fn *fn, FILE *f)
 			die("IE64 jump selection missing in '%s'", fn->name);
 		}
 	}
-	id0 += fn->nblk;
 	fprintf(f, ".size %s,.-%s\n", fn->name, fn->name);
+	emittables(fn, id0, f);
+	id0 += fn->nblk;
 }
 
 static uint64_t

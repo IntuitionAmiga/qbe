@@ -1,0 +1,40 @@
+export function l $pick(l %which, l %v) {
+@start
+	jnz %v, @dispatch, @else
+@dispatch
+	switch %which, @join, @add, @join, @mul, @add
+@add
+	%a =l add %v, 1
+	jmp @join
+@mul
+	%b =l mul %v, 3
+	jmp @join
+@else
+	%e =l sub %which, 1
+@join
+	%r =l phi @dispatch %v, @add %a, @mul %b, @else %e
+	ret %r
+}
+
+function l $offset(l %v) {
+@start
+	%r =l add %v, 1
+	ret %r
+}
+
+export function l $call_switch(l %x) {
+@start
+	%i =l call $offset(l %x)
+	switch %i, @other, @yes, @no
+@other
+	%a =d ultof %x
+	%flag =w cultl %x, 30
+	%flag64 =l extuw %flag
+	%v =l dtoui %a
+	%r =l add %v, %flag64
+	ret %r
+@yes
+	ret 101
+@no
+	ret 102
+}

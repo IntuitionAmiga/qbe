@@ -19,6 +19,7 @@ typedef struct Op Op;
 typedef struct Ins Ins;
 typedef struct Phi Phi;
 typedef struct Blk Blk;
+typedef struct JTab JTab;
 typedef struct Use Use;
 typedef struct Sym Sym;
 typedef struct Num Num;
@@ -172,7 +173,7 @@ enum J {
 	X(jfisle) X(jfislt) X(jfiuge) X(jfiugt) \
 	X(jfiule) X(jfiult) X(jffeq)  X(jffge)  \
 	X(jffgt)  X(jffle)  X(jfflt)  X(jffne)  \
-	X(jffo)   X(jffuo)  X(hlt)
+	X(jffo)   X(jffuo)  X(hlt)   X(switch)
 #define X(j) J##j,
 	JMPS(X)
 #undef X
@@ -273,6 +274,14 @@ struct Phi {
 	Phi *link;
 };
 
+/* Target zero is the default. Each table slot indexes a CFG edge so
+ * repeated labels share their predecessor and any edge copies. */
+struct JTab {
+	uint nentry, nsucc;
+	uint *entry;
+	Blk **succ;
+};
+
 struct Blk {
 	Phi *phi;
 	Ins *ins;
@@ -280,6 +289,7 @@ struct Blk {
 	struct {
 		short type;
 		Ref arg;
+		JTab *tab;
 	} jmp;
 	Blk *s1;
 	Blk *s2;
@@ -616,6 +626,9 @@ void elimsb(Fn *);
 
 /* cfg.c */
 Blk *newblk(void);
+Blk **succedge(Blk *, uint);
+Blk *succ(Blk *, uint);
+void splitcallswitches(Fn *);
 void inlinefns(Fn **, int);
 void fillpreds(Fn *);
 void fillcfg(Fn *);
