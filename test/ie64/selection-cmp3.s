@@ -10,13 +10,12 @@ signed_word:
 	blt r1, r2, .Lcmp3l0
 	bne r1, r2, .Lcmp3g0
 	moveq r1, #0
-	bra .Lcmp3e0
+	rts
 .Lcmp3g0:
 	moveq r1, #1
-	bra .Lcmp3e0
+	rts
 .Lcmp3l0:
 	moveq r1, #-1
-.Lcmp3e0:
 	rts
 .size signed_word,.-signed_word
 .section .text,"ax"
@@ -27,13 +26,12 @@ unsigned_long:
 	bhi r2, r1, .Lcmp3l1
 	bne r1, r2, .Lcmp3g1
 	moveq r1, #0
-	bra .Lcmp3e1
+	rts
 .Lcmp3g1:
 	moveq r1, #1
-	bra .Lcmp3e1
+	rts
 .Lcmp3l1:
 	moveq r1, #-1
-.Lcmp3e1:
 	rts
 .size unsigned_long,.-unsigned_long
 .section .text,"ax"
@@ -63,3 +61,31 @@ different_pairs:
 	sext.l r1, r1
 	rts
 .size different_pairs,.-different_pairs
+.section .text,"ax"
+.global framed_return
+.type framed_return,@function
+.align 16
+framed_return:
+	sub.q r31, r31, #24
+	store.q r18, 8(r31)
+	store.q r19, 16(r31)
+	lea r3, 0(r31)
+	move.q r18, r1
+	move.q r1, r3
+	move.q r19, r2
+	jsr opaque
+	blt r18, r19, .Lcmp3l2
+	bne r18, r19, .Lcmp3g2
+	moveq r1, #0
+	bra .Lcmp3e2
+.Lcmp3g2:
+	moveq r1, #1
+	bra .Lcmp3e2
+.Lcmp3l2:
+	moveq r1, #-1
+.Lcmp3e2:
+	load.q r18, 8(r31)
+	load.q r19, 16(r31)
+	add.q r31, r31, #24
+	rts
+.size framed_return,.-framed_return

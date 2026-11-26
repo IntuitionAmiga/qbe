@@ -557,7 +557,7 @@ emitlongtofloat(Ins *i, FILE *f)
 /* Produce -1, 0 or +1 directly while the operands are still intact.
  * The allocator may give the result an operand register. */
 static void
-emitcmp3(Ins *i, Fn *fn, FILE *f)
+emitcmp3(Ins *i, Fn *fn, int ret, FILE *f)
 {
 	static unsigned num;
 	unsigned id = num++;
@@ -573,11 +573,25 @@ emitcmp3(Ins *i, Fn *fn, FILE *f)
 	emitcmpreg(i->arg[1], fn, f);
 	fprintf(f, ", .Lcmp3g%u\n\tmoveq ", id);
 	emitreg(i->to, f);
-	fprintf(f, ", #0\n\tbra .Lcmp3e%u\n.Lcmp3g%u:\n\tmoveq ", id, id);
+	fputs(", #0\n", f);
+	if (ret)
+		fputs("\trts\n", f);
+	else
+		fprintf(f, "\tbra .Lcmp3e%u\n", id);
+	fprintf(f, ".Lcmp3g%u:\n\tmoveq ", id);
 	emitreg(i->to, f);
-	fprintf(f, ", #1\n\tbra .Lcmp3e%u\n.Lcmp3l%u:\n\tmoveq ", id, id);
+	fputs(", #1\n", f);
+	if (ret)
+		fputs("\trts\n", f);
+	else
+		fprintf(f, "\tbra .Lcmp3e%u\n", id);
+	fprintf(f, ".Lcmp3l%u:\n\tmoveq ", id);
 	emitreg(i->to, f);
-	fprintf(f, ", #-1\n.Lcmp3e%u:\n", id);
+	fputs(", #-1\n", f);
+	if (ret)
+		fputs("\trts\n", f);
+	else
+		fprintf(f, ".Lcmp3e%u:\n", id);
 }
 
 static void
@@ -595,7 +609,7 @@ emitins(Ins *i, Fn *fn, FILE *f)
 	if (i->op == Onop)
 		return;
 	if (i->op == Oie64cmp3sl || i->op == Oie64cmp3ul) {
-		emitcmp3(i, fn, f);
+		emitcmp3(i, fn, 0, f);
 		return;
 	}
 	if (isie64op(i->op)) {
@@ -2189,13 +2203,31 @@ tailcall(Fn *fn)
 	return c->type == CAddr && !c->bits.i ? call : 0;
 }
 
+static Ins *
+cmp3ret(Blk *b)
+{
+	Ins *i;
+
+	if (b->jmp.type != Jretl || !req(b->jmp.arg, TMP(R1)))
+		return 0;
+	for (i=&b->ins[b->nins]; i!=b->ins;) {
+		--i;
+		if (i->op == Onop)
+			continue;
+		if ((i->op == Oie64cmp3sl || i->op == Oie64cmp3ul) && req(i->to, b->jmp.arg))
+			return i;
+		break;
+	}
+	return 0;
+}
+
 void
 ie64_emitfn(Fn *fn, FILE *f)
 {
 	static int id0;
 	Blk *b;
 	Con *c;
-	Ins *i, *cmp, *tail;
+	Ins *i, *cmp, *tail, *splitret;
 	bits *livein, out;
 	int64_t *foff, **foffs;
 	Ins **fused;
@@ -2292,12 +2324,18 @@ ie64_emitfn(Fn *fn, FILE *f)
 			fputs(":\n", f);
 		}
 		first = 0;
+		splitret = !frame && !fn->dynalloc ? cmp3ret(b) : 0;
 		for (i=b->ins; i<&b->ins[b->nins]; i++)
 			if (i != cmp && i != tail) {
 				emitoff = foff[i - b->ins];
-				emitins(i, fn, f);
+				if (i == splitret)
+					emitcmp3(i, fn, 1, f);
+				else
+					emitins(i, fn, f);
 				emitoff = 0;
 			}
+		if (splitret)
+			continue;
 		if (tail) {
 			c = &fn->con[tail->arg[0].val];
 			fprintf(f, "\tbra %s\n", str(c->sym.id));

@@ -24,3 +24,14 @@ export function w $different_pairs(w %a, w %b, w %c) {
 	%r =w sub %gt, %lt
 	ret %r
 }
+
+export function l $framed_return(l %a, l %b) {
+@start
+	%slot =l alloc8 8
+	call $opaque(l %slot)
+	%gt =w csgtl %a, %b
+	%lt =w csltl %a, %b
+	%d =w sub %gt, %lt
+	%r =l extsw %d
+	ret %r
+}
