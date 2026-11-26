@@ -42,6 +42,8 @@ static int dbg;
 int optlevel = 2;
 extern void ie64_bitopt(Fn *);
 extern void ie64_narrow(Fn *);
+extern int ie64_lower_fpext(Fn *);
+static int ie64_fpext, ie64_fma;
 extern void ie64_searchloops(Fn *);
 extern int ie64_threadstate(Fn *);
 
@@ -66,13 +68,18 @@ checktargetops(Fn *fn)
 	Blk *b;
 	Ins *i;
 
-	if (strcmp(T.name, "ie64") == 0)
-		return;
 	for (b=fn->start; b; b=b->link)
-		for (i=b->ins; i<&b->ins[b->nins]; i++)
-			if (isie64op(i->op))
+		for (i=b->ins; i<&b->ins[b->nins]; i++) {
+			if (isie64op(i->op) && strcmp(T.name, "ie64") != 0)
 				die("private IE64 operation '%s' used with target '%s'",
 					optab[i->op].name, T.name);
+			if (isie64fpext(i->op) && (isie64fused(i->op)
+			    ? !ie64_fma : !ie64_fpext)) {
+				fprintf(stderr, "qbe: operation '%s' needs %s\n", optab[i->op].name,
+					isie64fused(i->op) ? "-mfma" : "-mfpext");
+				exit(1);
+			}
+		}
 }
 
 static void
@@ -94,7 +101,7 @@ static void
 funcdo(Fn *fn)
 {
 	uint n;
-	int reduced;
+	int reduced, fpextras;
 
 	if (dbg)
 		fprintf(stderr, "**** Function %s ****", fn->name);
@@ -102,7 +109,6 @@ funcdo(Fn *fn)
 		fprintf(stderr, "\n> After parsing:\n");
 		printfn(fn, stderr);
 	}
-	checktargetops(fn);
 	T.abi0(fn);
 	fillcfg(fn);
 	filluse(fn);
@@ -168,6 +174,7 @@ funcdo(Fn *fn)
 			ssacheck(fn);
 		}
 	}
+	fpextras = strcmp(T.name, "ie64") == 0 ? ie64_lower_fpext(fn) : 0;
 	T.abi1(fn);
 	simpl(fn);
 	fillcfg(fn);
@@ -177,8 +184,14 @@ funcdo(Fn *fn)
 	filllive(fn);
 	fillloop(fn);
 	fillcost(fn);
+	if (fpextras)
+		T.nfpr -= 4;
 	spill(fn);
 	rega(fn);
+	if (fpextras) {
+		T.nfpr += 4;
+		fn->reg |= (bits)fpextras << (T.fpr0 + T.nfpr - 4);
+	}
 	lowervolatile(fn);
 	fillcfg(fn);
 	simpljmp(fn);
@@ -217,6 +230,7 @@ func(Fn *fn)
 		flushfuncs();
 		return;
 	}
+	checktargetops(fn);
 	if (!inlining) {
 		funcdo(fn);
 		freeall();
@@ -298,6 +312,10 @@ main(int ac, char *av[])
 				ie64_branch_imm = 1;
 			else if (strcmp(optarg, "signed-loads") == 0)
 				ie64_signed_loads = 1;
+			else if (strcmp(optarg, "fpext") == 0 || strcmp(optarg, "no-fpext") == 0)
+				ie64_fpext = optarg[0] == 'f';
+			else if (strcmp(optarg, "fma") == 0 || strcmp(optarg, "no-fma") == 0)
+				ie64_fma = optarg[0] == 'f';
 			else {
 				fprintf(stderr, "invalid option '-m%s'\n", optarg);
 				exit(1);
@@ -365,6 +383,10 @@ main(int ac, char *av[])
 	}
 	if (ie64_signed_loads && strcmp(T.name, "ie64") != 0) {
 		fprintf(stderr, "-msigned-loads needs the ie64 target\n");
+		exit(1);
+	}
+	if ((ie64_fpext || ie64_fma) && strcmp(T.name, "ie64") != 0) {
+		fprintf(stderr, "-mfpext and -mfma need the ie64 target\n");
 		exit(1);
 	}
 	if (profpath) {

@@ -39,7 +39,30 @@ char *tok[] = {
 	"ie64for", "ie64fxor", "ie64casd", "ie64cas",
 	"ie64fipr", "ie64ftrv", "ie64vaarg",
 
-	"call", "phi", "jmp", "jnz", "ret", "hlt", "export",
+	"ie64frsqrt",
+	"ie64fmin",
+	"ie64fmax",
+	"ie64fsincos",
+	"ie64fround",
+	"ie64ftrunc",
+	"ie64ffloor",
+	"ie64fceil",
+	"ie64fma",
+	"ie64drsqrt",
+	"ie64dmin",
+	"ie64dmax",
+	"ie64dsincos",
+	"ie64dround",
+	"ie64dtrunc",
+	"ie64dfloor",
+	"ie64dceil",
+	"ie64dfma",
+	"ie64fmapair",
+	"ie64dfmapair",
+	"ie64fcosresult",
+	"ie64dcosresult",
+
+	"weak", "hidden", "call", "phi", "jmp", "jnz", "ret", "hlt", "export",
 	"function", "type", "data", "section", "align", "dbgfile",
 	"blit", "l", "w", "sh", "uh", "h", "sb", "ub", "b",
 	"d", "s", "z", "loadw", "loadl", "loads", "loadd",
@@ -85,7 +108,7 @@ main()
 	}
 
 	/* Leave ample space for target-private operation names. */
-	for (i=10; 1<<i < Ntok; ++i);
+	for (i=11; 1<<i < Ntok; ++i);
 	M = 32 - i;
 
 	for (;; --M) {

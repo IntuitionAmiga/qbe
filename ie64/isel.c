@@ -1,5 +1,91 @@
 #include "all.h"
 
+/* Keep tuple operations in SSA through GVN and GCM. Once both passes
+ * finish, expose the temporary operands to the allocator. The emitter
+ * reserves F12-F15 in these functions and preserves them in the frame. */
+int
+ie64_lower_fpext(Fn *fn)
+{
+	Blk *b;
+	Ins *i, *pair;
+	Ref *cos;
+	int used;
+
+	for (b=fn->start; b; b=b->link)
+		for (i=b->ins; i<&b->ins[b->nins]; i++)
+			if (i->op == Oie64fsincos || i->op == Oie64dsincos
+			|| i->op == Oie64fcosresult || i->op == Oie64dcosresult || isie64fused(i->op))
+				goto lower;
+	return 0;
+
+lower:
+	cos = alloc(fn->ntmp * sizeof(*cos));
+	used = 0;
+	filluse(fn);
+	for (b=fn->start; b; b=b->link)
+		for (i=b->ins; i<&b->ins[b->nins]; i++) {
+			if (i->op == Oie64fmapair || i->op == Oie64dfmapair) {
+				Tmp *tmp = &fn->tmp[i->to.val];
+				int consumer = i->op == Oie64fmapair ? Oie64fma : Oie64dfma;
+				for (Use *u=tmp->use; u<&tmp->use[tmp->nuse]; u++)
+					if (u->type != UIns || u->u.ins->op != consumer
+					|| !req(u->u.ins->arg[1], i->to) || req(u->u.ins->arg[0], i->to))
+						die("IE64 fused operand pair used outside its matching fused operation");
+			}
+			if (i->op != Oie64fcosresult && i->op != Oie64dcosresult)
+				continue;
+			Ref from = i->arg[0];
+			pair = rtype(from) == RTmp ? fn->tmp[from.val].def : 0;
+			if (!pair || pair->op != (i->op == Oie64fcosresult ? Oie64fsincos : Oie64dsincos))
+				die("IE64 cosine projection requires an FSINCOS or DSINCOS result");
+			if (req(cos[from.val], R))
+				cos[from.val] = newtmp("ie64cos", i->cls, fn);
+			i->op = Ocopy;
+			i->arg[0] = cos[from.val];
+		}
+	for (b=fn->start; b; b=b->link) {
+		curi = &insb[NIns];
+		for (i=&b->ins[b->nins]; i!=b->ins;) {
+			--i;
+			switch (i->op) {
+			case Oie64fmapair:
+			case Oie64dfmapair:
+				break;
+			case Oie64fma:
+			case Oie64dfma: {
+				Ins ins = *i;
+				Ref from = ins.arg[1];
+				pair = rtype(from) == RTmp ? fn->tmp[from.val].def : 0;
+				int wide = ins.op == Oie64dfma;
+				if (!pair || pair->op != (wide ? Oie64dfmapair : Oie64fmapair))
+					die("IE64 fused operation requires a matching operand pair");
+				ins.arg[1] = pair->arg[0];
+				emiti(ins);
+				emit(wide ? Oie64dfmaaddend : Oie64fmaaddend, ins.cls, R, pair->arg[1], R);
+				used |= wide ? 3 : 1;
+				break;
+			}
+			case Oie64fsincos:
+			case Oie64dsincos:
+				if (!req(cos[i->to.val], R))
+					emit(i->op == Oie64dsincos ? Oie64dgetcos : Oie64fgetcos,
+						i->cls, cos[i->to.val], R, R);
+				emiti(*i);
+				used |= i->op == Oie64dsincos ? 15 : 3;
+				break;
+			default:
+				emiti(*i);
+				break;
+			}
+		}
+		/* Keep the old instruction storage until all tuple definitions
+		 * have been used. idup can overwrite it. */
+		b->ins = vnew(0, sizeof(b->ins[0]), PFn);
+		idup(b, curi, &insb[NIns]-curi);
+	}
+	return used;
+}
+
 static int
 memarg(Ref *r, Ins *i)
 {

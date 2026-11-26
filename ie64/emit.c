@@ -510,6 +510,22 @@ emitins(Ins *i, Fn *fn, FILE *f)
 
 	if (i->op == Onop)
 		return;
+	switch (i->op) {
+	case Oie64fmaaddend:
+	case Oie64dfmaaddend:
+		fprintf(f, "\t%smov f12, ", i->cls == Kd ? "d" : "f");
+		emitreg(i->arg[0], f);
+		fputc('\n', f);
+		return;
+	case Oie64fgetcos:
+	case Oie64dgetcos:
+		fprintf(f, "\t%smov ", i->cls == Kd ? "d" : "f");
+		emitreg(i->to, f);
+		fprintf(f, ", f%d\n", i->cls == Kd ? 14 : 13);
+		return;
+	default:
+		break;
+	}
 	if (isie64op(i->op)) {
 		static char *simple[] = {
 			[Oie64nop] = "nop", [Oie64halt] = "halt",
@@ -530,6 +546,55 @@ emitins(Ins *i, Fn *fn, FILE *f)
 			[Oie64datan] = "datan", [Oie64dlog] = "dlog",
 			[Oie64dexp] = "dexp", [Oie64dsqrt] = "dsqrt",
 		};
+		static const char *fpext[] = {
+			[Oie64frsqrt - Oie64frsqrt] = "frsqrt",
+			[Oie64fmin - Oie64frsqrt] = "fmin",
+			[Oie64fmax - Oie64frsqrt] = "fmax",
+			[Oie64fround - Oie64frsqrt] = "fround",
+			[Oie64ftrunc - Oie64frsqrt] = "ftrunc",
+			[Oie64ffloor - Oie64frsqrt] = "ffloor",
+			[Oie64fceil - Oie64frsqrt] = "fceil",
+			[Oie64drsqrt - Oie64frsqrt] = "drsqrt",
+			[Oie64dmin - Oie64frsqrt] = "dmin",
+			[Oie64dmax - Oie64frsqrt] = "dmax",
+			[Oie64dround - Oie64frsqrt] = "dround",
+			[Oie64dtrunc - Oie64frsqrt] = "dtrunc",
+			[Oie64dfloor - Oie64frsqrt] = "dfloor",
+			[Oie64dceil - Oie64frsqrt] = "dceil",
+		};
+		if (isie64fpext(i->op)) {
+			const char *mnemonic;
+			switch (i->op) {
+			case Oie64fsincos:
+			case Oie64dsincos:
+				fprintf(f, "\t%ssincos f12, ", i->cls == Kd ? "d" : "f");
+				emitreg(i->arg[0], f);
+				fprintf(f, "\n\t%smov ", i->cls == Kd ? "d" : "f");
+				emitreg(i->to, f);
+				fputs(", f12\n", f);
+				return;
+			case Oie64fma:
+			case Oie64dfma:
+				mnemonic = i->cls == Kd ? "dfma" : "fma";
+				break;
+			default:
+				mnemonic = fpext[i->op - Oie64frsqrt];
+				assert(mnemonic);
+				break;
+			}
+			fprintf(f, "\t%s ", mnemonic);
+			emitreg(i->to, f);
+			fputs(", ", f);
+			emitreg(i->arg[0], f);
+			if (!req(i->arg[1], R)) {
+				fputs(", ", f);
+				emitreg(i->arg[1], f);
+			}
+			if (i->op == Oie64fma || i->op == Oie64dfma)
+				fputs(", f12", f);
+			fputc('\n', f);
+			return;
+		}
 		static char *atomic[] = {
 			[Oie64xchg] = "xchg", [Oie64faa] = "faa",
 			[Oie64fand] = "fand", [Oie64for] = "for",
