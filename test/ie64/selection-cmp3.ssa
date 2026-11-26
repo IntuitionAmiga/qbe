@@ -1,0 +1,26 @@
+export function l $signed_word(l %a, l %b) {
+@start
+	%x =w loadsw %a
+	%y =w loadsw %b
+	%gt =w csgtw %x, %y
+	%lt =w csltw %x, %y
+	%d =w sub %gt, %lt
+	%r =l extsw %d
+	ret %r
+}
+
+export function w $unsigned_long(l %a, l %b) {
+@start
+	%gt =w cultl %b, %a
+	%lt =w cultl %a, %b
+	%r =w sub %gt, %lt
+	ret %r
+}
+
+export function w $different_pairs(w %a, w %b, w %c) {
+@start
+	%gt =w csgtw %a, %b
+	%lt =w csltw %a, %c
+	%r =w sub %gt, %lt
+	ret %r
+}

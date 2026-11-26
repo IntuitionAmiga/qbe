@@ -274,6 +274,10 @@ O(ie64ultofprep, T(e,e,e,l, e,e,e,x), F(0,0,0,0,0,0,0,0,0,0)) X(0,0,1) V(0)
 O(ie64sltofprep, T(e,e,e,l, e,e,e,x), F(0,0,0,0,0,0,0,0,0,0)) X(0,0,1) V(0)
 O(ie64rol, T(w,l,e,e, w,w,e,e), F(0,0,0,0,0,0,0,0,0,0)) X(0,0,1) V(0)
 O(ie64ror, T(w,l,e,e, w,w,e,e), F(0,0,0,0,0,0,0,0,0,0)) X(0,0,1) V(0)
+O(ie64cmp3sw, T(e,w,e,e, e,w,e,e), F(0,0,0,0,0,0,0,0,0,0)) X(0,0,1) V(0)
+O(ie64cmp3sl, T(e,l,e,e, e,l,e,e), F(0,0,0,0,0,0,0,0,0,0)) X(0,0,1) V(0)
+O(ie64cmp3uw, T(e,w,e,e, e,w,e,e), F(0,0,0,0,0,0,0,0,0,0)) X(0,0,1) V(0)
+O(ie64cmp3ul, T(e,l,e,e, e,l,e,e), F(0,0,0,0,0,0,0,0,0,0)) X(0,0,1) V(0)
 
 /* Arguments, Parameters, and Calls */
 O(par,     T(x,x,x,x, x,x,x,x), F(0,0,0,0,0,0,0,0,0,1)) X(0,0,0) V(0)

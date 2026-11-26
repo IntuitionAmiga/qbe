@@ -554,6 +554,32 @@ emitlongtofloat(Ins *i, FILE *f)
 	fprintf(f, ".Lutoe%u:\n", id);
 }
 
+/* Produce -1, 0 or +1 directly while the operands are still intact.
+ * The allocator may give the result an operand register. */
+static void
+emitcmp3(Ins *i, Fn *fn, FILE *f)
+{
+	static unsigned num;
+	unsigned id = num++;
+	int u = i->op == Oie64cmp3ul;
+
+	fputs(u ? "\tbhi " : "\tblt ", f);
+	emitcmpreg(i->arg[u], fn, f);
+	fputs(", ", f);
+	emitcmpreg(i->arg[1-u], fn, f);
+	fprintf(f, ", .Lcmp3l%u\n\tbne ", id);
+	emitcmpreg(i->arg[0], fn, f);
+	fputs(", ", f);
+	emitcmpreg(i->arg[1], fn, f);
+	fprintf(f, ", .Lcmp3g%u\n\tmoveq ", id);
+	emitreg(i->to, f);
+	fprintf(f, ", #0\n\tbra .Lcmp3e%u\n.Lcmp3g%u:\n\tmoveq ", id, id);
+	emitreg(i->to, f);
+	fprintf(f, ", #1\n\tbra .Lcmp3e%u\n.Lcmp3l%u:\n\tmoveq ", id, id);
+	emitreg(i->to, f);
+	fprintf(f, ", #-1\n.Lcmp3e%u:\n", id);
+}
+
 static void
 emitins(Ins *i, Fn *fn, FILE *f)
 {
@@ -568,6 +594,10 @@ emitins(Ins *i, Fn *fn, FILE *f)
 
 	if (i->op == Onop)
 		return;
+	if (i->op == Oie64cmp3sl || i->op == Oie64cmp3ul) {
+		emitcmp3(i, fn, f);
+		return;
+	}
 	if (isie64op(i->op)) {
 		static char *simple[] = {
 			[Oie64nop] = "nop", [Oie64halt] = "halt",

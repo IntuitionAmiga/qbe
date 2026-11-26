@@ -147,6 +147,9 @@ transfer(Fn *fn, Ins *i, int *ru, int *rs)
 		goto Done;
 	}
 	switch (i->op) {
+	case Oie64cmp3sw: case Oie64cmp3sl: case Oie64cmp3uw: case Oie64cmp3ul:
+		*rs = 2;
+		break;
 	case Ocopy:
 		if (rtype(i->arg[0]) == RCon) {
 			c = &fn->con[i->arg[0].val];
@@ -501,7 +504,7 @@ signedusers(Tmp *t)
 		if (u->type != UIns)
 			return 0;
 		i = u->u.ins;
-		if (i->op == Oextsw || i->op == Oswtof)
+		if (i->op == Oextsw || i->op == Oswtof || i->op == Oie64cmp3sw)
 			continue;
 		if (iscmp(i->op, &k, &cc) && k == Kw && cc >= Cisge && cc <= Cislt)
 			continue;

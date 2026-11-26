@@ -529,6 +529,51 @@ bitfield(Ins *i, Fn *fn)
 	i->arg[1] = R;
 }
 
+/* Give each strict relation in greater-than order, so swapped operands
+ * and a reversed opcode are equivalent. */
+static int
+strictcmp(Ref r, Ref greater[2], Ins **d, int *k, int *sign, Fn *fn)
+{
+	Tmp *t;
+	int cc, swap;
+
+	if (rtype(r) != RTmp || isreg(r))
+		return 0;
+	t = &fn->tmp[r.val];
+	if (t->ndef != 1 || t->nuse != 1 || !(*d = t->def)
+	|| !iscmp((*d)->op, k, &cc) || KBASE(*k) != 0)
+		return 0;
+	switch (cc) {
+	case Cisgt: case Cislt: *sign = 1; break;
+	case Ciugt: case Ciult: *sign = 0; break;
+	default: return 0;
+	}
+	swap = cc == Cislt || cc == Ciult;
+	greater[0] = (*d)->arg[swap];
+	greater[1] = (*d)->arg[1-swap];
+	return 1;
+}
+
+static void
+cmp3(Ins *i, Fn *fn)
+{
+	Ins *a, *b;
+	Ref gt[2], lt[2];
+	int k, l, sign, other;
+
+	if (i->op != Osub || KBASE(i->cls) != 0
+	|| !strictcmp(i->arg[0], gt, &a, &k, &sign, fn)
+	|| !strictcmp(i->arg[1], lt, &b, &l, &other, fn)
+	|| k != l || sign != other || !req(gt[0], lt[1]) || !req(gt[1], lt[0]))
+		return;
+	i->op = (sign ? Oie64cmp3sw : Oie64cmp3uw) + (k == Kl);
+	/* Preserve the sign through spills and when extending the result. */
+	i->cls = Kl;
+	i->arg[0] = gt[0];
+	i->arg[1] = gt[1];
+	*a = *b = (Ins){.op = Onop};
+}
+
 static int
 fpwritecc(Ins *i)
 {
@@ -639,6 +684,7 @@ ie64_isel(Fn *fn)
 			--i;
 			rotate(i, fn);
 			bitfield(i, fn);
+			cmp3(i, fn);
 		}
 	floatloads(fn);
 	ie64_canon(fn);
@@ -722,6 +768,15 @@ ie64_isel(Fn *fn)
 				emit(Oie64fcvtds, Ks, i->to, t, R);
 				emit(Oie64ultofprep, Kd, t, i->arg[0], R);
 				fixarg(&curi->arg[0], Kl, curi, fn);
+				continue;
+			}
+			if (i->op == Oie64cmp3sw || i->op == Oie64cmp3uw) {
+				int sign = i->op == Oie64cmp3sw;
+				cmpplan(i->arg[0], sign, 1, &pend[0], fn);
+				cmpplan(i->arg[1], sign, 1, &pend[1], fn);
+				emit(i->op + 1, Kl, i->to, pend[0].use, pend[1].use);
+				cmpemit(&pend[1], sign, fn);
+				cmpemit(&pend[0], sign, fn);
 				continue;
 			}
 			if (iscmp(i->op, &ck, &cc) && ck == Kw) {
