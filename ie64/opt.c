@@ -416,7 +416,7 @@ extendloads(Fn *fn)
 {
 	Blk *b;
 	Ins *i, *d;
-	int ext, load;
+	int ext, load, op;
 
 	for (b=fn->start; b; b=b->link)
 		for (i=b->ins; i<&b->ins[b->nins]; i++) {
@@ -424,10 +424,17 @@ extendloads(Fn *fn)
 			|| rtype(i->arg[0]) != RTmp)
 				continue;
 			d = fn->tmp[i->arg[0].val].def;
-			if (!d || d->op < Oloadsb || d->op > Oloaduw)
+			if (!d)
+				continue;
+			op = d->op;
+			/* Keep the volatile opcode until the normal late lowering.
+			 * The signed load only changes the width of the result. */
+			if (ie64_signed_loads && (op == Oloadvsb || op == Oloadvsh || op == Oloadvsw))
+				op = Oloadsb + op - Oloadvsb;
+			if (op < Oloadsb || op > Oloaduw)
 				continue;
 			ext = i->op - Oextsb;
-			load = d->op - Oloadsb;
+			load = op - Oloadsb;
 			if ((ext ^ load) & 1 || ext < load)
 				continue;
 			d->cls = Kl;

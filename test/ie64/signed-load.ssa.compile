@@ -1,0 +1,38 @@
+export function l $signed_byte(l %p) {
+@start
+	%v =l loadsb %p
+	ret %v
+}
+
+export function l $signed_half(l %p) {
+@start
+	%a =l add %p, 6
+	%v =w loadsh %a
+	%r =l extsh %v
+	ret %r
+}
+
+export function l $signed_word(l %p) {
+@start
+	%v =l loadsw %p
+	ret %v
+}
+
+export function w $word_result(l %p) {
+@start
+	%v =w loadsw %p
+	ret %v
+}
+
+export function l $unsigned_word(l %p) {
+@start
+	%v =l loaduw %p
+	ret %v
+}
+
+export function l $volatile_half(l %p) {
+@start
+	%v =w loadvsh %p
+	%r =l extsh %v
+	ret %r
+}

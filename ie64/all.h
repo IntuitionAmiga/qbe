@@ -28,6 +28,7 @@ MAKESURE(reg_not_tmp, F15 < (int)Tmp0);
 extern int ie64_rsave[];
 /* Set by -mbranch-imm: compare-and-branch with a 16-bit immediate. */
 extern int ie64_branch_imm;
+extern int ie64_signed_loads;
 int ie64_brimm(int, int, int64_t, char **, int64_t *);
 bits ie64_retregs(Ref, int[2]);
 bits ie64_argregs(Ref, int[2]);

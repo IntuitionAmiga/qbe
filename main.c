@@ -204,6 +204,7 @@ static Fn **fnq;
 static int nfnq, capfnq;
 static int inlining, noinline, nosinkfuse;
 extern int ie64_branch_imm;
+extern int ie64_signed_loads;
 extern void ie64_profileload(char *);
 static char *profpath;
 
@@ -293,11 +294,14 @@ main(int ac, char *av[])
 			}
 			break;
 		case 'm':
-			if (strcmp(optarg, "branch-imm") != 0) {
+			if (strcmp(optarg, "branch-imm") == 0)
+				ie64_branch_imm = 1;
+			else if (strcmp(optarg, "signed-loads") == 0)
+				ie64_signed_loads = 1;
+			else {
 				fprintf(stderr, "invalid option '-m%s'\n", optarg);
 				exit(1);
 			}
-			ie64_branch_imm = 1;
 			break;
 		case 'o':
 			if (strcmp(optarg, "-") != 0) {
@@ -352,10 +356,15 @@ main(int ac, char *av[])
 			fprintf(hf, "\t%-11s do not copy shared compares and addresses to their uses (ie64)\n", "-fno-sink-fuse");
 			fprintf(hf, "\t%-11s lay out blocks by an execution profile (ie64)\n", "-fprofile-use=FILE");
 			fprintf(hf, "\t%-11s compare-and-branch with an immediate (ie64, needs engine support)\n", "-mbranch-imm");
+			fprintf(hf, "\t%-11s signed narrow loads (ie64, needs engine support)\n", "-msigned-loads");
 			exit(c != 'h');
 		}
 	if (ie64_branch_imm && strcmp(T.name, "ie64") != 0) {
 		fprintf(stderr, "-mbranch-imm needs the ie64 target\n");
+		exit(1);
+	}
+	if (ie64_signed_loads && strcmp(T.name, "ie64") != 0) {
+		fprintf(stderr, "-msigned-loads needs the ie64 target\n");
 		exit(1);
 	}
 	if (profpath) {

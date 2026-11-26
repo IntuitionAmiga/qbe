@@ -784,8 +784,9 @@ emitins(Ins *i, Fn *fn, FILE *f)
 		return;
 	}
 	if (isload(i->op)) {
-		Con *c;
+		Con *c = 0;
 		char s;
+		int sign, slot, displaced;
 		if (i->cls == Ks || i->cls == Kd) {
 			if (rtype(i->arg[0]) == RSlot) {
 				fprintf(f, "\t%sload ", i->cls == Kd ? "d" : "f");
@@ -812,6 +813,8 @@ emitins(Ins *i, Fn *fn, FILE *f)
 			fputc('\n', f);
 			return;
 		}
+		sign = i->op == Oloadsb || i->op == Oloadsh
+			|| (i->op == Oloadsw && i->cls == Kl);
 		s = suffix(i->cls);
 		if (i->op == Oloadsb || i->op == Oloadub)
 			s = 'b';
@@ -819,38 +822,27 @@ emitins(Ins *i, Fn *fn, FILE *f)
 			s = 'w';
 		else if (i->op == Oloadsw || i->op == Oloaduw)
 			s = 'l';
-		if (rtype(i->arg[0]) == RSlot) {
-			fprintf(f, "\tload.%c ", s);
-			emitreg(i->to, f);
-			fprintf(f, ", %d(r%d)\n", slotoffset(i->arg[0]),
+		slot = rtype(i->arg[0]) == RSlot;
+		displaced = rtype(i->arg[0]) == RCon
+			&& (c = &fn->con[i->arg[0].val])->type == CBits
+			&& isreg(i->arg[1]);
+		if (!slot && !displaced)
+			i->arg[0] = materializeaddr(i->arg[0], fn, f);
+		fprintf(f, "\tload.%s%c ", sign && ie64_signed_loads ? "s" : "", s);
+		emitreg(i->to, f);
+		if (slot)
+			fprintf(f, ", %d(r%d)", slotoffset(i->arg[0]),
 				slotbase(i->arg[0]));
-			if (i->op == Oloadsb || i->op == Oloadsh
-			|| (i->op == Oloadsw && i->cls == Kl)) {
-				fprintf(f, "\tsext.%c ", s);
-				emitreg(i->to, f);
-				fprintf(f, ", r%u\n", i->to.val);
-			}
-			return;
-		}
-		if (rtype(i->arg[0]) == RCon
-		&& (c = &fn->con[i->arg[0].val])->type == CBits
-		&& isreg(i->arg[1])) {
-			fprintf(f, "\tload.%c ", s);
-			emitreg(i->to, f);
+		else if (displaced) {
 			fprintf(f, ", %"PRId64"(", c->bits.i);
 			emitreg(i->arg[1], f);
-			fputs(")\n", f);
-			return;
+			fputc(')', f);
+		} else {
+			fputs(", ", f);
+			emitmem(i->arg[0], f);
 		}
-		i->arg[0] = materializeaddr(i->arg[0], fn, f);
-		fputs("\t", f);
-		fprintf(f, "load.%c ", s);
-		emitreg(i->to, f);
-		fputs(", ", f);
-		emitmem(i->arg[0], f);
 		fputc('\n', f);
-		if (i->op == Oloadsb || i->op == Oloadsh
-			|| (i->op == Oloadsw && i->cls == Kl)) {
+		if (sign && !ie64_signed_loads) {
 			fprintf(f, "\tsext.%c ", s);
 			emitreg(i->to, f);
 			fprintf(f, ", r%u\n", i->to.val);
