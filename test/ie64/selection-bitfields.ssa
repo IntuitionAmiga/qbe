@@ -52,3 +52,11 @@ export function w $volatile_observation(l %p, w %a, w %b) {
 	storew %b, %p
 	ret %x
 }
+
+export function $literal_stores(w %a, w %b) {
+@start
+	storew %a, 983040
+	%r =w xor %a, %b
+	storew %r, 983040
+	ret
+}

@@ -37,3 +37,10 @@ export function w $logical_word(l %p) {
 	%r =w shr %x, 16
 	ret %r
 }
+
+export function l $literal_half() {
+@start
+	%x =w loaduh 983040
+	%y =l extub %x
+	ret %y
+}

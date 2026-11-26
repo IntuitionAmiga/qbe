@@ -648,7 +648,8 @@ floatloads(Fn *fn)
 
 /* Fold the stores of successive packed-field updates if each writes the
  * same bytes and the intervening integer operations cannot observe or
- * interrupt the write. Volatile accesses and other effects end the scan. */
+ * interrupt the write. Fixed addresses may name device registers.
+ * Volatile accesses and other effects end the scan. */
 static void
 packedstores(Fn *fn)
 {
@@ -658,7 +659,7 @@ packedstores(Fn *fn)
 	for (b=fn->start; b; b=b->link) {
 		store = 0;
 		for (i=b->ins; i<&b->ins[b->nins]; i++) {
-			if (i->op >= Ostoreb && i->op <= Ostorel) {
+			if (i->op >= Ostoreb && i->op <= Ostorel && rtype(i->arg[1]) != RCon) {
 				if (store && store->op == i->op
 				&& req(store->arg[1], i->arg[1]))
 					*store = (Ins){.op = Onop};

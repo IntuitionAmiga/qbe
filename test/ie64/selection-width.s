@@ -60,3 +60,13 @@ logical_word:
 	lsr.l r1, r1, #16
 	rts
 .size logical_word,.-logical_word
+.section .text,"ax"
+.global literal_half
+.type literal_half,@function
+.align 16
+literal_half:
+	moveq r30, #983040
+	load.w r1, (r30)
+	and.q r1, r1, #0xff
+	rts
+.size literal_half,.-literal_half

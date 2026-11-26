@@ -526,8 +526,10 @@ selectloadwidth(Fn *fn)
 				t = &fn->tmp[i->arg[0].val];
 				d = t->def;
 				/* A non-volatile little-endian halfword read used solely
-				 * for its low byte can use an unsigned byte load. */
-				if (t->nuse == 1 && d && (d->op == Oloaduh || d->op == Oloadsh)) {
+				 * for its low byte can use an unsigned byte load. A fixed
+				 * address may name a device register. */
+				if (t->nuse == 1 && d && rtype(d->arg[0]) != RCon
+				&& (d->op == Oloaduh || d->op == Oloadsh)) {
 					d->op = Oloadub;
 					d->mtype = MUnknown;
 				}

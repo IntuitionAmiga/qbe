@@ -67,3 +67,15 @@ volatile_observation:
 	sext.l r1, r1
 	rts
 .size volatile_observation,.-volatile_observation
+.section .text,"ax"
+.global literal_stores
+.type literal_stores,@function
+.align 16
+literal_stores:
+	moveq r30, #983040
+	store.l r1, (r30)
+	eor.l r1, r1, r2
+	moveq r30, #983040
+	store.l r1, (r30)
+	rts
+.size literal_stores,.-literal_stores
