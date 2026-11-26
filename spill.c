@@ -78,9 +78,10 @@ fillcost(Fn *fn)
 		}
 		n = b->loop;
 		for (i=b->ins; i<&b->ins[b->nins]; i++) {
-			tmpuse(i->to, 0, n, fn);
-			tmpuse(i->arg[0], 1, n, fn);
-			tmpuse(i->arg[1], 1, n, fn);
+			for (a=0; a<(uint)insndef(i); a++)
+				tmpuse(insdef(i, a), 0, n, fn);
+			for (a=0; a<(uint)insnarg(i); a++)
+				tmpuse(i->arg[a], 1, n, fn);
 		}
 		tmpuse(b->jmp.arg, 1, n, fn);
 	}
@@ -362,7 +363,7 @@ void
 spill(Fn *fn)
 {
 	Blk *b, *s1, *s2, *hd, **bp;
-	int j, l, t, k, lvarg[2];
+	int j, l, t, k, d, lvarg[3];
 	uint n;
 	BSet u[1], v[1], w[1];
 	Ins *i;
@@ -465,29 +466,30 @@ spill(Fn *fn)
 				continue;
 			}
 			bszero(w);
-			if (!req(i->to, R)) {
+			for (d=0; d<insndef(i); d++) {
+				Ref dst = insdef(i, d);
 				int rw;
 
-				assert(rtype(i->to) == RTmp);
-				t = i->to.val;
+				if (req(dst, R))
+					continue;
+				assert(rtype(dst) == RTmp);
+				t = dst.val;
 				rw = t < Tmp0 && T.regwidth ? T.regwidth(i->cls) : 1;
 				if (bshas(v, t)) {
 					for (n=0; n<(uint)rw; n++)
 						bsclr(v, t+n);
-				}
-				else {
-					/* make sure we have a reg
-					 * for the result */
+				} else if (!isie64sincos(i->op)) {
+					/* Reserve an ordinary dead result register. */
 					assert(t >= Tmp0 && "dead reg");
 					bsset(v, t);
 					bsset(w, t);
 				}
 			}
 			j = T.memargs(i->op);
-			for (n=0; n<2; n++)
+			for (n=0; n<(uint)insnarg(i); n++)
 				if (rtype(i->arg[n]) == RMem)
 					j--;
-			for (n=0; n<2; n++)
+			for (n=0; n<(uint)insnarg(i); n++)
 				switch (rtype(i->arg[n])) {
 				case RMem:
 					t = i->arg[n].val;
@@ -518,7 +520,7 @@ spill(Fn *fn)
 				}
 			bscopy(u, v);
 			limit2(v, 0, 0, w);
-			for (n=0; n<2; n++)
+			for (n=0; n<(uint)insnarg(i); n++)
 				if (rtype(i->arg[n]) == RTmp) {
 					t = i->arg[n].val;
 					if (!bshas(v, t)) {
@@ -531,12 +533,15 @@ spill(Fn *fn)
 					}
 				}
 			reloads(u, v);
-			if (!req(i->to, R)) {
-				t = i->to.val;
-				store(i->to, tmp[t].slot);
+			for (d=0; d<insndef(i); d++) {
+				Ref dst = insdef(i, d);
+
+				if (req(dst, R))
+					continue;
+				t = dst.val;
+				store(dst, tmp[t].slot);
 				if (t >= Tmp0)
-					/* in case i->to was a
-					 * dead temporary */
+					/* In case this was a dead temporary. */
 					bsclr(v, t);
 			}
 			emiti(*i);

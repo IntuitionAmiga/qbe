@@ -254,10 +254,6 @@ O(blit0,   T(m,e,e,e, m,e,e,e), F(0,0,0,0,0,0,0,0,0,1)) X(0,1,0) V(0)
 O(blit1,   T(w,e,e,e, x,e,e,e), F(0,0,0,0,0,0,0,0,0,1)) X(0,1,0) V(0)
 /* Internal stages emitted after global optimisation and kept adjacent to
  * their producer apart from ordinary register allocation code. */
-O(ie64fmaaddend, T(e,e,s,e, x,x,x,x), F(0,0,0,0,0,0,0,0,0,1)) X(0,0,1) V(0)
-O(ie64dfmaaddend, T(e,e,e,d, x,x,x,x), F(0,0,0,0,0,0,0,0,0,1)) X(0,0,1) V(0)
-O(ie64fgetcos, T(e,e,s,e, x,x,x,x), F(0,0,0,0,0,0,0,0,0,1)) X(0,0,1) V(0)
-O(ie64dgetcos, T(e,e,e,d, x,x,x,x), F(0,0,0,0,0,0,0,0,0,1)) X(0,0,1) V(0)
 
 O(sel0,    T(w,e,e,e, x,e,e,e), F(0,0,0,0,0,0,0,0,0,1)) X(0,0,0) V(0)
 O(sel1,    T(w,l,e,e, w,l,e,e), F(0,0,0,0,0,0,0,0,0,1)) X(0,0,0) V(0)

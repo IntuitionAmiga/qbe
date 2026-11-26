@@ -1,26 +1,23 @@
 #include "all.h"
 
 /* Keep tuple operations in SSA through GVN and GCM. Once both passes
- * finish, expose the temporary operands to the allocator. The emitter
- * reserves F12-F15 in these functions and preserves them in the frame. */
-int
+ * finish, give each instruction its actual inputs and outputs. */
+void
 ie64_lower_fpext(Fn *fn)
 {
 	Blk *b;
 	Ins *i, *pair;
 	Ref *cos;
-	int used;
 
 	for (b=fn->start; b; b=b->link)
 		for (i=b->ins; i<&b->ins[b->nins]; i++)
 			if (i->op == Oie64fsincos || i->op == Oie64dsincos
 			|| i->op == Oie64fcosresult || i->op == Oie64dcosresult || isie64fused(i->op))
 				goto lower;
-	return 0;
+	return;
 
 lower:
 	cos = alloc(fn->ntmp * sizeof(*cos));
-	used = 0;
 	filluse(fn);
 	for (b=fn->start; b; b=b->link)
 		for (i=b->ins; i<&b->ins[b->nins]; i++) {
@@ -38,10 +35,13 @@ lower:
 			pair = rtype(from) == RTmp ? fn->tmp[from.val].def : 0;
 			if (!pair || pair->op != (i->op == Oie64fcosresult ? Oie64fsincos : Oie64dsincos))
 				die("IE64 cosine projection requires an FSINCOS or DSINCOS result");
-			if (req(cos[from.val], R))
-				cos[from.val] = newtmp("ie64cos", i->cls, fn);
-			i->op = Ocopy;
-			i->arg[0] = cos[from.val];
+			if (req(cos[from.val], R)) {
+				cos[from.val] = i->to;
+				*i = (Ins){.op = Onop};
+			} else {
+				i->op = Ocopy;
+				i->arg[0] = cos[from.val];
+			}
 		}
 	for (b=fn->start; b; b=b->link) {
 		curi = &insb[NIns];
@@ -60,19 +60,22 @@ lower:
 				if (!pair || pair->op != (wide ? Oie64dfmapair : Oie64fmapair))
 					die("IE64 fused operation requires a matching operand pair");
 				ins.arg[1] = pair->arg[0];
+				ins.arg[2] = pair->arg[1];
 				emiti(ins);
-				emit(wide ? Oie64dfmaaddend : Oie64fmaaddend, ins.cls, R, pair->arg[1], R);
-				used |= wide ? 3 : 1;
 				break;
 			}
 			case Oie64fsincos:
-			case Oie64dsincos:
-				if (!req(cos[i->to.val], R))
-					emit(i->op == Oie64dsincos ? Oie64dgetcos : Oie64fgetcos,
-						i->cls, cos[i->to.val], R, R);
-				emiti(*i);
-				used |= i->op == Oie64dsincos ? 15 : 3;
+			case Oie64dsincos: {
+				Ins ins = *i;
+				Ref other = cos[i->to.val];
+
+				ins.arg[2] = other;
+				fn->tmp[i->to.val].fppair = req(other, R) ? 1 : (int)other.val;
+				if (!req(other, R))
+					fn->tmp[other.val].fppair = -(int)i->to.val;
+				emiti(ins);
 				break;
+			}
 			default:
 				emiti(*i);
 				break;
@@ -83,7 +86,6 @@ lower:
 		b->ins = vnew(0, sizeof(b->ins[0]), PFn);
 		idup(b, curi, &insb[NIns]-curi);
 	}
-	return used;
 }
 
 static int
@@ -572,6 +574,8 @@ ie64_isel(Fn *fn)
 					fixarg(&ii->arg[0], argcls(ii, 0), ii, fn);
 				if (keep != 1)
 					fixarg(&ii->arg[1], argcls(ii, 1), ii, fn);
+				if (isie64fmavalue(ii->op))
+					fixarg(&ii->arg[2], ii->cls, ii, fn);
 			}
 			for (pn=0; pn<npend; pn++)
 				cmpemit(&pend[pn], pendsign, fn);
@@ -595,6 +599,8 @@ ie64_isel(Fn *fn)
 		for (ii=sel0; ii<&insb[NIns]; ii++) {
 			slotarg(&ii->arg[0], &memo, fn);
 			slotarg(&ii->arg[1], &memo, fn);
+			if (isie64fmavalue(ii->op))
+				slotarg(&ii->arg[2], &memo, fn);
 		}
 		idup(b, curi, &insb[NIns]-curi);
 	}

@@ -64,7 +64,7 @@ filllive(Fn *f)
 {
 	Blk *b;
 	Ins *i;
-	int k, t, m[2], n, chg, nlv[2];
+	int d, k, t, m[2], n, chg, nlv[2];
 	BSet u[1], v[1];
 	Mem *ma;
 
@@ -124,11 +124,14 @@ Again:
 					nlv[k] += m[k];
 				}
 			}
-			if (!req(i->to, R)) {
+			for (d=0; d<insndef(i); d++) {
+				Ref dst = insdef(i, d);
 				int j, u, width;
 
-				assert(rtype(i->to) == RTmp);
-				t = i->to.val;
+				if (req(dst, R))
+					continue;
+				assert(rtype(dst) == RTmp);
+				t = dst.val;
 				width = t < Tmp0 && T.regwidth ? T.regwidth(i->cls) : 1;
 				for (j=0; j<width; j++) {
 					u = t + j;
@@ -138,7 +141,7 @@ Again:
 					bsclr(b->in, u);
 				}
 			}
-			for (k=0; k<2; k++)
+			for (k=0; k<insnarg(i); k++)
 				switch (rtype(i->arg[k])) {
 				case RMem:
 					ma = &f->mem[i->arg[k].val];

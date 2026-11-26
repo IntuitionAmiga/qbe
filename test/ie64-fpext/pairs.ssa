@@ -1,0 +1,144 @@
+type :.1 = { s, s, }
+export
+function :.1 $pair_sincos(s %.1) {
+@start.1
+	%.2 =l alloc4 4
+	stores %.1, %.2
+	%.3 =l alloc4 8
+@body.2
+	%.4 =s loads %.2
+	%.5 =l add %.3, 0
+	%.6 =l add %.3, 4
+	%.7 =s ie64fsincos %.4
+	%.8 =s ie64fcosresult %.7
+	stores %.7, %.5
+	stores %.8, %.6
+	ret %.3
+}
+export
+function :.1 $separate_sincos(s %.1) {
+@start.3
+	%.2 =l alloc4 4
+	stores %.1, %.2
+	%.3 =l alloc4 8
+@body.4
+	%.4 =s loads %.2
+	%.5 =s ie64fsin %.4
+	stores %.5, %.3
+	%.6 =l add %.3, 4
+	%.7 =s loads %.2
+	%.8 =s ie64fcos %.7
+	stores %.8, %.6
+	ret %.3
+}
+export
+function s $scalar_fma(s %.1, s %.3, s %.5) {
+@start.5
+	%.2 =l alloc4 4
+	stores %.1, %.2
+	%.4 =l alloc4 4
+	stores %.3, %.4
+	%.6 =l alloc4 4
+	stores %.5, %.6
+@body.6
+	%.7 =s loads %.2
+	%.8 =s loads %.4
+	%.9 =s loads %.6
+	%.10 =s ie64fmapair %.8, %.9
+	%.11 =s ie64fma %.7, %.10
+	ret %.11
+}
+export
+function d $wide_fma(d %.1, d %.3, d %.5) {
+@start.7
+	%.2 =l alloc8 8
+	stored %.1, %.2
+	%.4 =l alloc8 8
+	stored %.3, %.4
+	%.6 =l alloc8 8
+	stored %.5, %.6
+@body.8
+	%.7 =d loadd %.2
+	%.8 =d loadd %.4
+	%.9 =d loadd %.6
+	%.10 =d ie64dfmapair %.8, %.9
+	%.11 =d ie64dfma %.7, %.10
+	ret %.11
+}
+export
+function $wide_sincos(d %.1, l %.3, l %.5) {
+@start.9
+	%.2 =l alloc8 8
+	stored %.1, %.2
+	%.4 =l alloc8 8
+	storel %.3, %.4
+	%.6 =l alloc8 8
+	storel %.5, %.6
+@body.10
+	%.7 =d loadd %.2
+	%.8 =l loadl %.4
+	%.9 =l loadl %.6
+	%.10 =d ie64dsincos %.7
+	%.11 =d ie64dcosresult %.10
+	stored %.10, %.8
+	stored %.11, %.9
+	ret
+}
+
+export function $two_pairs(s %a, s %b, l %p) {
+@start
+	%sa =s ie64fsincos %a
+	%ca =s ie64fcosresult %sa
+	%sb =s ie64fsincos %b
+	%cb =s ie64fcosresult %sb
+	stores %sa, %p
+	stores %ca, %p
+	stores %sb, %p
+	stores %cb, %p
+	ret
+}
+
+export function d $cross_call(d %a, l %p) {
+@start
+	%s =d ie64dsincos %a
+	%c =d ie64dcosresult %s
+	call $clobber()
+	stored %c, %p
+	ret %s
+}
+
+export function $cos_only(s %a, l %p) {
+@start
+	%s =s ie64fsincos %a
+	%c =s ie64fcosresult %s
+	stores %c, %p
+	ret
+}
+
+export function s $fused_constant(s %a, s %b) {
+@start
+	%pair =s ie64fmapair %b, s_1.25
+	%out =s ie64fma %a, %pair
+	ret %out
+}
+
+export function $sincos_pressure(l %p, d %x) {
+@start
+	%keep0 =d loadv %p
+	%keep1 =d loadv %p
+	%keep2 =d loadv %p
+	%keep3 =d loadv %p
+	%keep4 =d loadv %p
+	%keep5 =d loadv %p
+	%sin =d ie64dsincos %x
+	%cos =d ie64dcosresult %sin
+	storevd %sin, %p
+	storevd %cos, %p
+	storevd %keep0, %p
+	storevd %keep1, %p
+	storevd %keep2, %p
+	storevd %keep3, %p
+	storevd %keep4, %p
+	storevd %keep5, %p
+	ret
+}

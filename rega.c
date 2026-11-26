@@ -101,6 +101,34 @@ rbusy(RMap *m, int t, int r, bits avoid)
 	return 0;
 }
 
+/* Prefer to allocate a result in an aligned caller-save group. The
+ * other result may already have a register because allocation runs
+ * backwards from the uses. A preference can be relaxed under pressure. */
+static int
+rpair(RMap *m, int t)
+{
+	int other, width, offset, r, base, end;
+
+	other = tmp[t].fppair;
+	width = rwidth(t);
+	offset = other < 0 ? width : 0;
+	base = T.fpr0;
+	end = base + T.nrsave[1];
+	r = other == 1 ? -1 : rfind(m, abs(other));
+	if (r != -1) {
+		r += offset ? width : -width;
+		base = r - offset;
+		if (base >= T.fpr0 && base + 2*width <= end
+		&& (base - T.fpr0) % (2*width) == 0 && !rbusy(m, t, r, 0))
+			return r;
+		return -1;
+	}
+	for (; base + 2*width <= end; base += 2*width)
+		if (!rbusy(m, t, base, 0) && !rbusy(m, t, base+width, 0))
+			return base + offset;
+	return -1;
+}
+
 static Ref
 rref(RMap *m, int t)
 {
@@ -156,7 +184,9 @@ ralloctry(RMap *m, int t, int try)
 		assert(r != -1);
 		return TMP(r);
 	}
-	r = tmp[t].visit;
+	r = tmp[t].fppair ? rpair(m, t) : -1;
+	if (r == -1)
+		r = tmp[t].visit;
 	if (r == -1 || rbusy(m, t, r, 0))
 		r = *hint(t);
 	if (r == -1 || rbusy(m, t, r, 0)) {
@@ -411,14 +441,80 @@ insert(Ref *r, Ref **rs, int p)
 	}
 }
 
+/* A sincos writes the whole group even when only one result is live.
+ * Select a caller-save group after releasing both output mappings. If
+ * all groups are occupied, save the live words of the cheapest group
+ * locally. The rest of the function can still use every FP register. */
 static void
-doblk(Blk *b, RMap *cur)
+rsincos(Ins ins, RMap *cur, Fn *fn, int *scratch)
+{
+	int sin, cos, width, base, r, j, score, best, dest, slot, k, saves;
+	enum { MoveLimit = 2 };
+	int saved[4], classes[4], slots[4];
+	bits occupied, mask;
+
+	sin = rfree(cur, ins.to.val);
+	cos = req(ins.arg[2], R) ? -1 : rfree(cur, ins.arg[2].val);
+	width = T.regwidth(ins.cls);
+	/* A saved word costs more than either of the result copies. */
+	best = INT_MAX;
+	dest = -1;
+	for (base=T.fpr0; base<T.fpr0+T.nrsave[1]; base+=2*width) {
+		mask = (BIT(2*width)-1) << base;
+		occupied = cur->b->t[0] & mask;
+		score = 0;
+		for (; occupied; occupied &= occupied-1)
+			score += MoveLimit + 1;
+		score += (sin != -1 && sin != base) + (cos != -1 && cos != base+width);
+		if (score < best) {
+			best = score;
+			dest = base;
+		}
+	}
+	assert(dest != -1);
+
+	saves = 0;
+	if (best > MoveLimit) {
+		if (*scratch == -1) {
+			*scratch = (fn->slot + 1) & -2;
+			fn->slot = *scratch + 4;
+		}
+		slot = *scratch;
+		for (j=0; j<cur->n; j++) {
+			r = cur->r[j];
+			if (r < dest || r >= dest+2*width)
+				continue;
+			k = cur->t[j] < Tmp0 ? Ks : tmp[cur->t[j]].cls;
+			saved[saves] = r;
+			classes[saves] = k;
+			slots[saves] = slot + r-dest;
+			emit(Oload, k, TMP(r), SLOT(slots[saves]), R);
+			saves++;
+		}
+	}
+
+	npm = 0;
+	if (sin != -1)
+		pmadd(TMP(dest), TMP(sin), ins.cls);
+	if (cos != -1)
+		pmadd(TMP(dest+width), TMP(cos), ins.cls);
+	pmgen();
+	ins.to = TMP(dest);
+	ins.arg[0] = ralloc(cur, ins.arg[0].val);
+	ins.arg[2] = R;
+	emiti(ins);
+	for (j=0; j<saves; j++)
+		emit(Ostorew+classes[j], 0, R, TMP(saved[j]), SLOT(slots[j]));
+}
+
+static void
+doblk(Blk *b, RMap *cur, Fn *fn, int *scratch)
 {
 	int j, t, x, r, rf, rt, nr;
 	bits rs;
 	Ins *i, *i1;
 	Mem *m;
-	Ref *ra[4];
+	Ref *ra[6];
 
 	if (rtype(b->jmp.arg) == RTmp)
 		b->jmp.arg = ralloc(cur, b->jmp.arg.val);
@@ -428,6 +524,11 @@ doblk(Blk *b, RMap *cur)
 		i = curi;
 		rf = -1;
 		switch (i->op) {
+		case Oie64fsincos:
+		case Oie64dsincos:
+			curi++;
+			rsincos(*i1, cur, fn, scratch);
+			continue;
 		case Ocall:
 		case Oie64syscall:
 			rs = T.argregs(i->arg[1], 0) | T.rglob;
@@ -471,7 +572,7 @@ doblk(Blk *b, RMap *cur)
 			}
 			break;
 		}
-		for (x=0, nr=0; x<2; x++)
+		for (x=0, nr=0; x<insnarg(i); x++)
 			switch (rtype(i->arg[x])) {
 			case RMem:
 				m = &mem[i->arg[x].val];
@@ -492,7 +593,7 @@ doblk(Blk *b, RMap *cur)
 		/* try to change the register of a hinted
 		 * temporary if rf is available */
 		if (rf != -1 && (t = cur->w[rf]) != 0)
-		if (!bshas(cur->b, rf) && *hint(t) == rf
+		if (!tmp[t].fppair && !bshas(cur->b, rf) && *hint(t) == rf
 		&& (rt = rfree(cur, t)) != -1) {
 			tmp[t].visit = -1;
 			ralloc(cur, t);
@@ -545,7 +646,7 @@ prio2(int t1, int t2)
 void
 rega(Fn *fn)
 {
-	int j, t, r, x, rl[Tmp0];
+	int j, t, r, x, scratch, rl[Tmp0];
 	Blk *b, *b1, *s, ***ps, *blist, **blk, **bp;
 	RMap *end, *beg, cur, old, *m;
 	Ins *i;
@@ -557,6 +658,7 @@ rega(Fn *fn)
 	stmov = 0;
 	stblk = 0;
 	regu = 0;
+	scratch = -1;
 	tmp = fn->tmp;
 	mem = fn->mem;
 	blk = alloc(fn->nblk * sizeof blk[0]);
@@ -609,7 +711,7 @@ rega(Fn *fn)
 		for (j=0; j<x; j++)
 			ralloc(&cur, rl[j]);
 		rcopy(&end[n], &cur);
-		doblk(b, &cur);
+		doblk(b, &cur, fn, &scratch);
 		bscopy(b->in, cur.b);
 		for (p=b->phi; p; p=p->link)
 			if (rtype(p->to) == RTmp)

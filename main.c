@@ -42,7 +42,7 @@ static int dbg;
 int optlevel = 2;
 extern void ie64_bitopt(Fn *);
 extern void ie64_narrow(Fn *);
-extern int ie64_lower_fpext(Fn *);
+extern void ie64_lower_fpext(Fn *);
 static int ie64_fpext, ie64_fma;
 extern void ie64_searchloops(Fn *);
 extern int ie64_threadstate(Fn *);
@@ -101,7 +101,7 @@ static void
 funcdo(Fn *fn)
 {
 	uint n;
-	int reduced, fpextras;
+	int reduced;
 
 	if (dbg)
 		fprintf(stderr, "**** Function %s ****", fn->name);
@@ -174,7 +174,8 @@ funcdo(Fn *fn)
 			ssacheck(fn);
 		}
 	}
-	fpextras = strcmp(T.name, "ie64") == 0 ? ie64_lower_fpext(fn) : 0;
+	if (strcmp(T.name, "ie64") == 0)
+		ie64_lower_fpext(fn);
 	T.abi1(fn);
 	simpl(fn);
 	fillcfg(fn);
@@ -184,14 +185,8 @@ funcdo(Fn *fn)
 	filllive(fn);
 	fillloop(fn);
 	fillcost(fn);
-	if (fpextras)
-		T.nfpr -= 4;
 	spill(fn);
 	rega(fn);
-	if (fpextras) {
-		T.nfpr += 4;
-		fn->reg |= (bits)fpextras << (T.fpr0 + T.nfpr - 4);
-	}
 	lowervolatile(fn);
 	fillcfg(fn);
 	simpljmp(fn);

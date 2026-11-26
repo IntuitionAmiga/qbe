@@ -249,12 +249,18 @@ struct Op {
 
 enum { MUnknown, MShort, MInt };
 
+#define isie64sincos(o) ((o) == Oie64fsincos || (o) == Oie64dsincos)
+#define isie64fmavalue(o) ((o) == Oie64fma || (o) == Oie64dfma)
+#define insnarg(i) (isie64fmavalue((i)->op) && !req((i)->arg[2], R) ? 3 : 2)
+#define insndef(i) (isie64sincos((i)->op) ? 2 : 1)
+#define insdef(i, n) ((n) == 0 ? (i)->to : (i)->arg[2])
+
 struct Ins {
 	uint op:28;
 	uint mtype:2;  /* C scalar alias class, consumed by loop promotion */
 	uint cls:2;
 	Ref to;
-	Ref arg[2];
+	Ref arg[3];  /* IE64 uses the third slot for the FMA input or cosine output. */
 };
 
 struct Phi {
@@ -409,6 +415,7 @@ struct Tmp {
 		bits m; /* avoid these registers */
 	} hint;
 	int phi;
+	int fppair; /* sin: cosine temporary (or 1); cos: negative sine temporary */
 	Alias alias;
 	enum {
 		WFull,

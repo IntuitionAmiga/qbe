@@ -40,7 +40,7 @@ filluse(Fn *fn)
 	Blk *b;
 	Phi *p;
 	Ins *i;
-	int m, t, tp, w, x;
+	int d, m, t, tp, w, x;
 	uint a;
 	Tmp *tmp;
 
@@ -74,8 +74,12 @@ filluse(Fn *fn)
 				}
 		}
 		for (i=b->ins; i<&b->ins[b->nins]; i++) {
-			if (!req(i->to, R)) {
-				assert(rtype(i->to) == RTmp);
+			for (d=0; d<insndef(i); d++) {
+				Ref dst = insdef(i, d);
+
+				if (req(dst, R))
+					continue;
+				assert(rtype(dst) == RTmp);
 				w = WFull;
 				if (isparbh(i->op))
 					w = Wsb + (i->op - Oparsb);
@@ -88,14 +92,14 @@ filluse(Fn *fn)
 				if (w == Wsw || w == Wuw)
 				if (i->cls == Kw)
 					w = WFull;
-				t = i->to.val;
+				t = dst.val;
 				tmp[t].width = w;
 				tmp[t].def = i;
 				tmp[t].bid = b->id;
 				tmp[t].ndef++;
 				tmp[t].cls = i->cls;
 			}
-			for (m=0; m<2; m++)
+			for (m=0; m<insnarg(i); m++)
 				if (rtype(i->arg[m]) == RTmp) {
 					t = i->arg[m].val;
 					adduse(&tmp[t], UIns, b, i);

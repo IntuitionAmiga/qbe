@@ -510,22 +510,6 @@ emitins(Ins *i, Fn *fn, FILE *f)
 
 	if (i->op == Onop)
 		return;
-	switch (i->op) {
-	case Oie64fmaaddend:
-	case Oie64dfmaaddend:
-		fprintf(f, "\t%smov f12, ", i->cls == Kd ? "d" : "f");
-		emitreg(i->arg[0], f);
-		fputc('\n', f);
-		return;
-	case Oie64fgetcos:
-	case Oie64dgetcos:
-		fprintf(f, "\t%smov ", i->cls == Kd ? "d" : "f");
-		emitreg(i->to, f);
-		fprintf(f, ", f%d\n", i->cls == Kd ? 14 : 13);
-		return;
-	default:
-		break;
-	}
 	if (isie64op(i->op)) {
 		static char *simple[] = {
 			[Oie64nop] = "nop", [Oie64halt] = "halt",
@@ -567,11 +551,11 @@ emitins(Ins *i, Fn *fn, FILE *f)
 			switch (i->op) {
 			case Oie64fsincos:
 			case Oie64dsincos:
-				fprintf(f, "\t%ssincos f12, ", i->cls == Kd ? "d" : "f");
-				emitreg(i->arg[0], f);
-				fprintf(f, "\n\t%smov ", i->cls == Kd ? "d" : "f");
+				fprintf(f, "\t%ssincos ", i->cls == Kd ? "d" : "f");
 				emitreg(i->to, f);
-				fputs(", f12\n", f);
+				fputs(", ", f);
+				emitreg(i->arg[0], f);
+				fputc('\n', f);
 				return;
 			case Oie64fma:
 			case Oie64dfma:
@@ -590,8 +574,10 @@ emitins(Ins *i, Fn *fn, FILE *f)
 				fputs(", ", f);
 				emitreg(i->arg[1], f);
 			}
-			if (i->op == Oie64fma || i->op == Oie64dfma)
-				fputs(", f12", f);
+			if (isie64fmavalue(i->op)) {
+				fputs(", ", f);
+				emitreg(i->arg[2], f);
+			}
 			fputc('\n', f);
 			return;
 		}
@@ -1283,7 +1269,7 @@ insuse(Ins *i)
 	u = 0;
 	if (iscallop(i->op) && rtype(i->arg[1]) == RCall)
 		u |= T.argregs(i->arg[1], 0);
-	for (n=0; n<2; n++)
+	for (n=0; n<insnarg(i); n++)
 		if (isreg(i->arg[n]))
 			u |= BIT(i->arg[n].val);
 	return u;
@@ -1318,7 +1304,10 @@ fillreglive(Fn *fn)
 				--i;
 				if (iscallop(i->op) && rtype(i->arg[1]) == RCall)
 					live &= ~T.retregs(i->arg[1], 0);
-				if (isreg(i->to))
+				if (isie64sincos(i->op)) {
+					bits mask = i->cls == Kd ? 15 : 3;
+					live &= ~(mask << i->to.val);
+				} else if (isreg(i->to))
 					live &= ~BIT(i->to.val);
 				live |= insuse(i);
 			}

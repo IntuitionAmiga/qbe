@@ -95,6 +95,7 @@ check-ie64: qbe ie64-argregs-test
 	sh tools/test-ie64-inline-calls.sh ./qbe
 	sh tools/test-ie64-extend-load.sh ./qbe
 	sh tools/test-ie64-signed-load.sh ./qbe
+	sh tools/test-ie64-fpext.sh ./qbe
 
 check-amd64_win: qbe
 	TARGET=amd64_win tools/test.sh all
