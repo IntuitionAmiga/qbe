@@ -1,0 +1,46 @@
+export function w $pair_join(l %p, w %n, w %seed) {
+@start
+	jmp @loop
+@loop
+	%index =w phi @start 0, @join %next
+	%hash =w phi @start %seed, @join %ret
+	%offset =l extuw %index
+	%addr =l add %p, %offset
+	%x =s loadv %addr
+	%sin =s ie64fsincos %x
+	%cos =s ie64fcosresult %sin
+	%ss =s ie64fsin %x
+	%cc =s ie64fcos %x
+	%square =s mul %x, %x
+	%arg =s add %square, s_0.125
+	%test =w ceqs %arg, s_0
+	jnz %test, @zero, @positive
+@positive
+	%root =s ie64fsqrt %arg
+	%inv =s div s_1, %root
+	%r =s mul %inv, %arg
+	jmp @join
+@zero
+	jmp @join
+@join
+	%selected =s phi @positive %r, @zero s_0
+	%ss_bits =w cast %ss
+	%cc_bits =w cast %cc
+	%sin_bits =w cast %sin
+	%cos_bits =w cast %cos
+	%r_bits =w cast %selected
+	%t0 =w xor %hash, %ss_bits
+	%t1 =w mul %t0, 16777619
+	%t2 =w xor %t1, %cc_bits
+	%t3 =w mul %t2, 16777619
+	%t4 =w xor %t3, %sin_bits
+	%t5 =w mul %t4, 16777619
+	%t6 =w xor %t5, %cos_bits
+	%t7 =w mul %t6, 16777619
+	%ret =w xor %t7, %r_bits
+	%next =w add %index, 4
+	%again =w cultw %next, %n
+	jnz %again, @loop, @return
+@return
+	ret %ret
+}

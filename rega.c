@@ -185,11 +185,13 @@ ralloctry(RMap *m, int t, int try)
 		assert(r != -1);
 		return TMP(r);
 	}
-	r = tmp[t].fppair ? rpair(m, t) : -1;
-	if (r == -1)
-		r = tmp[t].visit;
+	/* Keep a usable mapping from another block. The pair constraint
+	 * applies at the producer, where rsincos can place the results. */
+	r = tmp[t].visit;
 	if (r == -1 || rbusy(m, t, r, 0))
 		r = *hint(t);
+	if (tmp[t].fppair && (r == -1 || rbusy(m, t, r, 0)))
+		r = rpair(m, t);
 	if (r == -1 || rbusy(m, t, r, 0)) {
 		if (try)
 			return R;

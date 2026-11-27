@@ -102,3 +102,18 @@ for level in 2 3; do
 	' "$tmp/inline.s"
 	"$asm" -c -o "$tmp/inline.o" "$tmp/inline.s"
 done
+
+# Pair results stay live through a branch with a floating-point phi.
+# The join must not rotate these registers through the stack.
+for level in 0 2 3; do
+	"$bin" -t ie64 -O"$level" -mfpext test/ie64-fpext/pair-join.ssa > "$tmp/pair-join.s"
+	awk '
+		$1 == "fsincos" { pair++ }
+		$1 ~ /^(fload|fstore)$/ && /\(r31\)/ { stack++ }
+		END { exit (pair != 1 || stack != 0) }
+	' "$tmp/pair-join.s" || {
+		printf "%s\n" "-O$level: stack traffic in the FSINCOS join" >&2
+		exit 1
+	}
+	"$asm" -c -o "$tmp/pair-join.o" "$tmp/pair-join.s"
+done
