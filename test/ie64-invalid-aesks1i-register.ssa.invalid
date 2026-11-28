@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Zayn Otley
+# SPDX-License-Identifier: MIT
+
+export function l $invalid_aesks1i(l %x, l %n) {
+@start
+	%r =l ie64aesks1i %x, %n
+	ret %r
+}

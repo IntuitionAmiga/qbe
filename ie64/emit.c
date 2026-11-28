@@ -625,6 +625,18 @@ emitins(Ins *i, Fn *fn, FILE *f)
 		emitcmp3(i, fn, 0, f);
 		return;
 	}
+	if (isie64crypto(i->op)) {
+		fprintf(f, "\t%s ", optab[i->op].name + 4);  /* Skip the ie64 prefix. */
+		emitreg(i->to, f);
+		fputs(", ", f);
+		emitreg(i->arg[0], f);
+		if (i->op != Oie64aesim) {
+			fputs(", ", f);
+			emitvalue(i->arg[1], fn, f);
+		}
+		fputc('\n', f);
+		return;
+	}
 	if (isie64op(i->op)) {
 		static char *simple[] = {
 			[Oie64nop] = "nop", [Oie64halt] = "halt",

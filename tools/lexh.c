@@ -62,7 +62,10 @@ char *tok[] = {
 	"ie64fcosresult",
 	"ie64dcosresult",
 
-	"weak", "hidden", "call", "phi", "jmp", "jnz", "ret", "hlt", "export",
+	"ie64clmul", "ie64clmulh", "ie64aeses", "ie64aesesm", "ie64aesds",
+	"ie64aesdsm", "ie64aesim", "ie64aesks1i", "ie64aesks2",
+
+	"weak", "hidden", "call", "phi", "jmp", "jnz", "switch", "ret", "hlt", "export",
 	"function", "type", "data", "section", "align", "dbgfile",
 	"blit", "l", "w", "sh", "uh", "h", "sb", "ub", "b",
 	"d", "s", "z", "loadw", "loadl", "loads", "loadd",

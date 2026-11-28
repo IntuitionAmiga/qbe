@@ -210,6 +210,19 @@ O(ie64dfmapair, T(e,e,e,d, e,e,e,d), F(0,0,0,0,0,0,0,0,0,0)) X(0,0,1) V(0)
 O(ie64fcosresult, T(e,e,s,e, x,x,x,x), F(0,0,0,0,0,0,0,0,0,0)) X(0,0,1) V(0)
 O(ie64dcosresult, T(e,e,e,d, x,x,x,x), F(0,0,0,0,0,0,0,0,0,0)) X(0,0,1) V(0)
 
+/* IE64 crypto operations use only general registers.
+ * Keep aesks1i through selection so its immediate is checked.
+ * Use l for the immediate so GVN keeps its full value until that check. */
+O(ie64clmul,    T(e,l,e,e, e,l,e,e), F(0,0,0,0,0,0,0,0,0,0)) X(0,0,1) V(0)
+O(ie64clmulh,   T(e,l,e,e, e,l,e,e), F(0,0,0,0,0,0,0,0,0,0)) X(0,0,1) V(0)
+O(ie64aeses,    T(e,l,e,e, e,l,e,e), F(0,0,0,0,0,0,0,0,0,0)) X(0,0,1) V(0)
+O(ie64aesesm,   T(e,l,e,e, e,l,e,e), F(0,0,0,0,0,0,0,0,0,0)) X(0,0,1) V(0)
+O(ie64aesds,    T(e,l,e,e, e,l,e,e), F(0,0,0,0,0,0,0,0,0,0)) X(0,0,1) V(0)
+O(ie64aesdsm,   T(e,l,e,e, e,l,e,e), F(0,0,0,0,0,0,0,0,0,0)) X(0,0,1) V(0)
+O(ie64aesim,    T(e,l,e,e, x,x,x,x), F(0,0,0,0,0,0,0,0,0,0)) X(0,0,1) V(0)
+O(ie64aesks1i,  T(e,l,e,e, e,l,e,e), F(0,0,0,0,0,0,0,0,0,1)) X(0,0,1) V(0)
+O(ie64aesks2,   T(e,l,e,e, e,l,e,e), F(0,0,0,0,0,0,0,0,0,0)) X(0,0,1) V(0)
+
 /* Extensions and Truncations */
 O(extsb,   T(w,w,e,e, x,x,e,e), F(1,0,0,0,0,0,0,0,0,0)) X(0,0,1) V(0)
 O(extub,   T(w,w,e,e, x,x,e,e), F(1,0,0,0,0,0,0,0,0,0)) X(0,0,1) V(0)

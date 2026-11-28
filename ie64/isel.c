@@ -213,6 +213,16 @@ brimmcon(Ref r, int64_t *v, Fn *fn)
 	return 1;
 }
 
+static int
+ie64immarg(int op)
+{
+	if (op == Oie64aesks1i)
+		return 1;
+	if (isie64immop(op))
+		return 0;
+	return -1;
+}
+
 static void
 fixarg(Ref *r, int k, Ins *i, Fn *fn)
 {
@@ -221,7 +231,7 @@ fixarg(Ref *r, int k, Ins *i, Fn *fn)
 
 	if (rtype(*r) != RCon || memarg(r, i))
 		return;
-	if (isie64immop(i->op) && r == &i->arg[0])
+	if (ie64immarg(i->op) == r - i->arg)
 		return;
 	if (i->op == Osalloc)
 		return;
@@ -723,21 +733,24 @@ ie64_isel(Fn *fn)
 	int64_t n;
 	Slotmemo memo;
 	uint pa, edge;
-	int a, ck, cc, pn, npend, pendsign;
+	int a, ck, cc, immarg, pn, npend, pendsign;
 	Cmparg pend[2];
 	Con *c;
 
 	for (b=fn->start; b; b=b->link)
 		for (i=b->ins; i<&b->ins[b->nins]; i++) {
-			if (!isie64immop(i->op))
+			immarg = ie64immarg(i->op);
+			if (immarg < 0)
 				continue;
-			if (rtype(i->arg[0]) != RCon
-			|| (c = &fn->con[i->arg[0].val])->type != CBits)
+			if (rtype(i->arg[immarg]) != RCon
+			|| (c = &fn->con[i->arg[immarg].val])->type != CBits || c->flt)
 				die("IE64 immediate operand must be an integer constant");
 			n = c->bits.i;
 			if ((i->op == Oie64mfcr || i->op == Oie64mtcr
 			|| i->op == Oie64fmovecr || i->op == Oie64dmovecr)
 			&& (n < 0 || n > 15))
+				die("IE64 immediate operand is outside the supported range");
+			if (i->op == Oie64aesks1i && (n < 0 || n > 10))
 				die("IE64 immediate operand is outside the supported range");
 			if ((i->op == Oie64wait || i->op == Oie64syscall)
 			&& (n < 0 || (uint64_t)n > UINT32_MAX))

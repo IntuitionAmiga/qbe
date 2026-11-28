@@ -107,3 +107,75 @@ retirq:
 	rti
 	halt
 .size retirq,.-retirq
+.section .text,"ax"
+.global test_clmul
+.type test_clmul,@function
+.align 16
+test_clmul:
+	clmul r1, r1, r2
+	rts
+.size test_clmul,.-test_clmul
+.section .text,"ax"
+.global test_clmulh
+.type test_clmulh,@function
+.align 16
+test_clmulh:
+	clmulh r1, r1, r2
+	rts
+.size test_clmulh,.-test_clmulh
+.section .text,"ax"
+.global test_aeses
+.type test_aeses,@function
+.align 16
+test_aeses:
+	aeses r1, r1, r2
+	rts
+.size test_aeses,.-test_aeses
+.section .text,"ax"
+.global test_aesesm
+.type test_aesesm,@function
+.align 16
+test_aesesm:
+	aesesm r1, r1, r2
+	rts
+.size test_aesesm,.-test_aesesm
+.section .text,"ax"
+.global test_aesds
+.type test_aesds,@function
+.align 16
+test_aesds:
+	aesds r1, r1, r2
+	rts
+.size test_aesds,.-test_aesds
+.section .text,"ax"
+.global test_aesdsm
+.type test_aesdsm,@function
+.align 16
+test_aesdsm:
+	aesdsm r1, r1, r2
+	rts
+.size test_aesdsm,.-test_aesdsm
+.section .text,"ax"
+.global test_aesim
+.type test_aesim,@function
+.align 16
+test_aesim:
+	aesim r1, r1
+	rts
+.size test_aesim,.-test_aesim
+.section .text,"ax"
+.global test_aesks1i
+.type test_aesks1i,@function
+.align 16
+test_aesks1i:
+	aesks1i r1, r1, #10
+	rts
+.size test_aesks1i,.-test_aesks1i
+.section .text,"ax"
+.global test_aesks2
+.type test_aesks2,@function
+.align 16
+test_aesks2:
+	aesks2 r1, r1, r2
+	rts
+.size test_aesks2,.-test_aesks2

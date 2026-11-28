@@ -117,3 +117,57 @@ function $retirq() {
 	ie64rti
 	hlt
 }
+
+export function l $test_clmul(l %x, l %y) {
+@start
+	%r =l ie64clmul %x, %y
+	ret %r
+}
+
+export function l $test_clmulh(l %x, l %y) {
+@start
+	%r =l ie64clmulh %x, %y
+	ret %r
+}
+
+export function l $test_aeses(l %x, l %y) {
+@start
+	%r =l ie64aeses %x, %y
+	ret %r
+}
+
+export function l $test_aesesm(l %x, l %y) {
+@start
+	%r =l ie64aesesm %x, %y
+	ret %r
+}
+
+export function l $test_aesds(l %x, l %y) {
+@start
+	%r =l ie64aesds %x, %y
+	ret %r
+}
+
+export function l $test_aesdsm(l %x, l %y) {
+@start
+	%r =l ie64aesdsm %x, %y
+	ret %r
+}
+
+export function l $test_aesim(l %x) {
+@start
+	%r =l ie64aesim %x
+	ret %r
+}
+
+export function l $test_aesks1i(l %x) {
+@start
+	%r =l ie64aesks1i %x, 10
+	ret %r
+}
+
+export function l $test_aesks2(l %x, l %y) {
+@start
+	%r =l ie64aesks2 %x, %y
+	ret %r
+}

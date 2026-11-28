@@ -152,7 +152,7 @@ enum {
 	TMask = 16383, /* for temps hash */
 	BMask = 8191, /* for blocks hash */
 
-	K = 1336573, /* found using tools/lexh.c */
+	K = 2506203, /* found using tools/lexh.c */
 	M = 21,
 };
 

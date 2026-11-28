@@ -209,7 +209,8 @@ enum {
 #define isie64fpext(o) INRANGE(o, Oie64frsqrt, Oie64dcosresult)
 #define isie64fused(o) ((o) == Oie64fma || (o) == Oie64dfma \
 	|| (o) == Oie64fmapair || (o) == Oie64dfmapair)
-#define isie64op(o) (INRANGE(o, Oie64nop, Oie64vaarg) || isie64fpext(o))
+#define isie64crypto(o) INRANGE(o, Oie64clmul, Oie64aesks2)
+#define isie64op(o) (INRANGE(o, Oie64nop, Oie64vaarg) || isie64fpext(o) || isie64crypto(o))
 #define isie64immop(o) (INRANGE(o, Oie64wait, Oie64dmovecr) || (o) == Oie64mtcr)
 #define iscallop(o) ((o) == Ocall || (o) == Oie64syscall)
 #define isalloc(o) INRANGE(o, Oalloc4, Oalloc16)
